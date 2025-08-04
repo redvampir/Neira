@@ -50,6 +50,13 @@ def test_suggest_entities(tmp_path) -> None:
     assert "Лили" in suggestions
 
 
+def test_generate_hints(tmp_path) -> None:
+    _prepare_kb(tmp_path)
+    processor = TagProcessor()
+    hints = processor.generate_hints("Л")
+    assert "Лили" in hints
+
+
 def test_extract_style_examples(tmp_path) -> None:
     processor = TagProcessor()
     text = "[Пример стиля автора, из главы 1]\nТишина.\n[Пример окончен]"
