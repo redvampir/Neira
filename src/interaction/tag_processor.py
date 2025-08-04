@@ -176,6 +176,17 @@ class TagProcessor:
                 pool.append(item)
         return pool
 
+    def generate_hints(self, prefix: str) -> List[str]:
+        """Generate autocomplete hints for entity names.
+
+        This helper simply proxies to :meth:`suggest_entities` but provides a
+        clearer semantic name for callers such as the interactive CLI.  The
+        method collects suggestions from the knowledge base and the recent
+        entity history and returns all entries that begin with ``prefix``.
+        """
+
+        return self.suggest_entities(prefix)
+
     # ------------------------------------------------------------------
     # Style example extraction
     def extract_style_examples(self, text: str) -> List[str]:

@@ -15,17 +15,30 @@ from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.key_binding import KeyBindings
 
 from src.core.neyra_config import TagSystemConfig
+from src.interaction import TagProcessor
 
 
 class _NeyraCompleter(Completer):
-    """Autocomplete tags starting with ``@`` and commands starting with ``/``."""
+    """Autocomplete tags, commands and entity names within tags."""
 
-    def __init__(self, tags: Iterable[str], commands: Iterable[str]) -> None:
+    def __init__(self, tags: Iterable[str], commands: Iterable[str], processor: TagProcessor) -> None:
         self._tags = list(tags)
         self._commands = list(commands)
+        self._processor = processor
 
     def get_completions(self, document, complete_event):  # type: ignore[override]
         text = document.text_before_cursor
+
+        # Detect if the cursor is inside a tag after a colon.  In this case we
+        # provide entity name suggestions and automatically close the tag when a
+        # completion is accepted.
+        tag_match = re.search(r"@[^@:\s]+:\s*([^@]*)$", text)
+        if tag_match:
+            prefix = tag_match.group(1)
+            for suggestion in self._processor.generate_hints(prefix):
+                yield Completion(f"{suggestion}@ ", start_position=-len(prefix))
+            return
+
         word = document.get_word_before_cursor(pattern=re.compile(r"[^\s]+"))
         if not word:
             return
@@ -67,7 +80,8 @@ COMMANDS = [
 def run_cli(neyra) -> None:
     """Run interactive CLI loop for the given :class:`Neyra` instance."""
 
-    completer = _NeyraCompleter(_collect_tags(), COMMANDS)
+    processor = TagProcessor()
+    completer = _NeyraCompleter(_collect_tags(), COMMANDS, processor)
 
     kb = KeyBindings()
 
