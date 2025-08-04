@@ -1,7 +1,7 @@
 """Enhanced tag parser with support for inline and block patterns."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import re
 from typing import Dict, List
 
@@ -17,6 +17,7 @@ class Tag:
     content: str
     position: tuple
     priority: int = 1
+    params: Dict[str, str] = field(default_factory=dict)
 
 
 class EnhancedTagParser:
@@ -33,7 +34,10 @@ class EnhancedTagParser:
 
     #: block patterns like ``[Пример стиля автора, X]\n...\n[Пример окончен]``
     BLOCK_PATTERNS: Dict[str, str] = {
-        "style_example": r"\[Пример стиля автора,.*?\](.*?)\[Пример окончен\]",
+        "style_example": r"\[Пример стиля автора,\s*(?P<author>[^\]]+)\]\s*(?P<content>.*?)\s*\[Пример окончен\]",
+        "world_rule": r"\[Правило мира,\s*(?P<name>[^\]]+)\]\s*(?P<content>.*?)\s*\[Правило окончено\]",
+        "character_reminder": r"\[Напоминание персонажа,\s*(?P<name>[^\]]+)\]\s*(?P<content>.*?)\s*\[Напоминание окончено\]",
+        "generate_content": r"\[Сгенерируй,\s*(?P<topic>[^\]]+)\]\s*(?P<content>.*?)\s*\[Генерация окончена\]",
     }
 
     def __init__(self) -> None:
@@ -47,22 +51,30 @@ class EnhancedTagParser:
 
         for tag_type, pattern in self.INLINE_PATTERNS.items():
             for match in re.finditer(pattern, text, re.IGNORECASE | re.DOTALL):
+                groups = match.groupdict()
+                content = groups.pop("content", match.group(1)).strip()
+                params = {k: v.strip() for k, v in groups.items()}
                 tags.append(
                     Tag(
                         type=tag_type,
-                        content=match.group(1).strip(),
+                        content=content,
                         position=match.span(),
+                        params=params,
                     )
                 )
 
         for tag_type, pattern in self.BLOCK_PATTERNS.items():
             block_re = re.compile(pattern, re.IGNORECASE | re.DOTALL)
             for match in block_re.finditer(text):
+                groups = match.groupdict()
+                content = groups.pop("content", match.group(1) if match.groups() else "").strip()
+                params = {k: v.strip() for k, v in groups.items()}
                 tags.append(
                     Tag(
                         type=tag_type,
-                        content=match.group(1).strip(),
+                        content=content,
                         position=match.span(),
+                        params=params,
                     )
                 )
 
