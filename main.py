@@ -4,6 +4,7 @@
 import logging
 from pathlib import Path
 from src.core.neyra_brain import Neyra
+from src.cli.prompt_cli import run_cli
 
 def setup_logging() -> None:
     """Настраиваю систему для записи того, что думает Нейра"""
@@ -57,6 +58,7 @@ def main() -> None:
             print("Добавьте .txt файлы в папку data/books/ и я их изучу!")
             
         print("\n💫 Нейра готова к работе! Используйте теги для общения.")
+        run_cli(neyra)
         
     except Exception as e:  # pylint: disable=broad-except
         logger.error(f"Ошибка при пробуждении Нейры: {e}")
