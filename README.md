@@ -105,31 +105,69 @@ python main.py
 
 ## 🔗 Подключение языковой модели (ВАЖНО)
 
-Нейра умеет работать с локальной моделью **Mistral 7B Instruct Q6_K** в формате GGUF.
+Нейра может работать с несколькими локальными моделями в формате GGUF. Ниже
+представлены способы установки для **Mistral 7B** и **Qwen‑2.5**.
 
-### Вариант 1. Ручная настройка
+### Mistral 7B Instruct Q6_K
+
+#### Ручная установка
 1. Скачайте файл [`mistral-7b-instruct-v0.1.Q6_K.gguf`](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF).
-2. Создайте папку `models/mistral/` и поместите модель по пути `models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf`.
-3. Убедитесь, что в `requirements.txt` есть строка `llama-cpp-python>=0.2.56` и установите зависимости:
+2. Создайте папку `models/mistral/` и поместите модель по пути
+   `models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf`.
+3. Убедитесь, что в `requirements.txt` есть строка `llama-cpp-python>=0.2.56`
+   и установите зависимости:
    ```bash
    pip install -r requirements.txt
    ```
-4. Проверьте или создайте файл `config/llm_config.json` со следующим содержимым:
-   ```json
-   {
-     "model_path": "models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf",
-     "max_tokens": 512
-   }
-   ```
-5. Запустите `python main.py` и общайтесь с Нейрой как обычно.
+4. Обновите файл `config/llm_config.json`, указав путь к модели (пример ниже).
+5. Запустите `python main.py` и общайтесь с Нейрой.
 
-### Вариант 2. Быстрый старт через терминал
+#### Скрипт загрузки
 ```bash
-mkdir -p models/mistral
-wget -O models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q6_K.gguf"
-pip install -r requirements.txt
-python main.py
+python scripts/download_mistral.py
 ```
+Скрипт скачает модель в `models/mistral/` и автоматически обновит
+`config/llm_config.json`.
+
+### Qwen‑2.5 Instruct Q4_K_M
+
+#### Ручная установка
+1. Скачайте файл [`Qwen2.5-0.5B-Instruct-Q4_K_M.gguf`](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF).
+2. Создайте папку `models/qwen/` и поместите модель по пути
+   `models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf`.
+3. Установите зависимости:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Обновите `config/llm_config.json`, указав путь к модели.
+
+#### Скрипт загрузки
+```bash
+python scripts/download_qwen.py
+```
+Скрипт скачает модель и укажет её в `config/llm_config.json`.
+
+### Пример `config/llm_config.json`
+```json
+{
+  "model_path": "models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf",
+  "max_tokens": 512
+}
+```
+
+### Устранение проблем с `llama-cpp`
+* **CPU:** обычной установки `pip install llama-cpp-python` достаточно. При
+  ошибках компиляции убедитесь, что установлены инструменты сборки
+  (gcc, make).
+* **GPU (CUDA):** перед установкой задайте переменную
+  `CMAKE_ARGS="-DLLAMA_CUBLAS=on"`:
+  ```bash
+  CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install --force-reinstall llama-cpp-python
+  ```
+  Если GPU недоступен, библиотека автоматически переключится на CPU.
+* Если при запуске появляется сообщение `libllama.so: cannot open shared
+  object file`, переустановите пакет с ключами `--force-reinstall
+  --no-cache-dir`.
 
 ### Веб-интерфейс Streamlit
 
