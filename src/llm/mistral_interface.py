@@ -1,6 +1,8 @@
 """Mistral LLM interface using llama-cpp-python."""
 from __future__ import annotations
 
+from .base_llm import BaseLLM, LLMFactory
+
 # The real implementation relies on ``llama_cpp`` which may not be available
 # in lightweight environments (like the test environment for this kata).
 # Import the class lazily and provide a helpful fallback so that the module can
@@ -12,8 +14,10 @@ except ModuleNotFoundError:  # pragma: no cover
     Llama = None  # type: ignore
 
 
-class MistralLLM:
+class MistralLLM(BaseLLM):
     """Wrapper around a local Mistral GGUF model."""
+
+    model_name = "mistral"
 
     def __init__(self, model_path: str) -> None:
         if Llama is None:
@@ -33,3 +37,11 @@ class MistralLLM:
             raise RuntimeError("llama_cpp is required to use MistralLLM")
         result = self.model(prompt, max_tokens=max_tokens, stop=["</s>"])
         return result["choices"][0]["text"].strip()
+
+    @classmethod
+    def is_available(cls) -> bool:  # pragma: no cover - simple availability check
+        return Llama is not None
+
+
+# Register the implementation in the factory
+LLMFactory.register("mistral", MistralLLM)

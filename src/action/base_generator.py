@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from src.llm.mistral_interface import MistralLLM
+from src.llm import BaseLLM
 
 
 class BaseGenerator:
@@ -14,7 +14,7 @@ class BaseGenerator:
     fallback when the LLM is not available.
     """
 
-    def __init__(self, llm: Optional[MistralLLM], template: str) -> None:
+    def __init__(self, llm: Optional[BaseLLM], template: str) -> None:
         self.llm = llm
         self.template = template
 

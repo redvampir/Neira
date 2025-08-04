@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Optional
 
-from src.llm.mistral_interface import MistralLLM
+from src.llm import BaseLLM
 from .base_generator import BaseGenerator
 
 
 class DialogueMaster(BaseGenerator):
     """Помогаю героям говорить живо."""
 
-    def __init__(self, llm: Optional[MistralLLM]) -> None:
+    def __init__(self, llm: Optional[BaseLLM]) -> None:
         super().__init__(llm, template="Сгенерируй диалог: {prompt}")
 
     def create(self, command: str, max_tokens: int = 512) -> str:
