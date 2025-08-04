@@ -73,7 +73,14 @@ def analyze_book(file_path: str) -> Dict[str, Dict[str, str]]:
         written to disk.
     """
 
-    text = Path(file_path).read_text(encoding="utf-8")
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Book file not found: {file_path}")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read book file '{file_path}': {exc}") from exc
+
     KB_ROOT.mkdir(parents=True, exist_ok=True)
 
     chapters = _split_chapters(text)
