@@ -12,6 +12,9 @@ from src.action.scene_painter import ScenePainter
 from src.action.description_writer import DescriptionWriter
 
 
+DEFAULT_DIALOGUE_STYLE = "дружеский"
+
+
 class CommandExecutor:
     """Я выполняю команды с творческим подходом и пониманием контекста.
 
@@ -154,7 +157,7 @@ class CommandExecutor:
                 "opening": ["Позвольте заметить", "Следует отметить", "Я вынужден сказать"],
                 "response": ["Безусловно", "Разумеется", "Я полностью согласен"],
             },
-            "дружеский": {
+            DEFAULT_DIALOGUE_STYLE: {
                 "opening": ["Слушай", "Знаешь что", "Кстати говоря"],
                 "response": ["Точно!", "Да ладно!", "Не может быть!"],
             },
@@ -164,7 +167,7 @@ class CommandExecutor:
             },
         }
 
-        style = "дружеский"
+        style = DEFAULT_DIALOGUE_STYLE
         template = dialogue_templates[style]
 
         return (
