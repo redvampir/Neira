@@ -99,6 +99,8 @@ def run_cli(neyra) -> None:
     while True:
         try:
             text = session.prompt("> ")
+            if hasattr(neyra, "history"):
+                neyra.history.add(text)
         except (KeyboardInterrupt, EOFError):  # pragma: no cover - interactive
             print()
             break

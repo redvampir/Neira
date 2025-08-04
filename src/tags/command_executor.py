@@ -57,6 +57,7 @@ class CommandExecutor:
     def _register_default_handlers(self) -> None:
         self._handlers = {
             "neyra_command": self._execute_neyra_command,
+            "memory_recall": self._recall_request,
             "character_work": self._work_with_character,
             "emotion_paint": self._paint_with_emotion,
             "style_guide": self._apply_style,
@@ -87,6 +88,12 @@ class CommandExecutor:
         if handler:
             return handler(tag.content, context)
         return f"🤔 Команда '{tag.type}' понята, но пока учусь её выполнять..."
+
+    def _recall_request(self, query: str, context: Dict[str, Any]) -> str:
+        """Ищу запросы пользователя по истории."""
+        if self.neyra_brain is None or not hasattr(self.neyra_brain, "history"):
+            return "📝 История пока недоступна."
+        return self.neyra_brain.history.search(query)
 
     # ------------------------------------------------------------------
     # Обработчики отдельных команд

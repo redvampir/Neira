@@ -95,6 +95,15 @@ def test_neyra_handles_complex_commands():
     assert "формальный" in result
 
 
+def test_neyra_recall_history():
+    """Нейра должна вспоминать предыдущие запросы"""
+    neyra = Neyra()
+    neyra.history.add("первый запрос")
+    neyra.history.add("второй запрос")
+    result = neyra.process_command("@Вспомни: 1@")
+    assert "первый запрос" in result
+
+
 def test_neyra_personality_traits():
     """Проверяю, что личность Нейры настроена правильно"""
     neyra = Neyra()
