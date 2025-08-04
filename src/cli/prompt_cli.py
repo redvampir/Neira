@@ -13,6 +13,8 @@ from typing import Iterable
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.key_binding import KeyBindings
+from rich.console import Console
+from rich.panel import Panel
 
 from src.interaction import TagProcessor
 
@@ -56,7 +58,7 @@ class _NeyraCompleter(Completer):
 COMMANDS = TagProcessor.SLASH_COMMANDS
 
 
-def run_cli(neyra) -> None:
+def run_cli(neyra, *, use_color: bool = True) -> None:
     """Run interactive CLI loop for the given :class:`Neyra` instance."""
 
     processor = TagProcessor()
@@ -73,6 +75,7 @@ def run_cli(neyra) -> None:
             buffer.start_completion(select_first=False)
 
     session = PromptSession(completer=completer, key_bindings=kb)
+    console = Console(no_color=not use_color)
 
     print("Введите команды. Используйте /help для помощи, /exit для выхода.")
     while True:
@@ -91,10 +94,18 @@ def run_cli(neyra) -> None:
             if result == "__exit__":
                 break
             if result:
-                print(result)
+                console.print(Panel(result, style="cyan"))
             continue
         result = neyra.process_command(text)
-        print(result)
+        lower = result.lower()
+        if "@" in result:
+            console.print(Panel(result, style="cyan"))
+        elif "эмоци" in lower:
+            console.print(Panel(result, style="magenta"))
+        elif any(word in lower for word in ["опис", "сцена"]):
+            console.print(Panel(result, style="green"))
+        else:
+            console.print(result)
 
 
 __all__ = ["run_cli"]
