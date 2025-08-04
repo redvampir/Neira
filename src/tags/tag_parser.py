@@ -2,18 +2,21 @@
 Система тегов - это язык общения с Нейрой.
 Здесь я учусь понимать команды пользователя.
 """
+
 import re
 from typing import List, Dict
 from dataclasses import dataclass
+from src.core.neyra_config import TagSystemConfig
 
 
 @dataclass
 class Tag:
     """Один тег - одна команда для Нейры"""
-    type: str           # Тип команды
-    content: str        # Содержание команды
-    position: tuple     # Позиция в тексте
-    priority: int = 1   # Приоритет выполнения
+
+    type: str  # Тип команды
+    content: str  # Содержание команды
+    position: tuple  # Позиция в тексте
+    priority: int = 1  # Приоритет выполнения
 
 
 class TagParser:
@@ -21,10 +24,9 @@ class TagParser:
 
     def __init__(self) -> None:
         """Инициализирую свой словарь понимания тегов"""
-        from src.core.neyra_config import TagSystemConfig
         self.tag_patterns: Dict[str, str] = {
             **TagSystemConfig.CORE_TAGS,
-            **TagSystemConfig.EXTENDED_TAGS
+            **TagSystemConfig.EXTENDED_TAGS,
         }
 
     def parse_user_input(self, text: str) -> List[Tag]:
@@ -40,9 +42,7 @@ class TagParser:
             matches = re.finditer(pattern, text, re.IGNORECASE)
             for match in matches:
                 tag = Tag(
-                    type=tag_type,
-                    content=match.group(1).strip(),
-                    position=match.span()
+                    type=tag_type, content=match.group(1).strip(), position=match.span()
                 )
                 tags.append(tag)
 
@@ -58,7 +58,7 @@ class TagParser:
             suggestions.append("@Персонаж: имя - действие@")
 
         # Если текст эмоциональный, предлагаю @Эмоция:@
-        emotion_words = ['грустно', 'радостно', 'страшно', 'весело']
+        emotion_words = ["грустно", "радостно", "страшно", "весело"]
         if any(word in context.lower() for word in emotion_words):
             suggestions.append("@Эмоция: чувство@")
 
