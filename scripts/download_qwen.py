@@ -1,10 +1,13 @@
 
 """Download the Qwen‑2.5 GGUF model and update configuration.
 
-The script fetches a lightweight variant of the Qwen‑2.5 Instruct model in
-GGUF format and stores it under ``models/qwen``. After a successful download
-``config/llm_config.json`` is updated so that subsequent runs of Neyra use the
-new model.
+The script fetches the Qwen‑2.5 **7B** Instruct model in GGUF format and stores
+it under ``models/qwen``. After a successful download ``config/llm_config.json``
+is updated so that subsequent runs of Neyra use the new model and a higher
+token limit.
+
+The chosen defaults assume roughly 16 GB of system RAM and an RTX 3060 Ti; tweak
+``max_tokens`` if your hardware differs.
 """
 
 from __future__ import annotations
@@ -21,12 +24,13 @@ from tqdm import tqdm
 # Paths and constants
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_URL = (
-    "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/"
-    "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+    "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/"
+    "Qwen2.5-7B-Instruct-Q4_K_M.gguf"
 )
 MODEL_DIR = ROOT / "models" / "qwen"
-MODEL_PATH = MODEL_DIR / "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+MODEL_PATH = MODEL_DIR / "Qwen2.5-7B-Instruct-Q4_K_M.gguf"
 CONFIG_PATH = ROOT / "config" / "llm_config.json"
+DEFAULT_MAX_TOKENS = 1024
 
 
 def download() -> None:
@@ -60,10 +64,13 @@ def update_config() -> None:
 
     cfg = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     cfg["model_path"] = str(MODEL_PATH)
+    cfg["max_tokens"] = DEFAULT_MAX_TOKENS
     CONFIG_PATH.write_text(
         json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    print(f"Updated config to use {MODEL_PATH}")
+    print(
+        f"Updated config to use {MODEL_PATH} with {DEFAULT_MAX_TOKENS} max tokens"
+    )
 
 
 def main() -> None:
