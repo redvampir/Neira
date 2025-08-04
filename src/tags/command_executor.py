@@ -203,15 +203,18 @@ class CommandExecutor:
 
         if self.neyra_brain is not None and hasattr(self.neyra_brain, "characters_memory"):
             memory = self.neyra_brain.characters_memory
-            if name not in memory:
-                memory[name] = {
+            data = memory.get(name)
+            if data is None:
+                data = {
                     "personality_traits": [trait],
                     "emotional_moments": [],
                     "relationships": {},
                     "growth_arc": [],
                 }
             else:
-                memory[name]["personality_traits"].append(trait)
+                data["personality_traits"].append(trait)
+            memory.add(name, data)
+            memory.save()
 
         insights = [
             f"В {name} есть что-то особенное - {trait} проявляется не только в словах, но и в жестах",
