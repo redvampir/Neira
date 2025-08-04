@@ -14,7 +14,9 @@ import re
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Deque, Dict, List, Optional
+from typing import Callable, Deque, Dict, List, Optional
+
+from src.core.neyra_config import TagSystemConfig
 
 
 @dataclass
@@ -39,10 +41,28 @@ class TagProcessor:
         Optional language model used when generation is requested.
     """
 
+    SLASH_COMMANDS = [
+        "help",
+        "exit",
+        "внешность",
+        "стиль",
+        "сцена",
+        "сгенерировать",
+    ]
+
     def __init__(self, kb_path: str | Path = "data/knowledge_base", llm: Optional[object] = None) -> None:
         self.kb_path = Path(kb_path)
         self.llm = llm
         self.entity_history: Deque[str] = deque(maxlen=100)
+
+        self._slash_handlers: Dict[str, Callable[[str], Optional[str]]] = {
+            "help": self._cmd_help,
+            "exit": self._cmd_exit,
+            "внешность": lambda arg: self._character_command(arg, "внешность"),
+            "стиль": lambda arg: self._character_command(arg, "стиль"),
+            "сцена": lambda arg: self._character_command(arg, "сцена"),
+            "сгенерировать": self._generate_text,
+        }
 
         index_file = self.kb_path / "index.json"
         if index_file.exists():
@@ -186,6 +206,42 @@ class TagProcessor:
         """
 
         return self.suggest_entities(prefix)
+
+    # ------------------------------------------------------------------
+    # Slash command helpers
+    @staticmethod
+    def available_tags() -> List[str]:
+        patterns = {**TagSystemConfig.CORE_TAGS, **TagSystemConfig.EXTENDED_TAGS}
+        tags: List[str] = []
+        for pattern in patterns.values():
+            start = pattern.find("@") + 1
+            end = pattern.find(":", start)
+            if start > 0 and end > start:
+                tags.append(pattern[start:end])
+        return tags
+
+    def supported_slash_commands(self) -> List[str]:
+        return list(self._slash_handlers.keys())
+
+    def execute_slash(self, command: str) -> Optional[str]:
+        text = command.strip()
+        if text.startswith("/"):
+            text = text[1:]
+        name, _, arg = text.partition(" ")
+        handler = self._slash_handlers.get(name.lower())
+        if not handler:
+            return None
+        result = handler(arg.strip())
+        return result
+
+    def _cmd_help(self, _arg: str) -> str:
+        tags = ", ".join(self.available_tags())
+        cmds = ", ".join(f"/{c}" for c in self.supported_slash_commands())
+        return f"Доступные теги: {tags}\nДоступные команды: {cmds}"
+
+    @staticmethod
+    def _cmd_exit(_arg: str) -> str:
+        return "__exit__"
 
     # ------------------------------------------------------------------
     # Style example extraction
