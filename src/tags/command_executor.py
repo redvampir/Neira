@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, List, Optional
 from src.tags.tag_parser import Tag
 from src.action.dialogue_master import DialogueMaster
 from src.action.scene_painter import ScenePainter
+from src.action.description_writer import DescriptionWriter
 
 
 class CommandExecutor:
@@ -46,6 +47,7 @@ class CommandExecutor:
         llm = getattr(neyra_brain, "llm", None) if neyra_brain else None
         self.dialogue_master = DialogueMaster(llm)
         self.scene_painter = ScenePainter(llm)
+        self.description_writer = DescriptionWriter(llm)
 
     # ------------------------------------------------------------------
     # Регистрация обработчиков
@@ -57,6 +59,7 @@ class CommandExecutor:
             "style_guide": self._apply_style,
             "dialogue_create": self._create_dialogue,
             "scene_build": self._build_scene,
+            "description_write": self._write_description,
             "consistency_check": self._check_consistency,
         }
 
@@ -245,6 +248,12 @@ class CommandExecutor:
         if self.scene_painter.llm is not None:
             return self.scene_painter.paint(scene_description, max_tokens=max_tokens)
         return self._create_creative_scene(scene_description, context)
+
+    def _write_description(self, description: str, context: Dict[str, Any]) -> str:
+        max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
+        if self.description_writer.llm is not None:
+            return self.description_writer.write(description, max_tokens=max_tokens)
+        return f"📜 Описание: {description}"
 
     def _check_consistency(self, check_target: str, context: Dict[str, Any]) -> str:
         return f"🔍 Анализирую консистентность: {check_target}. Ищу противоречия и несоответствия в деталях..."
