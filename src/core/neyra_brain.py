@@ -13,6 +13,7 @@ from src.utils.encoding_detector import detect_encoding
 from src.llm.mistral_interface import MistralLLM
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory
+from src.models import Character
 
 
 class Neyra:
@@ -99,12 +100,14 @@ class Neyra:
             if name not in stop_words and len(name) >= 3:
                 if name not in self.characters_memory:
                     self.characters_memory.add(
-                        name,
-                        {
-                            "first_mention": True,
-                            "personality_traits": [],
-                            "emotional_moments": [],
-                        },
+                        Character(
+                            name=name,
+                            personality_traits=[],
+                            emotional_moments=[],
+                            relationships={},
+                            growth_arc=[],
+                            first_mention=True,
+                        )
                     )
         self.characters_memory.save()
 
@@ -192,11 +195,7 @@ class Neyra:
         else:
             # Добавляю нового персонажа
             self.characters_memory.add(
-                name,
-                {
-                    "personality_traits": [],
-                    "emotional_moments": [],
-                },
+                Character(name=name, personality_traits=[], emotional_moments=[])
             )
             self.characters_memory.save()
             return f"👤 Знакомлюсь с {name}! Запоминаю: {action}"
