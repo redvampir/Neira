@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
 from src.llm import MistralLLM  # noqa: E402
 from src.memory import CharacterMemory  # noqa: E402
 from src.models import Character  # noqa: E402
-from src.tags.tag_parser import TagParser  # noqa: E402
+from src.tags.enhanced_parser import EnhancedTagParser as TagParser  # noqa: E402
 from src.tags.command_executor import CommandExecutor  # noqa: E402
 
 

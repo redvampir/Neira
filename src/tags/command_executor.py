@@ -6,7 +6,7 @@ from __future__ import annotations
 import random
 from typing import Any, Callable, Dict, List, Optional
 
-from src.tags.tag_parser import Tag
+from src.tags.enhanced_parser import Tag
 from src.tags.manager import (
     available_tags as manager_available_tags,
     get_handler as manager_get_handler,
@@ -69,6 +69,9 @@ class CommandExecutor:
         manager_register_handler("scene_build", self._build_scene)
         manager_register_handler("description_write", self._write_description)
         manager_register_handler("consistency_check", self._check_consistency)
+        manager_register_handler("style_example", self._handle_style_example)
+        manager_register_handler("character_reminder", self._handle_character_reminder)
+        manager_register_handler("generate_content", self._handle_generate_content)
 
     def register_handler(
         self, tag_type: str, handler: Callable[[str, Dict[str, Any]], str]
@@ -279,3 +282,20 @@ class CommandExecutor:
 
     def _continue_story(self, instruction: str, context: Dict[str, Any]) -> str:
         return f"📖 Продолжаю историю: {instruction}. Соблюдаю логику повествования и характеры персонажей..."
+
+    # ------------------------------------------------------------------
+    # Дополнительные обработчики
+    def _handle_style_example(self, example: str, context: Dict[str, Any]) -> str:
+        examples: List[str] = context.setdefault("style_examples", [])
+        examples.append(example)
+        return f"📝 Сохраняю пример стиля ({len(example)} символов)"
+
+    def _handle_character_reminder(self, name: str, context: Dict[str, Any]) -> str:
+        return f"🔔 Помню о персонаже: {name}"
+
+    def _handle_generate_content(self, prompt: str, context: Dict[str, Any]) -> str:
+        llm = getattr(self.neyra_brain, "llm", None) if self.neyra_brain else None
+        max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
+        if llm is not None:
+            return llm.generate(prompt, max_tokens=max_tokens)
+        return f"✨ Генерирую контент: {prompt}"
