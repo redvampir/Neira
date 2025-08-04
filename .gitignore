@@ -1,0 +1,43 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+logs/*
+!logs/.gitkeep
+*.log
+
+# Test and coverage outputs
+.pytest_cache/
+.coverage
+
+# IDE and editor settings
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+
+# Data artifacts
+data/*
+!data/books/
+!data/cache/
+!data/models/
+data/books/*
+!data/books/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+data/models/*
+!data/models/.gitkeep
