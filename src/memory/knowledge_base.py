@@ -18,8 +18,11 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
+from src.core.cache_manager import CacheManager
+
 # Root directory for knowledge base artefacts
 KB_ROOT = Path("data/knowledge_base")
+cache = CacheManager()
 
 
 def _split_chapters(text: str) -> Dict[str, str]:
@@ -76,6 +79,11 @@ def analyze_book(file_path: str) -> Dict[str, Dict[str, str]]:
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"Book file not found: {file_path}")
+    mtime = path.stat().st_mtime
+    cache_key = f"analyze_book:{path}"
+    cached = cache.get(cache_key)
+    if cached and cached.get("mtime") == mtime:
+        return cached["data"]
     try:
         text = path.read_text(encoding="utf-8")
     except Exception as exc:
@@ -129,12 +137,14 @@ def analyze_book(file_path: str) -> Dict[str, Dict[str, str]]:
         encoding="utf-8",
     )
 
-    return {
+    data = {
         "characters": characters,
         "locations": locations,
         "style_examples": style_examples,
         "index": index,
     }
+    cache.set(cache_key, {"mtime": mtime, "data": data})
+    return data
 
 
 __all__ = ["analyze_book"]
