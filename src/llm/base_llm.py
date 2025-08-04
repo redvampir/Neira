@@ -14,11 +14,15 @@ class BaseLLM(ABC):
         """Generate text based on ``prompt``."""
         raise NotImplementedError
 
-    @classmethod
     @abstractmethod
-    def is_available(cls) -> bool:
-        """Return ``True`` if the backend dependencies are installed."""
+    def is_available(self) -> bool:
+        """Return ``True`` if the model has been loaded successfully."""
         raise NotImplementedError
+
+    @classmethod
+    def is_backend_available(cls) -> bool:  # pragma: no cover - simple availability check
+        """Return ``True`` if the backend dependencies are installed."""
+        return True
 
 
 class LLMFactory:
@@ -37,6 +41,6 @@ class LLMFactory:
         llm_cls = cls._registry.get(model_type)
         if llm_cls is None:
             raise ValueError(f"Unknown model_type: {model_type}")
-        if not llm_cls.is_available():
+        if not llm_cls.is_backend_available():
             raise RuntimeError(f"{llm_cls.model_name} is not available")
         return llm_cls(**kwargs)
