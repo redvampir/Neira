@@ -137,21 +137,39 @@ python scripts/download_mistral.py
 
 ### Qwen‑2.5 Instruct Q4_K_M
 
-#### Ручная установка
-1. Скачайте файл [`Qwen2.5-0.5B-Instruct-Q4_K_M.gguf`](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF).
-2. Создайте папку `models/qwen/` и поместите модель по пути
-   `models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf`.
-3. Установите зависимости:
+#### Установка через терминал
+1. Создайте директорию и скачайте модель:
+   ```bash
+   mkdir -p models/qwen
+   wget https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf -O models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf
+   ```
+2. Установите зависимости:
    ```bash
    pip install -r requirements.txt
    ```
-4. Обновите `config/llm_config.json`, указав путь к модели.
+3. Пропишите путь к модели и количество токенов в `config/llm_config.json`:
+   ```json
+   {
+     "model_path": "models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
+     "max_tokens": 512
+   }
+   ```
 
 #### Скрипт загрузки
 ```bash
 python scripts/download_qwen.py
 ```
 Скрипт скачает модель и укажет её в `config/llm_config.json`.
+
+#### Рекомендуемые значения `max_tokens`
+Параметр `max_tokens` определяет количество токенов, которое модель может сгенерировать за один ответ. Выберите значение в зависимости от доступных ресурсов:
+
+| Конфигурация        | Рекомендуемый `max_tokens` |
+|---------------------|----------------------------|
+| CPU или 8 GB RAM    | 256                        |
+| GPU 4–6 GB VRAM     | 512                        |
+| GPU 8–12 GB VRAM    | 1024                       |
+| GPU ≥16 GB VRAM     | 2048                       |
 
 ### Пример `config/llm_config.json`
 ```json
