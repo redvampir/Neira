@@ -16,7 +16,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.panel import Panel
 
-from src.interaction import TagProcessor
+from src.interaction import TagProcessor, handle_command
 
 
 class _NeyraCompleter(Completer):
@@ -89,23 +89,15 @@ def run_cli(neyra, *, use_color: bool = True) -> None:
         clean = text.strip()
         if not clean:
             continue
-        if clean.startswith("/"):
-            result = processor.execute_slash(clean)
-            if result == "__exit__":
-                break
-            if result:
-                console.print(Panel(result, style="cyan"))
+        result = handle_command(neyra, text, processor)
+        if result.is_exit:
+            break
+        if not result.text:
             continue
-        result = neyra.process_command(text)
-        lower = result.lower()
-        if "@" in result:
-            console.print(Panel(result, style="cyan"))
-        elif "эмоци" in lower:
-            console.print(Panel(result, style="magenta"))
-        elif any(word in lower for word in ["опис", "сцена"]):
-            console.print(Panel(result, style="green"))
+        if result.style:
+            console.print(Panel(result.text, style=result.style))
         else:
-            console.print(result)
+            console.print(result.text)
 
 
 __all__ = ["run_cli"]
