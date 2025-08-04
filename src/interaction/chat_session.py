@@ -14,8 +14,7 @@ from dataclasses import dataclass
 import re
 from typing import List, Optional
 
-from .command_handler import handle_command
-from .tag_processor import TagProcessor
+from .tag_processor import TagProcessor, handle_command
 
 
 @dataclass
