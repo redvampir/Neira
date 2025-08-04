@@ -53,22 +53,98 @@ class TagProcessor:
     # ------------------------------------------------------------------
     # Parsing
     def parse(self, text: str) -> List[ProcessedTag]:
-        """Extract all tags from the provided text."""
+        """Extract all tags from the provided text.
 
-        pattern = re.compile(r"@([^:]+):\s*([^@]+)@")
+        The classic regex approach is not flexible enough for escaping or
+        nested tags, therefore the implementation below scans the string
+        manually while tracking opening markers.
+        """
+
         tags: List[ProcessedTag] = []
-        for match in pattern.finditer(text):
-            tag_type = match.group(1).strip().lower()
-            content = match.group(2).strip()
-            subject, commands = self._split_content(content)
-            tag = ProcessedTag(type=tag_type, subject=subject, commands=commands, raw=match.group(0))
+        stack: List[int] = []
+        i = 0
+        length = len(text)
+
+        while i < length:
+            char = text[i]
+            if char == "@":
+                # Escaped delimiter
+                if i + 1 < length and text[i + 1] == "@":
+                    i += 2
+                    continue
+
+                # Determine whether this is a start of a tag or its end.
+                j = i + 1
+                colon_found = False
+                while j < length:
+                    ch = text[j]
+                    if ch == "@":
+                        if j + 1 < length and text[j + 1] == "@":
+                            j += 2
+                            continue
+                        break
+                    if ch == ":":
+                        colon_found = True
+                    j += 1
+
+                if colon_found:
+                    stack.append(i)
+                    i += 1
+                    continue
+
+                if stack:
+                    start = stack.pop()
+                    raw = text[start : i + 1]
+                    inner = raw[1:-1]
+                    if ":" in inner:
+                        tag_type, content = inner.split(":", 1)
+                        subject, commands = self._split_content(content.strip())
+                        tag = ProcessedTag(
+                            type=tag_type.strip().lower(),
+                            subject=subject,
+                            commands=commands,
+                            raw=raw,
+                        )
+                        tags.append(tag)
+                        self.register_entity(subject)
+                    i += 1
+                    continue
+
+                # Stray marker – skip
+                i += 1
+                continue
+
+            i += 1
+
+        # Finalise any unclosed tags (e.g. when the closing marker is
+        # escaped and sits at the end of the string)
+        while stack:
+            start = stack.pop(0)
+            inner = text[start + 1 :]
+            if ":" not in inner:
+                continue
+            tag_type, content = inner.split(":", 1)
+            subject, commands = self._split_content(content.strip())
+            raw = text[start:]
+            tag = ProcessedTag(
+                type=tag_type.strip().lower(),
+                subject=subject,
+                commands=commands,
+                raw=raw,
+            )
             tags.append(tag)
             self.register_entity(subject)
+
         return tags
 
     @staticmethod
     def _split_content(content: str) -> tuple[str, List[str]]:
         """Split tag content into subject and a list of commands."""
+
+        def _unescape(text: str) -> str:
+            while "@@" in text:
+                text = text.replace("@@", "@")
+            return text
 
         parts = [p.strip() for p in content.split('/') if p.strip()]
         first = parts[0] if parts else ""
@@ -78,7 +154,9 @@ class TagProcessor:
         if cmd_part:
             commands.append(cmd_part.strip())
         commands.extend(rest)
-        return subject_part.strip(), commands
+        subject = _unescape(subject_part.strip())
+        commands = [_unescape(cmd) for cmd in commands]
+        return subject, commands
 
     # ------------------------------------------------------------------
     # Autocomplete helpers

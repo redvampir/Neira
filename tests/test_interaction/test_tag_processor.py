@@ -29,6 +29,20 @@ def test_parse_with_slash_commands() -> None:
     assert tag.commands == ["внешность", "стиль"]
 
 
+def test_parse_with_escaped_at() -> None:
+    processor = TagProcessor()
+    tag = processor.parse("@Персонаж: Лили@@")[0]
+    assert tag.subject == "Лили@"
+
+
+def test_parse_nested_tags() -> None:
+    processor = TagProcessor()
+    text = "@Сцена: встреча с @Персонаж: Лили@@@ в кафе@"
+    tags = processor.parse(text)
+    assert tags[0].type == "персонаж" and tags[0].subject == "Лили@"
+    assert tags[1].type == "сцена" and tags[1].subject == "встреча с @Персонаж: Лили@ в кафе"
+
+
 def test_suggest_entities(tmp_path) -> None:
     _prepare_kb(tmp_path)
     processor = TagProcessor()
