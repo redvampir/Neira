@@ -12,7 +12,7 @@ from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
 from src.utils.encoding_detector import detect_encoding
 from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
-from src.memory import CharacterMemory
+from src.memory import CharacterMemory, WorldMemory, StyleMemory
 from src.models import Character
 from src.core.cache_manager import CacheManager
 
@@ -30,6 +30,9 @@ class Neyra:
         self.personality = NeyraPersonality()
         self.known_books: List[str] = []
         self.characters_memory = CharacterMemory()
+        self.world_memory = WorldMemory()
+        self.style_memory = StyleMemory()
+        self.current_style = ""
         self.emotional_state = "любопытная"
         self.history = RequestHistory()
         self.cache = CacheManager()
@@ -149,6 +152,8 @@ class Neyra:
             "emotion": self.emotional_state,
             "characters": list(self.characters_memory.keys()),
             "known_books": self.known_books,
+            "worlds": self.world_memory.get(),
+            "style_examples": [],
         }
 
         response_parts = []
@@ -156,6 +161,11 @@ class Neyra:
         for tag in tags:
             result = self.executor.execute_command(tag, context)
             response_parts.append(result)
+
+        if context.get("style_examples"):
+            for example in context["style_examples"]:
+                self.style_memory.add(self.current_style or "общий", example=example)
+            self.style_memory.save()
 
         return "\n\n".join(response_parts) if response_parts else "💭 Хм, интересная команда! Обдумываю..."
 
@@ -219,13 +229,38 @@ class Neyra:
             self.characters_memory.save()
             return f"👤 Знакомлюсь с {name}! Запоминаю: {action}"
 
+    def remember_world(self, name: str, info: Dict[str, Any]) -> None:
+        """Сохраняю информацию о мире."""
+        self.world_memory.add(name, info)
+        self.world_memory.save()
+
+    def get_world(self, name: str | None = None) -> Any:
+        """Возвращаю сведения о мире."""
+        return self.world_memory.get(name)
+
+    def remember_style(
+        self,
+        style: str,
+        example: str | None = None,
+        description: str | None = None,
+    ) -> None:
+        """Запоминаю стиль письма и его примеры."""
+        self.style_memory.add(style, example=example, description=description)
+        self.style_memory.save()
+
+    def get_style(self, style: str | None = None) -> Any:
+        """Возвращаю сведения о стилях."""
+        return self.style_memory.get(style)
+
     def _add_emotion(self, emotion: str) -> str:
         """Добавляю эмоциональную окраску."""
         self.emotional_state = emotion
         return f"💭 Настраиваюсь на эмоцию: {emotion}"
 
     def _apply_style(self, style: str) -> str:
-        """Адаптируюсь под стиль."""
+        """Адаптируюсь под стиль и запоминаю его."""
+        self.current_style = style
+        self.remember_style(style)
         return f"🎭 Подстраиваюсь под стиль: {style}"
 
     def _casual_response(self, text: str) -> str:
