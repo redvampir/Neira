@@ -15,6 +15,7 @@ from src.tags.manager import (
 from src.action.dialogue_master import DialogueMaster
 from src.action.scene_painter import ScenePainter
 from src.action.description_writer import DescriptionWriter
+from src.models import Character, Scene
 
 
 DEFAULT_DIALOGUE_STYLE = "дружеский"
@@ -104,7 +105,8 @@ class CommandExecutor:
         command_lower = command.lower()
 
         if any(word in command_lower for word in ["сцена", "создай сцену", "опиши"]):
-            return self._create_creative_scene(command, context)
+            scene = self._create_creative_scene(command, context)
+            return scene.content
         if any(word in command_lower for word in ["диалог", "разговор", "беседа"]):
             return self._create_smart_dialogue(command, context)
         if any(word in command_lower for word in ["персонаж", "герой", "характер"]):
@@ -113,7 +115,7 @@ class CommandExecutor:
             return self._continue_story(command, context)
         return f"✨ Понимаю: '{command}'. Готова к творчеству!"
 
-    def _create_creative_scene(self, description: str, context: Dict[str, Any]) -> str:
+    def _create_creative_scene(self, description: str, context: Dict[str, Any]) -> Scene:
         emotion = context.get("emotion", "нейтральная")
         style = context.get("style", "современный")
 
@@ -148,7 +150,7 @@ class CommandExecutor:
             emotional_words = self.emotional_palettes[emotion]
             emotion_addition = f" {random.choice(emotional_words)} оттенок"
 
-        return (
+        content = (
             f"🎨 Создаю сцену: {description}\n\n"
             f"{base_scene}.{emotion_addition}\n\n"
             "Детали проявляются постепенно: каждый предмет здесь имеет свою историю, "
@@ -156,6 +158,8 @@ class CommandExecutor:
             "вот-вот произойдет что-то важное.\n\n"
             f"(Эмоция: {emotion}, Стиль: {style})"
         )
+
+        return Scene(description=description, content=content, emotion=emotion, style=style)
 
     def _create_smart_dialogue(self, command: str, context: Dict[str, Any]) -> str:
         characters = context.get("characters", ["Персонаж А", "Персонаж Б"])
@@ -203,17 +207,12 @@ class CommandExecutor:
 
         if self.neyra_brain is not None and hasattr(self.neyra_brain, "characters_memory"):
             memory = self.neyra_brain.characters_memory
-            data = memory.get(name)
-            if data is None:
-                data = {
-                    "personality_traits": [trait],
-                    "emotional_moments": [],
-                    "relationships": {},
-                    "growth_arc": [],
-                }
+            character = memory.get(name)
+            if character is None:
+                character = Character(name=name, personality_traits=[trait])
             else:
-                data["personality_traits"].append(trait)
-            memory.add(name, data)
+                character.personality_traits.append(trait)
+            memory.add(character)
             memory.save()
 
         insights = [
@@ -261,8 +260,10 @@ class CommandExecutor:
     def _build_scene(self, scene_description: str, context: Dict[str, Any]) -> str:
         max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
         if self.scene_painter.llm is not None:
-            return self.scene_painter.paint(scene_description, max_tokens=max_tokens)
-        return self._create_creative_scene(scene_description, context)
+            scene = self.scene_painter.paint(scene_description, max_tokens=max_tokens)
+        else:
+            scene = self._create_creative_scene(scene_description, context)
+        return scene.content
 
     def _write_description(self, description: str, context: Dict[str, Any]) -> str:
         max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)

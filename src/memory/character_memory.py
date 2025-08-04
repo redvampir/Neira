@@ -11,7 +11,9 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
-from typing import Any, Dict
+from typing import Dict
+
+from src.models import Character
 
 
 class CharacterMemory:
@@ -19,7 +21,7 @@ class CharacterMemory:
 
     def __init__(self, storage_path: str | Path | None = None) -> None:
         self.storage_path = Path(storage_path or "data/characters.json")
-        self._data: Dict[str, Dict[str, Any]] = {}
+        self._data: Dict[str, Character] = {}
         self._load()
 
     # ------------------------------------------------------------------
@@ -27,16 +29,20 @@ class CharacterMemory:
         """Load previously saved memory from disk if available."""
         if self.storage_path.exists():
             try:
-                self._data = json.loads(self.storage_path.read_text(encoding="utf-8"))
+                raw_data = json.loads(self.storage_path.read_text(encoding="utf-8"))
+                self._data = {
+                    name: Character.from_dict({"name": name, **info})
+                    for name, info in raw_data.items()
+                }
             except Exception:
                 self._data = {}
 
     # ------------------------------------------------------------------
-    def add(self, name: str, info: Dict[str, Any]) -> None:
+    def add(self, character: Character) -> None:
         """Add or update information about a character."""
-        self._data[name] = info
+        self._data[character.name] = character
 
-    def get(self, name: str | None = None) -> Dict[str, Any] | None:
+    def get(self, name: str | None = None) -> Character | Dict[str, Character] | None:
         """Retrieve information about a character or all characters."""
         if name is None:
             return self._data
@@ -46,7 +52,7 @@ class CharacterMemory:
         """Persist current memory to the storage file."""
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         self.storage_path.write_text(
-            json.dumps(self._data, ensure_ascii=False, indent=2),
+            json.dumps({name: char.to_dict() for name, char in self._data.items()}, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 
