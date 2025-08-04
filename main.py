@@ -4,7 +4,7 @@
 import logging
 from pathlib import Path
 from src.core.neyra_brain import Neyra
-from src.interaction.dialog_controller import DialogController
+from src.interaction import ChatSession
 
 def setup_logging() -> None:
     """Настраиваю систему для записи того, что думает Нейра"""
@@ -58,8 +58,10 @@ def main() -> None:
             print("Добавьте .txt файлы в папку data/books/ и я их изучу!")
             
         print("\n💫 Нейра готова к работе! Используйте теги для общения.")
-        controller = DialogController(neyra)
-        controller.interact()
+        # По умолчанию запускаем интерактивный режим с поддержкой чата.
+        # Диалоговый контроллер оставляем для обратной совместимости.
+        chat = ChatSession(neyra)
+        chat.chat_loop()
         
     except Exception as e:  # pylint: disable=broad-except
         logger.error(f"Ошибка при пробуждении Нейры: {e}")
