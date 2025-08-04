@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from src.memory.knowledge_base import analyze_book
 
 
@@ -36,4 +38,11 @@ def test_analyze_book_creates_files(tmp_path) -> None:
 
     style = json.loads(style_path.read_text(encoding="utf-8"))
     assert style["examples"]
+
+
+def test_analyze_book_missing_file(tmp_path: Path) -> None:
+    missing = tmp_path / "missing.txt"
+    with pytest.raises(FileNotFoundError) as exc:
+        analyze_book(str(missing))
+    assert "not found" in str(exc.value).lower()
 
