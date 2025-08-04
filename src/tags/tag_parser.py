@@ -4,9 +4,11 @@
 """
 
 import re
-from typing import List, Dict
+from typing import List
 from dataclasses import dataclass
+
 from src.core.neyra_config import TagSystemConfig
+from src.tags.manager import get_patterns, register_pattern
 
 
 @dataclass
@@ -23,11 +25,12 @@ class TagParser:
     """Я умею понимать команды через теги!"""
 
     def __init__(self) -> None:
-        """Инициализирую свой словарь понимания тегов"""
-        self.tag_patterns: Dict[str, str] = {
+        """Регистрирую базовые теги в менеджере."""
+        for tag, pattern in {
             **TagSystemConfig.CORE_TAGS,
             **TagSystemConfig.EXTENDED_TAGS,
-        }
+        }.items():
+            register_pattern(tag, pattern)
 
     def parse_user_input(self, text: str) -> List[Tag]:
         """
@@ -38,7 +41,7 @@ class TagParser:
         """
         tags: List[Tag] = []
 
-        for tag_type, pattern in self.tag_patterns.items():
+        for tag_type, pattern in get_patterns().items():
             matches = re.finditer(pattern, text, re.IGNORECASE)
             for match in matches:
                 tag = Tag(
