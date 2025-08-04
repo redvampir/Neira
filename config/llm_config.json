@@ -1,4 +1,4 @@
 {
-  "model_path": "models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf",
+  "model_path": "models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
   "max_tokens": 512
 }
