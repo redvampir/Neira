@@ -10,7 +10,7 @@ from src.tags.tag_parser import TagParser, Tag
 from src.tags.command_executor import CommandExecutor
 from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
 from src.utils.encoding_detector import detect_encoding
-from src.llm.mistral_interface import MistralLLM
+from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory
 from src.models import Character
@@ -36,16 +36,17 @@ class Neyra:
 
         self.logger.info("Нейра проснулась! ✨")
 
-    def _load_llm(self) -> MistralLLM | None:
+    def _load_llm(self) -> BaseLLM | None:
         """Загружаю локальную LLM при наличии конфига."""
         config_path = Path("config/llm_config.json")
         if not config_path.exists():
             return None
         try:
             cfg = json.loads(config_path.read_text(encoding="utf-8"))
+            model_type = cfg.get("model_type", "mistral")
             model_path = cfg.get("model_path")
             self.llm_max_tokens = int(cfg.get("max_tokens", 512))
-            return MistralLLM(model_path)
+            return LLMFactory.create(model_type, model_path=model_path)
         except Exception as e:  # pragma: no cover
             self.logger.error(f"Ошибка загрузки LLM: {e}")
             return None
