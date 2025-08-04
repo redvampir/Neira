@@ -223,7 +223,7 @@ python tests/interactive_test.py
 
 1. Форкните репозиторий
 2. Создайте ветку (`git checkout -b feature/neyra-improvement`)
-3. Следуйте `CONTRIBUTING.md` 
+3. Следуйте [CONTRIBUTING.md](CONTRIBUTING.md)
 4. Предложите улучшения для Нейры
 5. Создайте Pull Request
 
@@ -245,6 +245,11 @@ python tests/interactive_test.py
 - [ ] Самообучение на новых текстах
 - [ ] API для интеграции с другими приложениями
 - [ ] Множественные личности для разных жанров
+ 
+## 📚 Дополнительные ресурсы
+
+- [Документация проекта](docs)
+- [Руководство для контрибьюторов](CONTRIBUTING.md)
 
 ## 💫 Философия Нейры
 

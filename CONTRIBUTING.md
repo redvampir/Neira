@@ -4,6 +4,17 @@
 
 **Нейра** - это персональный ИИ-помощник для писателей с собственной индивидуальностью и уникальной системой тегов. Мы создаём не просто инструмент, а цифрового соавтора с душой.
 
+## 🚀 Начало работы
+
+```bash
+git clone https://github.com/your-username/neyra.git
+cd neyra
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+```
+
 ## 🎭 Принципы личности Нейры
 
 При разработке помните о ключевых чертах Нейры:
