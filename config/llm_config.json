@@ -1,4 +1,4 @@
 {
-  "model_path": "models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
-  "max_tokens": 512
+  "model_path": "models/qwen/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+  "max_tokens": 1024
 }
