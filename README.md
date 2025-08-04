@@ -123,6 +123,14 @@ pip install -r requirements.txt
 python main.py
 ```
 
+### Веб-интерфейс Streamlit
+
+Для запуска минимального веб-клиента используйте команду:
+
+```bash
+streamlit run web/app.py
+```
+
 ## 🔧 Структура "мозга" Нейры
 
 ```
