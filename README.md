@@ -95,12 +95,33 @@ pip install -r requirements.txt
 python scripts/download_model.py --model llama2-7b
 ```
 
-## 🔗 Подключение LLM
+## 🔗 Подключение языковой модели (ВАЖНО)
 
-1. Скачайте модель [mistral-7b-instruct.Q4_K_M.gguf](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF).
-2. Поместите файл в папку `models/` в корне проекта.
-3. Проверьте или отредактируйте `config/llm_config.json`, указав путь к модели и число токенов.
-4. Установите зависимости: `pip install -r requirements.txt`.
+Нейра умеет работать с локальной моделью **Mistral 7B Instruct Q6_K** в формате GGUF.
+
+### Вариант 1. Ручная настройка
+1. Скачайте файл [`mistral-7b-instruct-v0.1.Q6_K.gguf`](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF).
+2. Создайте папку `models/mistral/` и поместите модель по пути `models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf`.
+3. Убедитесь, что в `requirements.txt` есть строка `llama-cpp-python>=0.2.56` и установите зависимости:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Проверьте или создайте файл `config/llm_config.json` со следующим содержимым:
+   ```json
+   {
+     "model_path": "models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf",
+     "max_tokens": 512
+   }
+   ```
+5. Запустите `python main.py` и общайтесь с Нейрой как обычно.
+
+### Вариант 2. Быстрый старт через терминал
+```bash
+mkdir -p models/mistral
+wget -O models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q6_K.gguf"
+pip install -r requirements.txt
+python main.py
+```
 
 ## 🔧 Структура "мозга" Нейры
 

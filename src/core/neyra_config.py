@@ -36,7 +36,8 @@ class TagSystemConfig:
         'emotion_paint': r'@Эмоция:\s*([^@]+)@',
         'consistency_check': r'@Проверь:\s*([^@]+)@',
         'dialogue_create': r'@Диалог:\s*([^@]+)@',
-        'scene_build': r'@Сцена:\s*([^@]+)@'
+        'scene_build': r'@Сцена:\s*([^@]+)@',
+        'description_write': r'@Описание:\s*([^@]+)@'
     }
     
     # Дополнительные теги

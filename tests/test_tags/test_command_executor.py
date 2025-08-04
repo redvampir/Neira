@@ -33,3 +33,10 @@ def test_emotion_updates_brain():
     tag = Tag(type='emotion_paint', content='грусть', position=(0, 0))
     executor.execute_command(tag)
     assert brain.emotional_state == 'грусть'
+
+
+def test_description_handler_without_llm():
+    executor = CommandExecutor()
+    tag = Tag(type='description_write', content='тихий лес', position=(0, 0))
+    result = executor.execute_command(tag)
+    assert 'Описание' in result

@@ -13,3 +13,11 @@ def test_Нейра_понимает_основные_теги() -> None:
     assert len(tags) == 2
     assert tags[0].type == 'neyra_command'
     assert tags[1].type == 'emotion_paint'
+
+
+def test_parser_understands_description_tag() -> None:
+    parser = TagParser()
+    text = "@Описание: закат над морем@"
+    tags = parser.parse_user_input(text)
+    assert len(tags) == 1
+    assert tags[0].type == 'description_write'
