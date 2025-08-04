@@ -1,0 +1,39 @@
+# GUI framework
+customtkinter>=5.2.0
+tkinter-tooltip>=2.2.0
+
+# File format handling
+python-docx>=0.8.11
+python-docx2txt>=0.8
+odfpy>=1.4.1
+ebooklib>=0.18
+python-fb2>=0.1.0
+PyPDF2>=3.0.1
+pdfplumber>=0.9.0
+chardet>=5.2.0
+striprtf>=0.0.19
+
+# Text processing
+nltk>=3.8.0
+spacy>=3.7.0
+pymorphy2>=0.9.1
+
+# Machine learning
+torch>=2.0.0
+transformers>=4.35.0
+
+# File system
+watchdog>=3.0.0
+pathlib2>=2.3.7
+
+# Utilities
+pillow>=10.0.0
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+colorama>=0.4.6
+
+# Search
+whoosh>=2.7.4
+
+# Notifications
+plyer>=2.1.0
