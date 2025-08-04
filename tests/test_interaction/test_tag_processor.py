@@ -72,3 +72,9 @@ def test_execute_generation_without_llm() -> None:
     output = processor.execute(tag)
     assert "Сгенерируй сцену: лесное приключение" in output
 
+
+def test_execute_slash_generation() -> None:
+    processor = TagProcessor()
+    output = processor.execute_slash("/сгенерировать лес")
+    assert "Сгенерируй сцену: лес" in output
+

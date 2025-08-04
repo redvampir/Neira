@@ -8,13 +8,12 @@ commands like ``/help`` and ``/exit``.  Suggestions are accepted with
 from __future__ import annotations
 
 import re
-from typing import Iterable, List
+from typing import Iterable
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.key_binding import KeyBindings
 
-from src.core.neyra_config import TagSystemConfig
 from src.interaction import TagProcessor
 
 
@@ -54,34 +53,14 @@ class _NeyraCompleter(Completer):
                     yield Completion(f"/{cmd}", start_position=-len(word))
 
 
-def _collect_tags() -> List[str]:
-    """Extract tag names from :class:`TagSystemConfig`."""
-
-    patterns = {**TagSystemConfig.CORE_TAGS, **TagSystemConfig.EXTENDED_TAGS}
-    tags: List[str] = []
-    for pattern in patterns.values():
-        start = pattern.find("@") + 1
-        end = pattern.find(":", start)
-        if start > 0 and end > start:
-            tags.append(pattern[start:end])
-    return tags
-
-
-COMMANDS = [
-    "help",
-    "exit",
-    "внешность",
-    "стиль",
-    "сцена",
-    "сгенерировать",
-]
+COMMANDS = TagProcessor.SLASH_COMMANDS
 
 
 def run_cli(neyra) -> None:
     """Run interactive CLI loop for the given :class:`Neyra` instance."""
 
     processor = TagProcessor()
-    completer = _NeyraCompleter(_collect_tags(), COMMANDS, processor)
+    completer = _NeyraCompleter(TagProcessor.available_tags(), COMMANDS, processor)
 
     kb = KeyBindings()
 
@@ -107,12 +86,12 @@ def run_cli(neyra) -> None:
         clean = text.strip()
         if not clean:
             continue
-        lower = clean.lower()
-        if lower == "/exit":
-            break
-        if lower == "/help":
-            print("Доступные теги:", ", ".join(_collect_tags()))
-            print("Доступные команды:", ", ".join(f"/{c}" for c in COMMANDS))
+        if clean.startswith("/"):
+            result = processor.execute_slash(clean)
+            if result == "__exit__":
+                break
+            if result:
+                print(result)
             continue
         result = neyra.process_command(text)
         print(result)
