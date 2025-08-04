@@ -3,8 +3,10 @@
 """
 import logging
 from pathlib import Path
+
 from src.core.neyra_brain import Neyra
-from src.interaction import ChatSession
+from src.interaction.chat_session import ChatSession
+from src.models import Character
 
 def setup_logging() -> None:
     """Настраиваю систему для записи того, что думает Нейра"""
@@ -27,7 +29,20 @@ def main() -> None:
     try:
         # Создаю Нейру
         neyra = Neyra()
-        
+
+        # Сообщаю статус LLM
+        if neyra.llm and neyra.llm.is_available():
+            print("\n🤖 LLM активна и готова к работе!")
+        else:
+            print("\n⚠️ LLM недоступна, использую творческое воображение.")
+
+        # Демонстрация памяти
+        demo_character = Character(name="Алиса", personality_traits=["смелая"])
+        neyra.characters_memory.add(demo_character)
+        neyra.characters_memory.save()
+        stored = neyra.characters_memory.get("Алиса")
+        print(f"🧠 Память персонажей: {stored}")
+
         # Нейра представляется
         neyra.introduce_yourself()
         
