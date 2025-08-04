@@ -2,6 +2,7 @@
 
 from .tag_processor import TagProcessor, ProcessedTag
 from .history import RequestHistory
+from .dialog_controller import DialogController
 
-__all__ = ["TagProcessor", "ProcessedTag", "RequestHistory"]
+__all__ = ["TagProcessor", "ProcessedTag", "RequestHistory", "DialogController"]
 
