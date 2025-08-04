@@ -4,6 +4,7 @@ from .tag_processor import TagProcessor, ProcessedTag
 from .history import RequestHistory
 from .dialog_controller import DialogController
 from .command_handler import CommandResult, handle_command
+from .chat_session import ChatSession, ChatEntry
 
 __all__ = [
     "TagProcessor",
@@ -12,5 +13,7 @@ __all__ = [
     "DialogController",
     "CommandResult",
     "handle_command",
+    "ChatSession",
+    "ChatEntry",
 ]
 
