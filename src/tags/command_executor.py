@@ -7,6 +7,11 @@ import random
 from typing import Any, Callable, Dict, List, Optional
 
 from src.tags.tag_parser import Tag
+from src.tags.manager import (
+    available_tags as manager_available_tags,
+    get_handler as manager_get_handler,
+    register_handler as manager_register_handler,
+)
 from src.action.dialogue_master import DialogueMaster
 from src.action.scene_painter import ScenePainter
 from src.action.description_writer import DescriptionWriter
@@ -44,8 +49,7 @@ class CommandExecutor:
             "драматический": "С накалом страстей и эмоциональным напряжением",
         }
 
-        # Реестр обработчиков команд
-        self._handlers: Dict[str, Callable[[str, Dict[str, Any]], str]] = {}
+        # Регистрация стандартных обработчиков в менеджере
         self._register_default_handlers()
         llm = getattr(neyra_brain, "llm", None) if neyra_brain else None
         self.dialogue_master = DialogueMaster(llm)
@@ -55,27 +59,25 @@ class CommandExecutor:
     # ------------------------------------------------------------------
     # Регистрация обработчиков
     def _register_default_handlers(self) -> None:
-        self._handlers = {
-            "neyra_command": self._execute_neyra_command,
-            "memory_recall": self._recall_request,
-            "character_work": self._work_with_character,
-            "emotion_paint": self._paint_with_emotion,
-            "style_guide": self._apply_style,
-            "dialogue_create": self._create_dialogue,
-            "scene_build": self._build_scene,
-            "description_write": self._write_description,
-            "consistency_check": self._check_consistency,
-        }
+        manager_register_handler("neyra_command", self._execute_neyra_command)
+        manager_register_handler("memory_recall", self._recall_request)
+        manager_register_handler("character_work", self._work_with_character)
+        manager_register_handler("emotion_paint", self._paint_with_emotion)
+        manager_register_handler("style_guide", self._apply_style)
+        manager_register_handler("dialogue_create", self._create_dialogue)
+        manager_register_handler("scene_build", self._build_scene)
+        manager_register_handler("description_write", self._write_description)
+        manager_register_handler("consistency_check", self._check_consistency)
 
     def register_handler(
         self, tag_type: str, handler: Callable[[str, Dict[str, Any]], str]
     ) -> None:
         """Регистрация нового обработчика для кастомного типа тега."""
-        self._handlers[tag_type] = handler
+        manager_register_handler(tag_type, handler)
 
     def available_handlers(self) -> List[str]:
         """Возвращает список доступных типов команд."""
-        return sorted(self._handlers.keys())
+        return sorted(manager_available_tags().keys())
 
     # ------------------------------------------------------------------
     # Основной метод исполнения команд
@@ -84,7 +86,7 @@ class CommandExecutor:
         if context is None:
             context = {}
 
-        handler = self._handlers.get(tag.type)
+        handler = manager_get_handler(tag.type)
         if handler:
             return handler(tag.content, context)
         return f"🤔 Команда '{tag.type}' понята, но пока учусь её выполнять..."
