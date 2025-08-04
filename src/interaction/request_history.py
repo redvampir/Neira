@@ -1,0 +1,72 @@
+from __future__ import annotations
+
+"""Persistent request history with search and context helpers."""
+
+from dataclasses import dataclass, asdict
+from datetime import datetime
+import json
+from pathlib import Path
+from typing import List
+
+
+@dataclass
+class HistoryEntry:
+    """Single request record."""
+
+    timestamp: datetime
+    text: str
+
+
+class RequestHistory:
+    """Store and retrieve user requests.
+
+    Parameters
+    ----------
+    path:
+        Optional path to the history file.  If the file exists it is loaded on
+        start and every modification is immediately persisted.
+    """
+
+    def __init__(self, path: str | Path = "logs/request_history.json") -> None:
+        self.path = Path(path)
+        self._entries: List[HistoryEntry] = []
+        if self.path.exists():
+            try:
+                data = json.loads(self.path.read_text(encoding="utf-8"))
+                for item in data:
+                    ts = datetime.fromisoformat(item["timestamp"])
+                    self._entries.append(HistoryEntry(ts, item["text"]))
+            except Exception:  # pragma: no cover - corrupted history
+                self._entries = []
+
+    # ------------------------------------------------------------------
+    def add(self, text: str) -> None:
+        """Add ``text`` to the history and persist it."""
+
+        entry = HistoryEntry(datetime.now(), text)
+        self._entries.append(entry)
+        self._save()
+
+    def search(self, query: str) -> List[HistoryEntry]:
+        """Return all entries containing ``query`` (case insensitive)."""
+
+        q = query.lower()
+        return [e for e in self._entries if q in e.text.lower()]
+
+    def get_context(self, limit: int = 5) -> str:
+        """Return the last ``limit`` requests joined by newlines."""
+
+        return "\n".join(e.text for e in self._entries[-limit:])
+
+    # ------------------------------------------------------------------
+    def _save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        data = [asdict(e) | {"timestamp": e.timestamp.isoformat()} for e in self._entries]
+        self.path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # Convenience helpers ------------------------------------------------
+    def __len__(self) -> int:  # pragma: no cover - trivial
+        return len(self._entries)
+
+    def __iter__(self):  # pragma: no cover - trivial
+        return iter(self._entries)
