@@ -14,6 +14,7 @@ from src.llm.mistral_interface import MistralLLM
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory
 from src.models import Character
+from src.core.cache_manager import CacheManager
 
 
 class Neyra:
@@ -31,6 +32,7 @@ class Neyra:
         self.characters_memory = CharacterMemory()
         self.emotional_state = "любопытная"
         self.history = RequestHistory()
+        self.cache = CacheManager()
 
         self.logger.info("Нейра проснулась! ✨")
 
@@ -70,6 +72,14 @@ class Neyra:
                 self.logger.warning(f"Книга не найдена: {path}")
                 return
 
+            cache_key = f"load_book:{file_path}"
+            mtime = file_path.stat().st_mtime
+            cached = self.cache.get(cache_key)
+            if cached and cached.get("mtime") == mtime:
+                self.known_books.append(path)
+                print(f"📚 Изучила книгу из кэша: {file_path.name}")
+                return
+
             # Определяю кодировку
             encoding = detect_encoding(path)
             content = file_path.read_text(encoding=encoding)
@@ -81,6 +91,8 @@ class Neyra:
             print(f"   Страниц текста: {len(content) // 2000}")
             if self.characters_memory:
                 print(f"   Встретила персонажей: {len(self.characters_memory)}")
+
+            self.cache.set(cache_key, {"mtime": mtime})
 
         except Exception as e:
             self.logger.error(f"Ошибка при загрузке {path}: {e}")
@@ -161,16 +173,22 @@ class Neyra:
 
     def _create_scene(self, description: str) -> str:
         """Создаю сцену с творческим подходом."""
+        cache_key = f"scene:{description}"
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
         templates = [
             "Туман стелился по земле, скрывая тайны наступающего утра...",
             "В комнате царила та особенная тишина, которая предшествует важным разговорам...",
-            "Солнечные лучи пробивались сквозь листву, создавая причудливую игру света и тени..."
+            "Солнечные лучи пробивались сквозь листву, создавая причудливую игру света и тени...",
         ]
-
         import random
         base_scene = random.choice(templates)
-
-        return f"🎨 Создаю сцену: {description}\n\n{base_scene}\n\n(Это базовый пример - скоро я научусь создавать уникальные сцены!)"
+        scene = (
+            f"🎨 Создаю сцену: {description}\n\n{base_scene}\n\n(Это базовый пример - скоро я научусь создавать уникальные сцены!)"
+        )
+        self.cache.set(cache_key, scene)
+        return scene
 
     def _create_dialogue(self, description: str) -> str:
         """Создаю диалог как временную заглушку."""
