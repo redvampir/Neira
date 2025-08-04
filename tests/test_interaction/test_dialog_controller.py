@@ -48,3 +48,27 @@ def test_process_called_once():
     controller = DialogController(neyra, input_func=lambda _: next(inputs))
     controller.interact()
     assert neyra.commands == ["первая вторая"]
+
+
+def test_empty_command_and_custom_exit():
+    """Проверяет, что пустой ввод пропускается, а выходная команда настраивается."""
+
+    inputs = iter(["", "скажи", "больше", "stop"])
+    neyra = DummyNeyra()
+    controller = DialogController(neyra, exit_command="stop")
+    states = []
+
+    def fake_input(prompt: str) -> str:  # noqa: D401 - simple test helper
+        states.append(controller.step)
+        return next(inputs)
+
+    controller.input_func = fake_input
+    controller.interact()
+
+    assert states == [
+        DialogController.Step.WAITING_COMMAND,
+        DialogController.Step.WAITING_COMMAND,
+        DialogController.Step.WAITING_CLARIFICATION,
+        DialogController.Step.WAITING_COMMAND,
+    ]
+    assert neyra.commands == ["скажи больше"]
