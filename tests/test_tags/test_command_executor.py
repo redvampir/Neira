@@ -1,8 +1,9 @@
 import pytest
 from unittest.mock import patch
+from typing import Any, Dict
 
 from src.tags.command_executor import CommandExecutor
-from src.tags.tag_parser import Tag
+from src.tags.enhanced_parser import Tag
 
 
 def test_unknown_tag_returns_message():
@@ -54,3 +55,26 @@ def test_create_smart_dialogue_without_llm_selects_default_template():
     assert "Слушай" in result
     assert "Точно!" in result
     assert "Стиль: дружеский" in result
+
+
+def test_style_example_handler_appends_to_context():
+    executor = CommandExecutor()
+    tag = Tag(type='style_example', content='пример', position=(0, 0))
+    ctx: Dict[str, Any] = {}
+    result = executor.execute_command(tag, ctx)
+    assert 'пример' in ctx.get('style_examples', [])
+    assert 'пример' in result
+
+
+def test_character_reminder_handler():
+    executor = CommandExecutor()
+    tag = Tag(type='character_reminder', content='Лили', position=(0, 0))
+    result = executor.execute_command(tag)
+    assert 'Лили' in result
+
+
+def test_generate_content_handler_without_llm():
+    executor = CommandExecutor()
+    tag = Tag(type='generate_content', content='история', position=(0, 0))
+    result = executor.execute_command(tag)
+    assert 'история' in result

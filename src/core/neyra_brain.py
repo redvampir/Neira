@@ -6,7 +6,7 @@ import logging
 from typing import List, Dict, Any
 from pathlib import Path
 
-from src.tags.tag_parser import TagParser, Tag
+from src.tags.enhanced_parser import EnhancedTagParser as TagParser, Tag
 from src.tags.command_executor import CommandExecutor
 from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
 from src.utils.encoding_detector import detect_encoding
