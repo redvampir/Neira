@@ -12,6 +12,7 @@ from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
 from src.utils.encoding_detector import detect_encoding
 from src.llm.mistral_interface import MistralLLM
 from src.interaction import RequestHistory
+from src.memory import CharacterMemory
 
 
 class Neyra:
@@ -26,7 +27,7 @@ class Neyra:
         self.executor = CommandExecutor(self)
         self.personality = NeyraPersonality()
         self.known_books: List[str] = []
-        self.characters_memory: Dict[str, Dict[str, Any]] = {}
+        self.characters_memory = CharacterMemory()
         self.emotional_state = "любопытная"
         self.history = RequestHistory()
 
@@ -97,11 +98,15 @@ class Neyra:
         for name in potential_names:
             if name not in stop_words and len(name) >= 3:
                 if name not in self.characters_memory:
-                    self.characters_memory[name] = {
-                        'first_mention': True,
-                        'personality_traits': [],
-                        'emotional_moments': []
-                    }
+                    self.characters_memory.add(
+                        name,
+                        {
+                            "first_mention": True,
+                            "personality_traits": [],
+                            "emotional_moments": [],
+                        },
+                    )
+        self.characters_memory.save()
 
     def analyze_content(self) -> None:
         """Анализирую загруженные книги с энтузиазмом исследователя."""
@@ -125,9 +130,9 @@ class Neyra:
 
         # Создаю контекст для исполнителя
         context = {
-            'emotion': self.emotional_state,
-            'characters': list(self.characters_memory.keys()),
-            'known_books': self.known_books
+            "emotion": self.emotional_state,
+            "characters": list(self.characters_memory.keys()),
+            "known_books": self.known_books,
         }
 
         response_parts = []
@@ -186,10 +191,14 @@ class Neyra:
             return f"👤 {name} - помню этого персонажа! {action}"
         else:
             # Добавляю нового персонажа
-            self.characters_memory[name] = {
-                'personality_traits': [],
-                'emotional_moments': []
-            }
+            self.characters_memory.add(
+                name,
+                {
+                    "personality_traits": [],
+                    "emotional_moments": [],
+                },
+            )
+            self.characters_memory.save()
             return f"👤 Знакомлюсь с {name}! Запоминаю: {action}"
 
     def _add_emotion(self, emotion: str) -> str:

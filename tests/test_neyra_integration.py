@@ -4,6 +4,7 @@
 import pytest
 from pathlib import Path
 from src.core.neyra_brain import Neyra
+from src.memory import CharacterMemory
 
 
 def test_neyra_awakening():
@@ -11,7 +12,7 @@ def test_neyra_awakening():
     neyra = Neyra()
     assert neyra.emotional_state == "любопытная"
     assert len(neyra.known_books) == 0
-    assert isinstance(neyra.characters_memory, dict)
+    assert isinstance(neyra.characters_memory, CharacterMemory)
 
 
 def test_neyra_understands_basic_tags():

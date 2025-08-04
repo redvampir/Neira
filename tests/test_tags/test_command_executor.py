@@ -24,10 +24,12 @@ def test_register_custom_handler():
 
 
 def test_emotion_updates_brain():
+    from src.memory import CharacterMemory
+
     class Dummy:
         def __init__(self):
             self.emotional_state = "neutral"
-            self.characters_memory = {}
+            self.characters_memory = CharacterMemory()
 
     brain = Dummy()
     executor = CommandExecutor(brain)
