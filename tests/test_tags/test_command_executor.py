@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 
 from src.tags.command_executor import CommandExecutor
 from src.tags.tag_parser import Tag
@@ -40,3 +41,14 @@ def test_description_handler_without_llm():
     tag = Tag(type='description_write', content='тихий лес', position=(0, 0))
     result = executor.execute_command(tag)
     assert 'Описание' in result
+
+
+def test_create_smart_dialogue_without_llm_selects_default_template():
+    executor = CommandExecutor()
+    context = {"characters": ["Алиса", "Боб"]}
+    with patch("src.tags.command_executor.random.choice", side_effect=lambda seq: seq[0]):
+        result = executor._create_smart_dialogue("Привет", context)
+
+    assert "Слушай" in result
+    assert "Точно!" in result
+    assert "Стиль: дружеский" in result
