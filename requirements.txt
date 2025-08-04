@@ -27,6 +27,7 @@ tqdm>=4.66.0
 click>=8.1.0
 colorama>=0.4.6
 prompt_toolkit>=3.0.0
+rich>=13.0.0
 
 # Качество кода
 pytest>=7.4.0
