@@ -95,6 +95,13 @@ pip install -r requirements.txt
 python scripts/download_model.py --model llama2-7b
 ```
 
+## 🔗 Подключение LLM
+
+1. Скачайте модель [mistral-7b-instruct.Q4_K_M.gguf](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF).
+2. Поместите файл в папку `models/` в корне проекта.
+3. Проверьте или отредактируйте `config/llm_config.json`, указав путь к модели и число токенов.
+4. Установите зависимости: `pip install -r requirements.txt`.
+
 ## 🔧 Структура "мозга" Нейры
 
 ```

@@ -1,6 +1,7 @@
 """
 Мозг Нейры - здесь я думаю и учусь.
 """
+import json
 import logging
 from typing import List, Dict, Any
 from pathlib import Path
@@ -9,6 +10,7 @@ from src.tags.tag_parser import TagParser, Tag
 from src.tags.command_executor import CommandExecutor
 from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
 from src.utils.encoding_detector import detect_encoding
+from src.llm.mistral_interface import MistralLLM
 
 
 class Neyra:
@@ -18,6 +20,8 @@ class Neyra:
         """Просыпаюсь и готовлю свои модули."""
         self.logger = logging.getLogger(__name__)
         self.parser = TagParser()
+        self.llm_max_tokens = 512
+        self.llm = self._load_llm()
         self.executor = CommandExecutor(self)
         self.personality = NeyraPersonality()
         self.known_books: List[str] = []
@@ -25,6 +29,20 @@ class Neyra:
         self.emotional_state = "любопытная"
 
         self.logger.info("Нейра проснулась! ✨")
+
+    def _load_llm(self) -> MistralLLM | None:
+        """Загружаю локальную LLM при наличии конфига."""
+        config_path = Path("config/llm_config.json")
+        if not config_path.exists():
+            return None
+        try:
+            cfg = json.loads(config_path.read_text(encoding="utf-8"))
+            model_path = cfg.get("model_path")
+            self.llm_max_tokens = int(cfg.get("max_tokens", 512))
+            return MistralLLM(model_path)
+        except Exception as e:  # pragma: no cover
+            self.logger.error(f"Ошибка загрузки LLM: {e}")
+            return None
 
     def introduce_yourself(self) -> None:
         """Представляюсь пользователю с энтузиазмом!"""

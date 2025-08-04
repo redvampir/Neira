@@ -7,6 +7,8 @@ import random
 from typing import Any, Callable, Dict, List, Optional
 
 from src.tags.tag_parser import Tag
+from src.action.dialogue_master import DialogueMaster
+from src.action.scene_painter import ScenePainter
 
 
 class CommandExecutor:
@@ -41,6 +43,9 @@ class CommandExecutor:
         # Реестр обработчиков команд
         self._handlers: Dict[str, Callable[[str, Dict[str, Any]], str]] = {}
         self._register_default_handlers()
+        llm = getattr(neyra_brain, "llm", None) if neyra_brain else None
+        self.dialogue_master = DialogueMaster(llm)
+        self.scene_painter = ScenePainter(llm)
 
     # ------------------------------------------------------------------
     # Регистрация обработчиков
@@ -169,6 +174,9 @@ class CommandExecutor:
 
     def _create_dialogue(self, command: str, context: Dict[str, Any]) -> str:
         """Обработчик для прямого тега создания диалога."""
+        max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
+        if self.dialogue_master.llm is not None:
+            return self.dialogue_master.create(command, max_tokens=max_tokens)
         return self._create_smart_dialogue(command, context)
 
     def _work_with_character(self, character_info: str, context: Dict[str, Any]) -> str:
@@ -220,14 +228,22 @@ class CommandExecutor:
         )
 
     def _apply_style(self, style: str, context: Dict[str, Any]) -> str:
+        if self.neyra_brain is not None:
+            setattr(self.neyra_brain, "current_style", style)
+        llm = getattr(self.neyra_brain, "llm", None) if self.neyra_brain else None
+        if llm is not None:
+            prompt = f"Опиши стиль письма '{style}'"
+            max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
+            return llm.generate(prompt, max_tokens=max_tokens)
         template = self.style_templates.get(style.lower())
         if template:
-            if self.neyra_brain is not None:
-                setattr(self.neyra_brain, "current_style", style)
             return f"🎭 {template}. (Стиль: {style})"
         return f"🎭 Подстраиваюсь под стиль: {style}"
 
     def _build_scene(self, scene_description: str, context: Dict[str, Any]) -> str:
+        max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
+        if self.scene_painter.llm is not None:
+            return self.scene_painter.paint(scene_description, max_tokens=max_tokens)
         return self._create_creative_scene(scene_description, context)
 
     def _check_consistency(self, check_target: str, context: Dict[str, Any]) -> str:
