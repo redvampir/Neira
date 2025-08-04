@@ -3,7 +3,7 @@
 Здесь живут все настройки того, какой должна быть Нейра.
 """
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict
 try:
     import torch  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover
@@ -11,8 +11,10 @@ except ModuleNotFoundError:  # pragma: no cover
         @staticmethod
         def is_available() -> bool:
             return False
+
     class torch:  # type: ignore
         cuda = _Cuda()
+
 
 @dataclass
 class NeyraPersonality:
@@ -23,6 +25,7 @@ class NeyraPersonality:
     attention_to_detail: float = 0.95  # Внимание к деталям
     humor_tendency: float = 0.3        # Склонность к юмору
     encouragement_level: float = 0.9   # Уровень поддержки
+
 
 @dataclass
 class TagSystemConfig:
@@ -39,7 +42,7 @@ class TagSystemConfig:
         'scene_build': r'@Сцена:\s*([^@]+)@',
         'description_write': r'@Описание:\s*([^@]+)@'
     }
-    
+
     # Дополнительные теги
     EXTENDED_TAGS = {
         'length_control': r'@Длина:\s*([^@]+)@',
@@ -49,6 +52,7 @@ class TagSystemConfig:
         'genre_guide': r'@Жанр:\s*([^@]+)@'
     }
 
+
 @dataclass
 class ModelConfig:
     """Настройки языковой модели для мозга Нейры"""
@@ -56,6 +60,7 @@ class ModelConfig:
     quantization: str = "4bit"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     max_memory: Dict[str, str] = None
+
 
 @dataclass
 class GenerationConfig:
@@ -65,6 +70,7 @@ class GenerationConfig:
     max_length: int = 1000
     repetition_penalty: float = 1.1
 
+
 @dataclass
 class MemoryConfig:
     """Настройки памяти Нейры"""
@@ -72,6 +78,7 @@ class MemoryConfig:
     max_events: int = 10000
     pattern_threshold: int = 5
     emotional_memory_depth: int = 100
+
 
 # Глобальные константы
 NEYRA_VERSION = "0.1.0"
