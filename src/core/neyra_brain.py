@@ -11,6 +11,7 @@ from src.tags.command_executor import CommandExecutor
 from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
 from src.utils.encoding_detector import detect_encoding
 from src.llm.mistral_interface import MistralLLM
+from src.interaction import RequestHistory
 
 
 class Neyra:
@@ -27,6 +28,7 @@ class Neyra:
         self.known_books: List[str] = []
         self.characters_memory: Dict[str, Dict[str, Any]] = {}
         self.emotional_state = "любопытная"
+        self.history = RequestHistory()
 
         self.logger.info("Нейра проснулась! ✨")
 
