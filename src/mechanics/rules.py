@@ -10,7 +10,7 @@ from .dice import DiceResult
 
 try:  # pragma: no cover - optional dependency
     import yaml
-except Exception:  # pragma: no cover - handled gracefully
+except ImportError:  # pragma: no cover - only handle missing PyYAML
     yaml = None
 
 # Directory containing ruleset files
