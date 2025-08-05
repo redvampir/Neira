@@ -18,16 +18,33 @@ class EmotionReader:
             "joy": {"happy", "joy", "joyful", "delight", "pleased", "smile"},
             "sadness": {"sad", "unhappy", "sorrow", "cry", "miserable"},
             "anger": {"angry", "mad", "furious", "rage", "irate"},
-            "fear": {"fear", "scared", "terrified", "afraid", "fright"},
+            "fear": {
+                "fear",
+                "scared",
+                "terrified",
+                "afraid",
+                "fright",
+                "nervous",
+                "anxious",
+            },
         }
+        # Негативные частицы для учета отрицаний.
+        self.negations: set[str] = {"not", "no", "never", "n't"}
 
     def analyze_text(self, text: str) -> Dict[str, float]:
-        """Возвращает оценки эмоций в диапазоне [0, 1] для текста."""
+        """Возвращает оценки эмоций в диапазоне [0, 1] для текста.
+
+        Ключевые слова каждой эмоции подсчитываются и нормируются, при
+        этом игнорируются слова, перед которыми стоит отрицание.
+        """
         words = re.findall(r"\b\w+\b", text.lower())
-        raw_scores = {
-            emotion: sum(1 for w in words if w in keywords)
-            for emotion, keywords in self.lexicon.items()
-        }
+        raw_scores: Dict[str, float] = {emotion: 0.0 for emotion in self.lexicon}
+        for idx, word in enumerate(words):
+            if idx > 0 and words[idx - 1] in self.negations:
+                continue
+            for emotion, keywords in self.lexicon.items():
+                if word in keywords:
+                    raw_scores[emotion] += 1
         return self.scale_scores(raw_scores)
 
     @staticmethod

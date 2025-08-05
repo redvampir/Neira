@@ -28,3 +28,16 @@ def test_detects_anger() -> None:
     scores = reader.analyze_text("He was angry and furious, filled with rage.")
     assert scores["anger"] == 1.0
     assert scores["joy"] < scores["anger"]
+
+
+def test_detects_fear() -> None:
+    reader = EmotionReader()
+    scores = reader.analyze_text("They felt scared and terrified by the dark.")
+    assert scores["fear"] == 1.0
+    assert scores["joy"] < scores["fear"]
+
+
+def test_handles_negation() -> None:
+    reader = EmotionReader()
+    scores = reader.analyze_text("I am not happy about this.")
+    assert scores["joy"] == 0.0
