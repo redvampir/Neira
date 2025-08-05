@@ -7,6 +7,7 @@ from .world_atlas import WorldAtlas
 from .world_memory import WorldMemory
 from .style_memory import StyleMemory
 from .index import MemoryIndex
+from .weighted import WeightedMemory
 
 __all__ = [
     "CharacterMemory",
@@ -16,5 +17,6 @@ __all__ = [
     "WorldMemory",
     "StyleMemory",
     "MemoryIndex",
+    "WeightedMemory",
 ]
 
