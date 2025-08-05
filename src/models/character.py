@@ -9,6 +9,7 @@ class Character:
     """Representation of a story character."""
 
     name: str
+    appearance: str = ""
     personality_traits: List[str] = field(default_factory=list)
     emotional_moments: List[str] = field(default_factory=list)
     relationships: Dict[str, str] = field(default_factory=dict)
@@ -19,6 +20,7 @@ class Character:
         """Serialize the character to a JSON-serializable dict."""
         return {
             "name": self.name,
+            "appearance": self.appearance,
             "personality_traits": list(self.personality_traits),
             "emotional_moments": list(self.emotional_moments),
             "relationships": dict(self.relationships),
@@ -31,6 +33,7 @@ class Character:
         """Deserialize a :class:`Character` from a dictionary."""
         return cls(
             name=data.get("name", ""),
+            appearance=data.get("appearance", ""),
             personality_traits=list(data.get("personality_traits", [])),
             emotional_moments=list(data.get("emotional_moments", [])),
             relationships=dict(data.get("relationships", {})),

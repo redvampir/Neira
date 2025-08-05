@@ -31,6 +31,16 @@ class CommandExecutor:
     """
 
     def __init__(self, neyra_brain: Optional[Any] = None) -> None:
+        """Create executor.
+
+        Parameters
+        ----------
+        neyra_brain:
+            Core brain instance.  It is optional for basic command handling
+            but required when commands need to persist information (style and
+            character memories).
+        """
+
         self.neyra_brain = neyra_brain
 
         # Палитры эмоций и стили, которыми я могу пользоваться
@@ -92,7 +102,16 @@ class CommandExecutor:
 
         handler = manager_get_handler(tag.type)
         if handler:
-            return handler(tag.content, context)
+            # Pass tag parameters to handlers via context so that additional
+            # metadata (like author names) can be used while still allowing the
+            # handler to mutate the original context.
+            if tag.params:
+                context["params"] = tag.params
+            try:
+                return handler(tag.content, context)
+            finally:
+                if tag.params:
+                    context.pop("params", None)
         return f"🤔 Команда '{tag.type}' понята, но пока учусь её выполнять..."
 
     def _recall_request(self, query: str, context: Dict[str, Any]) -> str:
@@ -286,11 +305,50 @@ class CommandExecutor:
     # ------------------------------------------------------------------
     # Дополнительные обработчики
     def _handle_style_example(self, example: str, context: Dict[str, Any]) -> str:
-        examples: List[str] = context.setdefault("style_examples", [])
-        examples.append(example)
+        """Store a style example in persistent memory if available."""
+        author = context.get("params", {}).get("author", "неизвестный")
+        if self.neyra_brain and hasattr(self.neyra_brain, "style_memory"):
+            self.neyra_brain.style_memory.add_style_example(author, example)
+            self.neyra_brain.style_memory.save()
+        else:
+            examples: List[str] = context.setdefault("style_examples", [])
+            examples.append(example)
         return f"📝 Сохраняю пример стиля ({len(example)} символов)"
 
-    def _handle_character_reminder(self, name: str, context: Dict[str, Any]) -> str:
+    def _handle_character_reminder(self, content: str, context: Dict[str, Any]) -> str:
+        """Update character information and persist it."""
+        name = context.get("params", {}).get("name", content.strip())
+        if not (self.neyra_brain and hasattr(self.neyra_brain, "characters_memory")):
+            return f"🔔 Помню о персонаже: {name}"
+
+        char_mem = self.neyra_brain.characters_memory
+        character = char_mem.get(name) or Character(name=name)
+
+        params = context.get("params", {})
+
+        appearance = params.get("appearance")
+        if appearance is None:
+            # Allow specifying appearance in the content as ``appearance=...``
+            for part in content.split(";"):
+                if "appearance=" in part:
+                    appearance = part.split("=", 1)[1].strip()
+                    break
+        if appearance:
+            character.appearance = appearance
+
+        traits = params.get("traits")
+        if traits is None:
+            for part in content.split(";"):
+                if "traits=" in part:
+                    traits = part.split("=", 1)[1].strip()
+                    break
+        if traits:
+            character.personality_traits.extend(
+                [t.strip() for t in traits.split(",") if t.strip()]
+            )
+
+        char_mem.add(character)
+        char_mem.save()
         return f"🔔 Помню о персонаже: {name}"
 
     def _handle_generate_content(self, prompt: str, context: Dict[str, Any]) -> str:

@@ -34,6 +34,12 @@ class StyleMemory:
         if example:
             entry["examples"].append(example)
 
+    # ------------------------------------------------------------------
+    def add_style_example(self, author: str, example: str) -> None:
+        """Store a writing example linked to a particular author."""
+        entry = self._data.setdefault(author, {"description": "", "examples": []})
+        entry["examples"].append(example)
+
     def get(self, style: str | None = None) -> Dict[str, Any] | Dict[str, Dict[str, Any]]:
         """Retrieve stored style information."""
         if style is None:

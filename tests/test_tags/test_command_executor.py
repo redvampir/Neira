@@ -1,7 +1,8 @@
+import json
 import pytest
 from unittest.mock import patch
-from typing import Any, Dict
 
+from src.memory import CharacterMemory, StyleMemory
 from src.tags.command_executor import CommandExecutor
 from src.tags.enhanced_parser import Tag
 
@@ -24,13 +25,11 @@ def test_register_custom_handler():
     assert executor.execute_command(tag) == "custom:data"
 
 
-def test_emotion_updates_brain():
-    from src.memory import CharacterMemory
-
+def test_emotion_updates_brain(tmp_path):
     class Dummy:
         def __init__(self):
             self.emotional_state = "neutral"
-            self.characters_memory = CharacterMemory()
+            self.characters_memory = CharacterMemory(tmp_path / "chars.json")
 
     brain = Dummy()
     executor = CommandExecutor(brain)
@@ -57,20 +56,41 @@ def test_create_smart_dialogue_without_llm_selects_default_template():
     assert "Стиль: дружеский" in result
 
 
-def test_style_example_handler_appends_to_context():
-    executor = CommandExecutor()
-    tag = Tag(type='style_example', content='пример', position=(0, 0))
-    ctx: Dict[str, Any] = {}
-    result = executor.execute_command(tag, ctx)
-    assert 'пример' in ctx.get('style_examples', [])
-    assert 'пример' in result
+def test_style_example_handler_persists_example(tmp_path):
+    class Dummy:
+        def __init__(self) -> None:
+            self.style_memory = StyleMemory(tmp_path / "styles.json")
+
+    brain = Dummy()
+    executor = CommandExecutor(brain)
+    tag = Tag(
+        type='style_example',
+        content='пример',
+        position=(0, 0),
+        params={'author': 'Автор'}
+    )
+    executor.execute_command(tag)
+    data = json.loads((tmp_path / "styles.json").read_text(encoding="utf-8"))
+    assert 'пример' in data['Автор']['examples']
 
 
-def test_character_reminder_handler():
-    executor = CommandExecutor()
-    tag = Tag(type='character_reminder', content='Лили', position=(0, 0))
-    result = executor.execute_command(tag)
-    assert 'Лили' in result
+def test_character_reminder_handler_updates_memory(tmp_path):
+    class Dummy:
+        def __init__(self) -> None:
+            self.characters_memory = CharacterMemory(tmp_path / "chars.json")
+
+    brain = Dummy()
+    executor = CommandExecutor(brain)
+    tag = Tag(
+        type='character_reminder',
+        content='',
+        position=(0, 0),
+        params={'name': 'Лили', 'appearance': 'светлые волосы', 'traits': 'добрая'}
+    )
+    executor.execute_command(tag)
+    data = json.loads((tmp_path / "chars.json").read_text(encoding="utf-8"))
+    assert data['Лили']['appearance'] == 'светлые волосы'
+    assert 'добрая' in data['Лили']['personality_traits']
 
 
 def test_generate_content_handler_without_llm():
