@@ -45,13 +45,28 @@ class Neyra:
         if not config_path.exists():
             return None
         try:
-            cfg = json.loads(config_path.read_text(encoding="utf-8"))
-            model_type = cfg.get("model_type", "mistral")
-            model_path = cfg.get("model_path")
-            self.llm_max_tokens = int(cfg.get("max_tokens", 512))
+            raw_config = config_path.read_text(encoding="utf-8")
+            cfg = json.loads(raw_config)
+        except (OSError, UnicodeDecodeError) as e:  # pragma: no cover
+            self.logger.error(
+                "Ошибка чтения файла конфигурации LLM %s: %s", config_path, e
+            )
+            return None
+        except json.JSONDecodeError as e:  # pragma: no cover
+            self.logger.error(
+                "Некорректный JSON в конфиге LLM %s: %s", config_path, e
+            )
+            return None
+
+        model_type = cfg.get("model_type", "mistral")
+        model_path = cfg.get("model_path")
+        self.llm_max_tokens = int(cfg.get("max_tokens", 512))
+        try:
             return LLMFactory.create(model_type, model_path=model_path)
-        except Exception as e:  # pragma: no cover
-            self.logger.error(f"Ошибка загрузки LLM: {e}")
+        except (ValueError, RuntimeError, OSError) as e:  # pragma: no cover
+            self.logger.error(
+                "Ошибка инициализации LLM %s из %s: %s", model_type, model_path, e
+            )
             return None
 
     def introduce_yourself(self) -> None:
@@ -70,13 +85,13 @@ class Neyra:
 
     def load_book(self, path: str) -> None:
         """Загружаю книгу в свою память с радостью открытия."""
-        try:
-            file_path = Path(path)
-            if not file_path.exists():
-                self.logger.warning(f"Книга не найдена: {path}")
-                return
+        file_path = Path(path)
+        if not file_path.exists():
+            self.logger.warning(f"Книга не найдена: {path}")
+            return
 
-            cache_key = f"load_book:{file_path}"
+        cache_key = f"load_book:{file_path}"
+        try:
             mtime = file_path.stat().st_mtime
             cached = self.cache.get(cache_key)
             if cached and cached.get("mtime") == mtime:
@@ -84,22 +99,24 @@ class Neyra:
                 print(f"📚 Изучила книгу из кэша: {file_path.name}")
                 return
 
-            # Определяю кодировку
             encoding = detect_encoding(path)
             content = file_path.read_text(encoding=encoding)
+        except OSError as e:
+            self.logger.error("Ошибка чтения файла %s: %s", path, e)
+            return
+        except UnicodeDecodeError as e:
+            self.logger.error("Ошибка декодирования файла %s: %s", path, e)
+            return
 
-            self.known_books.append(path)
-            self._extract_characters(content)
+        self.known_books.append(path)
+        self._extract_characters(content)
 
-            print(f"📚 Изучила книгу: {file_path.name}")
-            print(f"   Страниц текста: {len(content) // 2000}")
-            if self.characters_memory:
-                print(f"   Встретила персонажей: {len(self.characters_memory)}")
+        print(f"📚 Изучила книгу: {file_path.name}")
+        print(f"   Страниц текста: {len(content) // 2000}")
+        if self.characters_memory:
+            print(f"   Встретила персонажей: {len(self.characters_memory)}")
 
-            self.cache.set(cache_key, {"mtime": mtime})
-
-        except Exception as e:
-            self.logger.error(f"Ошибка при загрузке {path}: {e}")
+        self.cache.set(cache_key, {"mtime": mtime})
 
     def _extract_characters(self, content: str) -> None:
         """Ищу персонажей в тексте - моя любимая задача!"""
