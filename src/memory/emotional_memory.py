@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import logging
 from typing import Any, Dict, List
 
 
@@ -24,7 +25,10 @@ class EmotionalMemory:
         if self.storage_path.exists():
             try:
                 self._data = json.loads(self.storage_path.read_text(encoding="utf-8"))
-            except Exception:
+            except json.JSONDecodeError as exc:
+                logging.getLogger(__name__).warning(
+                    "Failed to decode emotions file %s: %s", self.storage_path, exc
+                )
                 self._data = {}
 
     def add(self, key: str, emotion: str) -> None:
