@@ -15,6 +15,7 @@ import re
 from typing import List, Optional
 
 from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.history import InMemoryHistory
 from rich.console import Console
 from rich.markdown import Markdown
@@ -59,6 +60,13 @@ class ChatSession:
         self.max_history = max_history
         self.console = console or Console()
 
+        # interactive session with history and command completion
+        commands = ["/help", "/clear", "/status", "/memory", "/exit"]
+        self.session = PromptSession(
+            history=InMemoryHistory(),
+            completer=WordCompleter(commands, ignore_case=True),
+        )
+
     # ------------------------------------------------------------------
     # Public API
     def ask(self, message: str) -> str:
@@ -87,7 +95,7 @@ class ChatSession:
     def chat_loop(self) -> None:  # pragma: no cover - interactive
         """Run an interactive loop until the user enters ``/exit``."""
 
-        session = PromptSession(history=InMemoryHistory())
+        session = self.session
 
         while True:
             try:
@@ -96,7 +104,7 @@ class ChatSession:
                 break
             if not user_text.strip():
                 continue
-            if user_text.strip() == "/exit":
+            if user_text.strip() in {"/exit", "/quit"}:
                 break
 
             if user_text.startswith("/"):
@@ -126,7 +134,9 @@ class ChatSession:
             return message
 
         # Pattern: "как выглядел <имя>" or "расскажи как выглядит <имя>"
-        m = re.search(r"(?:как\s+)?выглядел[аи]?\s+(?P<name>[\w-]+)", message, re.IGNORECASE)
+        m = re.search(
+            r"(?:как\s+)?выглядел[аи]?\s+(?P<name>[\w-]+)", message, re.IGNORECASE
+        )
         if m:
             name = m.group("name")
             self._last_character = name
@@ -162,7 +172,7 @@ class ChatSession:
         """
 
         cmd = command.strip()
-        if cmd == "/help":
+        if cmd in {"/help", "/h"}:
             return (
                 "Доступные команды:\n"
                 "/help — показать это сообщение\n"
@@ -170,15 +180,15 @@ class ChatSession:
                 "/status — состояние сессии\n"
                 "/memory — вывести историю"
             )
-        if cmd == "/clear":
+        if cmd in {"/clear", "/c"}:
             self.history.clear()
             return "История очищена"
-        if cmd == "/status":
+        if cmd in {"/status", "/s"}:
             status = [f"Записей в истории: {len(self.history)}"]
             if self._last_character:
                 status.append(f"Последний персонаж: {self._last_character}")
             return "\n".join(status)
-        if cmd == "/memory":
+        if cmd in {"/memory", "/m"}:
             if not self.history:
                 return "История пуста"
             lines = [f"{entry.speaker}: {entry.text}" for entry in self.history]
