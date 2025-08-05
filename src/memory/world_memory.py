@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -128,7 +129,19 @@ class WorldMemory:
             return
         try:
             raw = json.loads(self.storage_path.read_text(encoding="utf-8"))
-        except Exception:
+        except json.JSONDecodeError as exc:
+            logging.getLogger(__name__).warning(
+                "Failed to decode world memory file %s: %s", self.storage_path, exc
+            )
+            try:
+                backup_path = self.storage_path.with_suffix(self.storage_path.suffix + ".bak")
+                self.storage_path.replace(backup_path)
+            except Exception as backup_exc:  # pragma: no cover - best effort
+                logging.getLogger(__name__).warning(
+                    "Failed to back up corrupted world memory file %s: %s",
+                    self.storage_path,
+                    backup_exc,
+                )
             raw = {}
         self._data = {}
         for world, info in raw.items():
