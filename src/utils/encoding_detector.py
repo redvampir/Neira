@@ -22,7 +22,7 @@ from typing import Iterable, Tuple
 
 try:  # pragma: no-cover - ``chardet`` might not be installed
     import chardet  # type: ignore
-except Exception:  # pragma: no-cover
+except ImportError:  # pragma: no-cover
     chardet = None  # type: ignore
 
 # Encodings we officially support and their canonical return names.
