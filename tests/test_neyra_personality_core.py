@@ -19,3 +19,10 @@ def test_get_reaction_changes_with_trait() -> None:
     personality.apply_trait("curiosity", 0.5)
     assert personality.get_reaction("curiosity") == "strong"
 
+
+def test_apply_trait_negative_delta() -> None:
+    personality = NeyraPersonalityCore()
+    personality.apply_trait("empathy", 0.6)
+    personality.apply_trait("empathy", -0.8)
+    assert personality.get_trait("empathy") == 0.0
+
