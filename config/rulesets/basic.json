@@ -1,0 +1,13 @@
+{
+  "actions": {
+    "attack": {
+      "valid_targets": ["enemy", "object"],
+      "base_difficulty": 10,
+      "thresholds": {
+        "failure": 0,
+        "success": 10,
+        "critical": 20
+      }
+    }
+  }
+}
