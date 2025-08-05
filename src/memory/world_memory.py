@@ -1,9 +1,29 @@
 """Storage for information about fictional worlds."""
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
+
+
+@dataclass
+class WorldRule:
+    """Rule that defines some aspect of a world."""
+
+    category: str
+    description: str
+    examples: List[str] = field(default_factory=list)
+
+
+@dataclass
+class CulturalInfo:
+    """Information about a culture inside a world."""
+
+    name: str
+    category: str
+    description: str
+    examples: List[str] = field(default_factory=list)
 
 
 class WorldMemory:
@@ -11,33 +31,98 @@ class WorldMemory:
 
     def __init__(self, storage_path: str | Path | None = None) -> None:
         self.storage_path = Path(storage_path or "data/world_memory.json")
-        self._data: Dict[str, Dict[str, Any]] = {}
-        self._load()
+        # Mapping of world name to its rules and cultural information
+        self._data: Dict[str, Dict[str, List[Any]]] = {}
+        self.load()
 
-    def _load(self) -> None:
-        if self.storage_path.exists():
-            try:
-                self._data = json.loads(self.storage_path.read_text(encoding="utf-8"))
-            except Exception:
-                self._data = {}
+    # ------------------------------------------------------------------
+    def add_rule(
+        self,
+        world: str,
+        category: str,
+        description: str,
+        examples: List[str] | None = None,
+    ) -> None:
+        """Add a rule for a specific world."""
+        rule = WorldRule(category=category, description=description, examples=examples or [])
+        world_entry = self._data.setdefault(world, {"rules": [], "cultures": []})
+        world_entry["rules"].append(rule)
 
-    def add(self, name: str, info: Dict[str, Any]) -> None:
-        """Add or update information about a world."""
-        self._data[name] = info
+    def add_culture(
+        self,
+        world: str,
+        name: str,
+        category: str,
+        description: str,
+        examples: List[str] | None = None,
+    ) -> None:
+        """Add cultural information for a world."""
+        culture = CulturalInfo(
+            name=name,
+            category=category,
+            description=description,
+            examples=examples or [],
+        )
+        world_entry = self._data.setdefault(world, {"rules": [], "cultures": []})
+        world_entry["cultures"].append(culture)
 
-    def get(self, name: str | None = None) -> Any:
+    # ------------------------------------------------------------------
+    def get(self, world: str | None = None) -> Any:
         """Retrieve information about a world or all worlds."""
-        if name is None:
-            return self._data
-        return self._data.get(name)
+        if world is None:
+            return {
+                name: {
+                    "rules": [asdict(rule) for rule in data.get("rules", [])],
+                    "cultures": [asdict(c) for c in data.get("cultures", [])],
+                }
+                for name, data in self._data.items()
+            }
+        entry = self._data.get(world)
+        if entry is None:
+            return None
+        return {
+            "rules": [asdict(rule) for rule in entry.get("rules", [])],
+            "cultures": [asdict(c) for c in entry.get("cultures", [])],
+        }
 
+    # ------------------------------------------------------------------
     def save(self) -> None:
         """Persist current memory to the storage file."""
+        serialised = self.get()
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         self.storage_path.write_text(
-            json.dumps(self._data, ensure_ascii=False, indent=2),
+            json.dumps(serialised, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 
+    def load(self) -> None:
+        """Load memory from disk."""
+        if not self.storage_path.exists():
+            return
+        try:
+            raw = json.loads(self.storage_path.read_text(encoding="utf-8"))
+        except Exception:
+            raw = {}
+        self._data = {}
+        for world, info in raw.items():
+            rules = [WorldRule(**r) for r in info.get("rules", [])]
+            cultures = [CulturalInfo(**c) for c in info.get("cultures", [])]
+            self._data[world] = {"rules": rules, "cultures": cultures}
 
-__all__ = ["WorldMemory"]
+    # Compatibility with previous API ---------------------------------
+    def add(self, name: str, info: Dict[str, Any]) -> None:
+        """Add or update information about a world (legacy API)."""
+        world_entry = self._data.setdefault(name, {"rules": [], "cultures": []})
+        for rule in info.get("rules", []):
+            if isinstance(rule, WorldRule):
+                world_entry["rules"].append(rule)
+            else:
+                world_entry["rules"].append(WorldRule(**rule))
+        for culture in info.get("cultures", []):
+            if isinstance(culture, CulturalInfo):
+                world_entry["cultures"].append(culture)
+            else:
+                world_entry["cultures"].append(CulturalInfo(**culture))
+
+
+__all__ = ["WorldMemory", "WorldRule", "CulturalInfo"]
