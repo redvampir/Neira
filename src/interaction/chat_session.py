@@ -14,6 +14,12 @@ from dataclasses import dataclass
 import re
 from typing import List, Optional
 
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+
 from .tag_processor import TagProcessor, handle_command
 
 
@@ -38,23 +44,37 @@ class ChatSession:
         history to be reused between calls.
     """
 
-    def __init__(self, neyra, processor: Optional[TagProcessor] = None) -> None:
+    def __init__(
+        self,
+        neyra,
+        processor: Optional[TagProcessor] = None,
+        *,
+        max_history: int = 50,
+        console: Optional[Console] = None,
+    ) -> None:
         self.neyra = neyra
         self.processor = processor or TagProcessor()
         self.history: List[ChatEntry] = []
         self._last_character: Optional[str] = None
+        self.max_history = max_history
+        self.console = console or Console()
 
     # ------------------------------------------------------------------
     # Public API
     def ask(self, message: str) -> str:
         """Send ``message`` to Neyra and return her response."""
 
-        prepared = self._prepare_message(message)
-        result = handle_command(self.neyra, prepared, self.processor)
+        try:
+            prepared = self._prepare_message(message)
+            result = handle_command(self.neyra, prepared, self.processor)
+        except Exception as exc:  # pragma: no cover - defensive
+            self.console.print(Panel(f"[red]{exc}[/]", title="Error"))
+            return ""
 
         # Track conversation history
         self.history.append(ChatEntry("user", message))
         self.history.append(ChatEntry("neyra", result.text))
+        self._trim_history()
 
         # Update context based on tags in the prepared message
         tags = self.processor.parse(prepared)
@@ -64,18 +84,30 @@ class ChatSession:
 
         return result.text
 
-    def chat_loop(self, *, input_func=input, output_func=print) -> None:  # pragma: no cover - interactive
+    def chat_loop(self) -> None:  # pragma: no cover - interactive
         """Run an interactive loop until the user enters ``/exit``."""
 
+        session = PromptSession(history=InMemoryHistory())
+
         while True:
-            user_text = input_func("\n> ")
+            try:
+                user_text = session.prompt("\n> ")
+            except (KeyboardInterrupt, EOFError):
+                break
             if not user_text.strip():
                 continue
             if user_text.strip() == "/exit":
                 break
+
+            if user_text.startswith("/"):
+                service = self._handle_service_command(user_text.strip())
+                if service:
+                    self.console.print(Panel(Markdown(service), title="System"))
+                continue
+
             response = self.ask(user_text)
             if response:
-                output_func(response)
+                self.console.print(Panel(Markdown(response), title="Neyra"))
 
     # ------------------------------------------------------------------
     # Helpers
@@ -109,6 +141,49 @@ class ChatSession:
 
         # Default: treat as a direct command to Neyra
         return f"@Нейра: {message}@"
+
+    def _trim_history(self) -> None:
+        """Ensure stored history does not exceed ``max_history`` entries."""
+
+        if len(self.history) > self.max_history:
+            del self.history[: len(self.history) - self.max_history]
+
+    def _handle_service_command(self, command: str) -> Optional[str]:
+        """Handle internal service commands.
+
+        Parameters
+        ----------
+        command:
+            The command string beginning with ``/``.
+        Returns
+        -------
+        Optional[str]
+            Textual response for the user. ``None`` if nothing should be printed.
+        """
+
+        cmd = command.strip()
+        if cmd == "/help":
+            return (
+                "Доступные команды:\n"
+                "/help — показать это сообщение\n"
+                "/clear — очистить историю\n"
+                "/status — состояние сессии\n"
+                "/memory — вывести историю"
+            )
+        if cmd == "/clear":
+            self.history.clear()
+            return "История очищена"
+        if cmd == "/status":
+            status = [f"Записей в истории: {len(self.history)}"]
+            if self._last_character:
+                status.append(f"Последний персонаж: {self._last_character}")
+            return "\n".join(status)
+        if cmd == "/memory":
+            if not self.history:
+                return "История пуста"
+            lines = [f"{entry.speaker}: {entry.text}" for entry in self.history]
+            return "\n".join(lines)
+        return f"Неизвестная команда: {cmd}"
 
 
 __all__ = ["ChatSession", "ChatEntry"]
