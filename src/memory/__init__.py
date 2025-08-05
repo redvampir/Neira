@@ -8,6 +8,7 @@ from .world_memory import WorldMemory
 from .style_memory import StyleMemory
 from .index import MemoryIndex
 from .weighted import WeightedMemory
+from .lazy_loader import LazyMemoryLoader
 
 __all__ = [
     "CharacterMemory",
@@ -18,5 +19,6 @@ __all__ = [
     "StyleMemory",
     "MemoryIndex",
     "WeightedMemory",
+    "LazyMemoryLoader",
 ]
 
