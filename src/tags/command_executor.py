@@ -347,6 +347,33 @@ class CommandExecutor:
                 [t.strip() for t in traits.split(",") if t.strip()]
             )
 
+        emotional = params.get("emotional_moment") or params.get("emotion")
+        if emotional:
+            character.emotional_moments.extend(
+                [e.strip() for e in str(emotional).split(",") if e.strip()]
+            )
+
+        relationships = params.get("relationships")
+        if relationships:
+            if isinstance(relationships, dict):
+                character.relationships.update(relationships)
+            else:
+                for rel in str(relationships).split(","):
+                    if ":" in rel:
+                        other, kind = rel.split(":", 1)
+                        character.relationships[other.strip()] = kind.strip()
+
+        growth = params.get("growth_arc")
+        if growth:
+            if isinstance(growth, list):
+                character.growth_arc.extend(growth)
+            else:
+                character.growth_arc.append(str(growth))
+
+        first_mention = params.get("first_mention")
+        if first_mention is not None:
+            character.first_mention = bool(first_mention)
+
         char_mem.add(character)
         char_mem.save()
         return f"🔔 Помню о персонаже: {name}"

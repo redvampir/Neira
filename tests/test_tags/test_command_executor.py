@@ -85,12 +85,24 @@ def test_character_reminder_handler_updates_memory(tmp_path):
         type='character_reminder',
         content='',
         position=(0, 0),
-        params={'name': 'Лили', 'appearance': 'светлые волосы', 'traits': 'добрая'}
+        params={
+            'name': 'Лили',
+            'appearance': 'светлые волосы',
+            'traits': 'добрая',
+            'emotional_moment': 'радость',
+            'relationships': 'Боб:друг',
+            'growth_arc': 'обрела смелость',
+            'first_mention': True,
+        }
     )
     executor.execute_command(tag)
     data = json.loads((tmp_path / "chars.json").read_text(encoding="utf-8"))
     assert data['Лили']['appearance'] == 'светлые волосы'
     assert 'добрая' in data['Лили']['personality_traits']
+    assert 'радость' in data['Лили']['emotional_moments']
+    assert data['Лили']['relationships']['Боб'] == 'друг'
+    assert 'обрела смелость' in data['Лили']['growth_arc']
+    assert data['Лили']['first_mention'] is True
 
 
 def test_generate_content_handler_without_llm():
