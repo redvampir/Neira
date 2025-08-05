@@ -13,6 +13,13 @@ from typing import Dict
 
 
 @dataclass
+class Trait:
+    """Represent a single personality trait."""
+
+    intensity: float = 0.0
+
+
+@dataclass
 class NeyraPersonalityCore:
     """Maintain a collection of personality traits.
 
@@ -22,7 +29,7 @@ class NeyraPersonalityCore:
     based on the current value.
     """
 
-    traits: Dict[str, float] = field(default_factory=dict)
+    traits: Dict[str, Trait] = field(default_factory=dict)
 
     def apply_trait(self, name: str, delta: float) -> float:
         """Modify ``name`` trait by ``delta`` and return the new intensity.
@@ -32,14 +39,15 @@ class NeyraPersonalityCore:
         exist it is created with the provided delta.
         """
 
-        new_value = max(0.0, min(1.0, self.traits.get(name, 0.0) + delta))
-        self.traits[name] = new_value
-        return new_value
+        trait = self.traits.setdefault(name, Trait())
+        trait.intensity = max(0.0, min(1.0, trait.intensity + delta))
+        return trait.intensity
 
     def get_trait(self, name: str) -> float:
         """Return the current intensity for ``name`` or ``0.0`` if missing."""
 
-        return self.traits.get(name, 0.0)
+        trait = self.traits.get(name)
+        return trait.intensity if trait else 0.0
 
     def get_reaction(self, name: str) -> str:
         """Return a qualitative reaction for the given trait ``name``.
