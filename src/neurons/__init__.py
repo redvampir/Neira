@@ -8,10 +8,12 @@ from .base import Neuron
 from .memory import MemoryNeuron
 from .analysis import AnalysisNeuron
 from .action import ActionNeuron
+from .patterns import BehaviorPattern
 
 __all__ = [
     "Neuron",
     "MemoryNeuron",
     "AnalysisNeuron",
     "ActionNeuron",
+    "BehaviorPattern",
 ]
