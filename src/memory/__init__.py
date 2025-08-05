@@ -6,6 +6,7 @@ from .story_timeline import StoryTimeline
 from .world_atlas import WorldAtlas
 from .world_memory import WorldMemory
 from .style_memory import StyleMemory
+from .index import MemoryIndex
 
 __all__ = [
     "CharacterMemory",
@@ -14,5 +15,6 @@ __all__ = [
     "WorldAtlas",
     "WorldMemory",
     "StyleMemory",
+    "MemoryIndex",
 ]
 
