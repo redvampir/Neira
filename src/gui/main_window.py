@@ -12,6 +12,7 @@ from .text_editor import NeyraTextEditor
 from .neyra_chat import NeyraChatPanel
 from .memory_viewer import MemoryViewer
 from .tag_assistant import TagAssistant
+from ..core.neyra_config import NEYRA_GREETING, NeyraPersonality
 
 
 class NeyraMainWindow:  # pragma: no cover - mostly GUI wiring
@@ -32,8 +33,31 @@ class NeyraMainWindow:  # pragma: no cover - mostly GUI wiring
 
     def setup_layout(self) -> None:
         """Create main layout containers."""
-        # Placeholder for layout logic.
-        pass
+        if ctk is None:
+            return
+
+        # Configure grid weights for responsive resizing
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=2)
+        self.root.grid_columnconfigure(2, weight=1)
+
+        # Create frames for each major component
+        self.book_manager_frame = ctk.CTkFrame(self.root)
+        self.book_manager_frame.grid(row=0, column=0, sticky="nsew")
+
+        self.text_editor_frame = ctk.CTkFrame(self.root)
+        self.text_editor_frame.grid(row=0, column=1, sticky="nsew")
+
+        self.memory_viewer_frame = ctk.CTkFrame(self.root)
+        self.memory_viewer_frame.grid(row=0, column=2, sticky="nsew")
+
+        self.neyra_chat_frame = ctk.CTkFrame(self.root)
+        self.neyra_chat_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+
+        self.tag_assistant_frame = ctk.CTkFrame(self.root)
+        self.tag_assistant_frame.grid(row=1, column=2, sticky="nsew")
 
     def setup_components(self) -> None:
         """Instantiate child widgets."""
@@ -45,7 +69,18 @@ class NeyraMainWindow:  # pragma: no cover - mostly GUI wiring
 
     def setup_neyra_personality(self) -> None:
         """Load personality configuration for Neyra."""
-        pass
+        self.personality = NeyraPersonality()
+        self.greeting_text = NEYRA_GREETING
+
+        # Bind greeting text to a GUI widget if available
+        if ctk is not None:
+            self.greeting_label = ctk.CTkLabel(
+                self.neyra_chat_frame, text=self.greeting_text
+            )
+            self.greeting_label.pack(pady=5)
+
+        # Provide personality to chat component
+        self.neyra_chat.personality = self.personality
 
     # In a real application ``run`` would likely start ``ctk``'s main loop.
     def run(self) -> None:  # pragma: no cover - GUI loop
