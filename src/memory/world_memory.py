@@ -15,6 +15,16 @@ class WorldRule:
     description: str
     examples: List[str] = field(default_factory=list)
 
+    # ------------------------------------------------------------------
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a serialisable representation of the rule."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "WorldRule":
+        """Create a :class:`WorldRule` from a serialised form."""
+        return cls(**data)
+
 
 @dataclass
 class CulturalInfo:
@@ -24,6 +34,16 @@ class CulturalInfo:
     category: str
     description: str
     examples: List[str] = field(default_factory=list)
+
+    # ------------------------------------------------------------------
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a serialisable representation of the cultural info."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "CulturalInfo":
+        """Create a :class:`CulturalInfo` from a serialised form."""
+        return cls(**data)
 
 
 class WorldMemory:
@@ -47,6 +67,7 @@ class WorldMemory:
         rule = WorldRule(category=category, description=description, examples=examples or [])
         world_entry = self._data.setdefault(world, {"rules": [], "cultures": []})
         world_entry["rules"].append(rule)
+        return rule
 
     def add_culture(
         self,
@@ -65,6 +86,7 @@ class WorldMemory:
         )
         world_entry = self._data.setdefault(world, {"rules": [], "cultures": []})
         world_entry["cultures"].append(culture)
+        return culture
 
     # ------------------------------------------------------------------
     def get(self, world: str | None = None) -> Any:
@@ -88,7 +110,12 @@ class WorldMemory:
     # ------------------------------------------------------------------
     def save(self) -> None:
         """Persist current memory to the storage file."""
-        serialised = self.get()
+        serialised: Dict[str, Any] = {}
+        for world, info in self._data.items():
+            serialised[world] = {
+                "rules": [r.to_dict() for r in info.get("rules", [])],
+                "cultures": [c.to_dict() for c in info.get("cultures", [])],
+            }
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         self.storage_path.write_text(
             json.dumps(serialised, ensure_ascii=False, indent=2),
@@ -105,8 +132,8 @@ class WorldMemory:
             raw = {}
         self._data = {}
         for world, info in raw.items():
-            rules = [WorldRule(**r) for r in info.get("rules", [])]
-            cultures = [CulturalInfo(**c) for c in info.get("cultures", [])]
+            rules = [WorldRule.from_dict(r) for r in info.get("rules", [])]
+            cultures = [CulturalInfo.from_dict(c) for c in info.get("cultures", [])]
             self._data[world] = {"rules": rules, "cultures": cultures}
 
     # Compatibility with previous API ---------------------------------

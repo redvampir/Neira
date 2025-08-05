@@ -16,6 +16,16 @@ class StylePattern:
     examples: List[str] = field(default_factory=list)
     characteristics: List[str] = field(default_factory=list)
 
+    # ------------------------------------------------------------------
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a serialisable representation of the style pattern."""
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "StylePattern":
+        """Create a :class:`StylePattern` from a serialised form."""
+        return cls(**data)
+
 
 class StyleMemory:
     """Remember styles and their examples, persisted to disk."""
@@ -41,6 +51,7 @@ class StyleMemory:
             pattern.examples.append(example)
         if characteristics:
             pattern.characteristics.extend(characteristics)
+        return pattern
 
     def add_style_example(self, author: str, example: str) -> None:
         """Store a writing example linked to a particular author."""
@@ -65,7 +76,7 @@ class StyleMemory:
     # ------------------------------------------------------------------
     def save(self) -> None:
         """Persist memory to disk."""
-        serialised = {author: asdict(pattern) for author, pattern in self._data.items()}
+        serialised = {author: pattern.to_dict() for author, pattern in self._data.items()}
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         self.storage_path.write_text(
             json.dumps(serialised, ensure_ascii=False, indent=2),
@@ -80,7 +91,7 @@ class StyleMemory:
             raw: Dict[str, Any] = json.loads(self.storage_path.read_text(encoding="utf-8"))
         except Exception:
             raw = {}
-        self._data = {author: StylePattern(**info) for author, info in raw.items()}
+        self._data = {author: StylePattern.from_dict(info) for author, info in raw.items()}
 
 
 __all__ = ["StyleMemory", "StylePattern"]
