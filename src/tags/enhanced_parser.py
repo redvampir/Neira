@@ -28,8 +28,9 @@ class EnhancedTagParser:
         **TagSystemConfig.CORE_TAGS,
         **TagSystemConfig.EXTENDED_TAGS,
         # Additional inline commands
-        "character_reminder": r"@Напомни:\s*([^@]+)@",
-        "generate_content": r"@Сгенерируй:\s*([^@]+)@",
+        "character_reminder": r"@Напомни:\s*(?P<content>[^@]+)@",
+        # ``generate_content`` also exposes the topic via params
+        "generate_content": r"@Сгенерируй:\s*(?P<topic>[^@]+)@",
     }
 
     #: block patterns like ``[Пример стиля автора, X]\n...\n[Пример окончен]``
@@ -41,10 +42,9 @@ class EnhancedTagParser:
     }
 
     def __init__(self) -> None:
-        for tag, pattern in {**self.INLINE_PATTERNS}.items():
-            register_pattern(tag, pattern)
-        for tag, pattern in self.BLOCK_PATTERNS.items():
-            register_pattern(tag, pattern)
+        for tag_dict in (self.INLINE_PATTERNS, self.BLOCK_PATTERNS):
+            for tag, pattern in tag_dict.items():
+                register_pattern(tag, pattern)
 
     def parse_user_input(self, text: str) -> List[Tag]:
         tags: List[Tag] = []
