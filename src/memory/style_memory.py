@@ -81,6 +81,35 @@ class StyleMemory:
         return examples
 
     # ------------------------------------------------------------------
+    def save_preferences(
+        self,
+        user_id: str,
+        tone: str | None = None,
+        examples: List[str] | None = None,
+    ) -> None:
+        """Store user preferences such as ``tone`` and ``examples``.
+
+        Parameters
+        ----------
+        user_id:
+            Identifier of the user whose preferences are being saved.
+        tone:
+            Preferred tone of responses.
+        examples:
+            Example phrases illustrating the desired style.
+        """
+
+        if not tone and not examples:
+            return
+
+        if tone:
+            self.add(user_id, "preferred", description=tone)
+        if examples:
+            for ex in examples:
+                self.add_style_example(user_id, "preferred", ex)
+        self.save()
+
+    # ------------------------------------------------------------------
     def save(self) -> None:
         """Persist memory to disk."""
         serialised = {

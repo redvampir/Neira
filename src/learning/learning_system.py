@@ -9,6 +9,7 @@ from src.neurons import Neuron, NeuronFactory
 from src.neurons.evolution import EvolutionConfig, evolve
 from src.memory import StyleMemory
 from src.learning.error_analysis import classify_error, recommend_action
+from src.learning.feedback import FeedbackInterface
 
 
 @dataclass
@@ -81,14 +82,11 @@ class LearningSystem:
         if rating >= 0:
             self.success_metrics["positive"] += 1
             if context:
-                user_id = context.get("user_id", "default")
+                user_id = context.get("user_id")
                 tone = context.get("tone")
                 examples = context.get("examples", [])
-                if tone or examples:
-                    self.style_memory.add(user_id, "preferred", description=tone)
-                    for ex in examples:
-                        self.style_memory.add_style_example(user_id, "preferred", ex)
-                    self.style_memory.save()
+                if user_id and (tone or examples):
+                    self.style_memory.save_preferences(user_id, tone, examples)
         else:
             self.success_metrics["negative"] += 1
             metrics["error_type"] = classify_error(interaction)
@@ -118,6 +116,9 @@ class LearningSystem:
                     continue
                 weight = self.adaptation_weights[key]
                 self.adaptation_weights[key] = max(1, int(weight * ratio))
+
+        if context and context.get("user_id"):
+            FeedbackInterface.record(context["user_id"], interaction)
 
     # ------------------------------------------------------------------
     def _analyze_failure(self, interaction: Dict[str, Any], error_type: str) -> None:
