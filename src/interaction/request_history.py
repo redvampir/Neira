@@ -6,7 +6,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 import json
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -15,6 +15,7 @@ class HistoryEntry:
 
     timestamp: datetime
     text: str
+    rating: Optional[int] = None
 
 
 class RequestHistory:
@@ -35,15 +36,16 @@ class RequestHistory:
                 data = json.loads(self.path.read_text(encoding="utf-8"))
                 for item in data:
                     ts = datetime.fromisoformat(item["timestamp"])
-                    self._entries.append(HistoryEntry(ts, item["text"]))
+                    rating = item.get("rating")
+                    self._entries.append(HistoryEntry(ts, item["text"], rating))
             except Exception:  # pragma: no cover - corrupted history
                 self._entries = []
 
     # ------------------------------------------------------------------
-    def add(self, text: str) -> None:
-        """Add ``text`` to the history and persist it."""
+    def add(self, text: str, rating: Optional[int] = None) -> None:
+        """Add ``text`` (with optional ``rating``) to the history and persist it."""
 
-        entry = HistoryEntry(datetime.now(), text)
+        entry = HistoryEntry(datetime.now(), text, rating)
         self._entries.append(entry)
         self._save()
 
@@ -57,6 +59,17 @@ class RequestHistory:
         """Return the last ``limit`` requests joined by newlines."""
 
         return "\n".join(e.text for e in self._entries[-limit:])
+
+    def stats(self) -> str:
+        """Return basic statistics for stored ratings."""
+
+        ratings = [e.rating for e in self._entries if e.rating is not None]
+        if not ratings:
+            return "Оценок пока нет"
+        total = len(ratings)
+        avg = sum(ratings) / total
+        lines = [f"Всего оценок: {total}", f"Средняя оценка: {avg:.2f}"]
+        return "\n".join(lines)
 
     # ------------------------------------------------------------------
     def _save(self) -> None:
