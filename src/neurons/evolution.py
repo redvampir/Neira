@@ -15,6 +15,7 @@ from .base import Neuron
 from .memory import MemoryNeuron
 from .analysis import AnalysisNeuron
 from .action import ActionNeuron
+from .planning import PlanningNeuron
 
 
 @dataclass
@@ -26,7 +27,14 @@ class EvolutionConfig:
     mutation_rate: float = 0.1
 
 
-SPECIALISED = [MemoryNeuron, AnalysisNeuron, ActionNeuron]
+SPECIALISED = [MemoryNeuron, AnalysisNeuron, ActionNeuron, PlanningNeuron]
+
+
+def register_base_class(cls: Type[Neuron]) -> None:
+    """Register an additional base class for evolution."""
+
+    if cls not in SPECIALISED:
+        SPECIALISED.append(cls)
 
 
 def evolve(
@@ -77,4 +85,4 @@ def evolve(
     return neuron_type, neuron_cls
 
 
-__all__ = ["EvolutionConfig", "evolve"]
+__all__ = ["EvolutionConfig", "evolve", "register_base_class"]
