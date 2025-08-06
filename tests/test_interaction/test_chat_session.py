@@ -7,10 +7,10 @@ def test_chat_session_follows_character_context():
     neyra = Neyra()
     chat = ChatSession(neyra)
 
-    first = chat.ask("Расскажи, как выглядел Вилл")
+    first = chat.ask("Расскажи, как выглядел Вилл", rating=5)
     assert "Вилл" in first
 
-    second = chat.ask("А как он говорит?")
+    second = chat.ask("А как он говорит?", rating=4)
     assert "Вилл" in second
     assert any(word in second.lower() for word in ["говор", "реч"])
 
@@ -24,13 +24,16 @@ def test_service_commands_manage_history() -> None:
     neyra = Neyra()
     chat = ChatSession(neyra)
 
-    chat.ask("Расскажи, как выглядел Вилл")
+    chat.ask("Расскажи, как выглядел Вилл", rating=3)
     status = chat._handle_service_command("/status")
     assert "Записей" in status
     assert "Вилл" in status
 
     memory = chat._handle_service_command("/memory")
     assert "Вилл" in memory
+
+    stats = chat._handle_service_command("/stats")
+    assert "Средняя" in stats
 
     chat._handle_service_command("/clear")
     assert chat.history == []

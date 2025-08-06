@@ -21,6 +21,8 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 
+from src.learning import LearningSystem
+
 from .tag_processor import TagProcessor, handle_command
 
 
@@ -52,6 +54,7 @@ class ChatSession:
         *,
         max_history: int = 50,
         console: Optional[Console] = None,
+        learning_system: Optional[LearningSystem] = None,
     ) -> None:
         self.neyra = neyra
         self.processor = processor or TagProcessor()
@@ -59,9 +62,10 @@ class ChatSession:
         self._last_character: Optional[str] = None
         self.max_history = max_history
         self.console = console or Console()
+        self.learning = learning_system or LearningSystem()
 
         # interactive session with history and command completion
-        commands = ["/help", "/clear", "/status", "/memory", "/exit"]
+        commands = ["/help", "/clear", "/status", "/memory", "/stats", "/exit"]
         self.session = PromptSession(
             history=InMemoryHistory(),
             completer=WordCompleter(commands, ignore_case=True),
@@ -69,8 +73,8 @@ class ChatSession:
 
     # ------------------------------------------------------------------
     # Public API
-    def ask(self, message: str) -> str:
-        """Send ``message`` to Neyra and return her response."""
+    def ask(self, message: str, rating: Optional[int] = None) -> str:
+        """Send ``message`` to Neyra, request rating and return her response."""
 
         try:
             prepared = self._prepare_message(message)
@@ -89,6 +93,23 @@ class ChatSession:
         for tag in tags:
             if tag.type == "character_work" and tag.subject:
                 self._last_character = tag.subject
+
+        # Request rating if not supplied programmatically
+        if rating is None:
+            rating = self._request_rating()
+
+        if rating is not None:
+            # Persist in Neyra's history if available
+            if hasattr(self.neyra, "history"):
+                try:
+                    self.neyra.history.add(message, rating)
+                except Exception:  # pragma: no cover - best effort
+                    pass
+            # Inform learning system
+            try:
+                self.learning.learn_from_interaction(message, result.text, rating)
+            except Exception:  # pragma: no cover - best effort
+                pass
 
         return result.text
 
@@ -158,6 +179,25 @@ class ChatSession:
         if len(self.history) > self.max_history:
             del self.history[: len(self.history) - self.max_history]
 
+    def _request_rating(self) -> Optional[int]:
+        """Interactively ask the user to rate the answer."""
+
+        while True:  # pragma: no cover - simple loop
+            try:
+                raw = self.session.prompt(
+                    "Оцените ответ (1-5) или Enter чтобы пропустить: "
+                )
+            except (KeyboardInterrupt, EOFError):
+                return None
+            raw = raw.strip()
+            if not raw:
+                return None
+            if raw.isdigit():
+                value = int(raw)
+                if 1 <= value <= 5:
+                    return value
+            self.console.print("Введите число от 1 до 5.")
+
     def _handle_service_command(self, command: str) -> Optional[str]:
         """Handle internal service commands.
 
@@ -193,6 +233,10 @@ class ChatSession:
                 return "История пуста"
             lines = [f"{entry.speaker}: {entry.text}" for entry in self.history]
             return "\n".join(lines)
+        if cmd in {"/stats"}:
+            if hasattr(self.neyra, "history") and hasattr(self.neyra.history, "stats"):
+                return self.neyra.history.stats()
+            return "Оценок пока нет"
         return f"Неизвестная команда: {cmd}"
 
 
