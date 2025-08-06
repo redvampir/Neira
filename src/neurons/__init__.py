@@ -10,6 +10,7 @@ from .analysis import AnalysisNeuron
 from .action import ActionNeuron
 from .patterns import BehaviorPattern
 from .network import NeuronNetwork
+from .factory import NeuronFactory
 
 __all__ = [
     "Neuron",
@@ -18,4 +19,5 @@ __all__ = [
     "ActionNeuron",
     "BehaviorPattern",
     "NeuronNetwork",
+    "NeuronFactory",
 ]
