@@ -10,6 +10,7 @@ from src.neurons.evolution import EvolutionConfig, evolve
 from src.memory import StyleMemory
 from src.learning.error_analysis import classify_error, recommend_action
 from src.learning.feedback import FeedbackInterface
+from src.learning.knowledge_base import KnowledgeBase
 
 
 @dataclass
@@ -39,6 +40,7 @@ class LearningSystem:
     )
     style_memory: StyleMemory = field(default_factory=StyleMemory)
     response_cache: Dict[str, str] = field(default_factory=dict)
+    knowledge_base: KnowledgeBase = field(default_factory=KnowledgeBase)
 
     # ------------------------------------------------------------------
     def learn_from_interaction(
@@ -136,11 +138,16 @@ class LearningSystem:
             "error_type": error_type,
         }
         self.failure_analysis.append(entry)
+        self.knowledge_base.add(entry)
+        self.knowledge_base.save()
 
     # ------------------------------------------------------------------
     def check_previous_failures(self, user_request: str) -> Optional[Dict[str, Any]]:
         """Return previous failure entry if the request was seen before."""
 
+        kb_entry = self.knowledge_base.query(user_request)
+        if kb_entry:
+            return kb_entry
         for failure in self.failure_analysis:
             if failure.get("request") == user_request:
                 return failure
