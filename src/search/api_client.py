@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 from src.memory import MemoryIndex
 from src.utils.spam_filter import is_spam
+from src.utils.pii import redact_pii
 
 
 class SearchAPIClient:
@@ -122,6 +123,7 @@ class SearchAPIClient:
                 continue
             reliability = self.memory.source_reliability.get(url, 0.5)
             for fact in self.extract_facts(snippet):
+                fact = redact_pii(fact)
                 self.memory.set(fact, True, reliability=reliability)
             # ``MemoryIndex.update_reliability`` only updates existing keys, so we
             # modify the reliability mapping directly to ensure the source is
