@@ -28,10 +28,14 @@ class RequestHistory:
         start and every modification is immediately persisted.
     """
 
-    def __init__(self, path: str | Path = "logs/request_history.json") -> None:
+    def __init__(
+        self,
+        path: str | Path = "logs/request_history.json",
+        load_existing: bool = True,
+    ) -> None:
         self.path = Path(path)
         self._entries: List[HistoryEntry] = []
-        if self.path.exists():
+        if load_existing and self.path.exists():
             try:
                 data = json.loads(self.path.read_text(encoding="utf-8"))
                 for item in data:
