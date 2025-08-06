@@ -8,6 +8,7 @@ from .world_memory import WorldMemory
 from .style_memory import StyleMemory
 from .index import MemoryIndex
 from .weighted import WeightedMemory
+from .multi_grid import MultiGridMemory
 from .lazy_loader import LazyMemoryLoader
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "StyleMemory",
     "MemoryIndex",
     "WeightedMemory",
+    "MultiGridMemory",
     "LazyMemoryLoader",
 ]
 
