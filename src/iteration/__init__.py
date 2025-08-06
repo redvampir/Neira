@@ -8,6 +8,7 @@ except Exception:  # noqa: BLE001 - fallback when requests is missing
     DeepSearcher = None  # type: ignore
 from .response_enhancer import ResponseEnhancer, IntegrationType
 from .iteration_controller import IterationController
+from .strategy_manager import AdaptiveIterationManager, IterationStrategy
 
 __all__ = [
     "DraftGenerator",
@@ -17,4 +18,6 @@ __all__ = [
     "ResponseEnhancer",
     "IntegrationType",
     "IterationController",
+    "AdaptiveIterationManager",
+    "IterationStrategy",
 ]
