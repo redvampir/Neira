@@ -28,6 +28,9 @@ class MemoryIndex:
         self.cold_storage: Dict[str, Any] = {}
         self.usage_stats: Dict[str, int] = {}
         self.access_times: Dict[str, float] = {}
+        # Track how trustworthy each source is perceived to be. 1.0 means
+        # highly reliable while 0.0 indicates unknown or untrusted source.
+        self.source_reliability: Dict[str, float] = {}
         self.hot_threshold = hot_threshold
         self.warm_threshold = warm_threshold
         self.hot_limit = hot_limit
@@ -35,14 +38,32 @@ class MemoryIndex:
 
     # ------------------------------------------------------------------
     # public API
-    def set(self, key: str, value: Any) -> None:
-        """Store ``key``/``value`` in cold storage."""
+    def set(self, key: str, value: Any, reliability: float = 0.5) -> None:
+        """Store ``key``/``value`` in cold storage.
+
+        Parameters
+        ----------
+        key:
+            Identifier for the memory record.
+        value:
+            The data to store.
+        reliability:
+            A float between 0 and 1 representing how trustworthy the source
+            of this record is. Defaults to ``0.5`` which means neutral
+            reliability.
+        """
         self.cold_storage[key] = value
         self.usage_stats[key] = 0
         self.access_times[key] = time.time()
+        self.source_reliability[key] = max(0.0, min(1.0, reliability))
         self._age_items(key)
         self._check_demotions()
         self._enforce_limits()
+
+    def update_reliability(self, key: str, reliability: float) -> None:
+        """Update reliability for ``key`` if it exists."""
+        if key in self.cold_storage or key in self.warm_cache or key in self.hot_cache:
+            self.source_reliability[key] = max(0.0, min(1.0, reliability))
 
     def get(self, key: str) -> Any:
         """Retrieve ``key`` from whichever tier currently holds it."""

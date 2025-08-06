@@ -13,6 +13,7 @@ from src.utils.encoding_detector import detect_encoding
 from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
+from src.analysis import VerificationSystem, VerificationResult
 from src.models import Character
 from src.core.cache_manager import CacheManager
 
@@ -32,6 +33,7 @@ class Neyra:
         self.characters_memory = CharacterMemory()
         self.world_memory = WorldMemory()
         self.style_memory = StyleMemory()
+        self.verification_system = VerificationSystem()
         self.current_user_id = "default"
         self.current_style = ""
         self.emotional_state = "любопытная"
@@ -157,6 +159,11 @@ class Neyra:
 
         if self.characters_memory:
             print("   Главные герои:", list(self.characters_memory.keys())[:5])
+
+    def verify_claim(self, claim: str) -> VerificationResult:
+        """Проверяю утверждение с помощью системы верификации."""
+
+        return self.verification_system.verify_claim(claim)
 
     def process_command(self, text: str) -> str:
         """Обрабатываю команды с пониманием и творчеством."""
