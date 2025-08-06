@@ -49,7 +49,7 @@ class BehaviorPattern:
 
         # Memory activation stage
         for neuron in self.memory_neurons:
-            neuron.process(data)
+            neuron.process(str(data), data)
 
         # Analysis stage
         analysis_results: List[Any] = []

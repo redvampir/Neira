@@ -28,9 +28,20 @@ def test_activation_updates_strength_and_count() -> None:
 
 def test_memory_neuron_process() -> None:
     neuron = MemoryNeuron(id="m1")
-    neuron.process("remember this")
-    assert neuron.memory == ["remember this"]
+    neuron.process("key1", "remember this")
+    assert neuron.query("key1") == "remember this"
     assert neuron.activation_count == 1
+
+
+def test_memory_neuron_bounded_storage() -> None:
+    neuron = MemoryNeuron(id="m2", hot_limit=2, warm_limit=3)
+    for i in range(6):
+        neuron.process(f"k{i}", f"v{i}")
+    assert len(neuron.index.hot_cache) <= 2
+    assert len(neuron.index.warm_cache) <= 3
+    assert len(neuron.index.cold_storage) >= 1
+    neuron.purge_cold_storage()
+    assert neuron.index.cold_storage == {}
 
 
 def test_analysis_neuron_process() -> None:
