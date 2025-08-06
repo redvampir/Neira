@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import Callable, Iterable, List, Dict
 import requests
 import re
+import json
+from pathlib import Path
+from urllib.parse import urlparse
 
 from src.memory import MemoryIndex
 
@@ -16,6 +19,7 @@ class SearchAPIClient:
         self,
         memory: MemoryIndex | None = None,
         fetcher: Callable[[str, int], Iterable[Dict[str, str]]] | None = None,
+        domain_config_path: str | Path | None = None,
     ) -> None:
         """
         Parameters
@@ -28,10 +32,37 @@ class SearchAPIClient:
             limit and must return an iterable of search result dictionaries. Each
             result dictionary should contain ``url`` and ``snippet`` keys. When not
             provided, a minimal DuckDuckGo JSON API is used.
+        domain_config_path:
+            Optional path to a JSON file containing ``allowed_domains`` and
+            ``blocked_domains`` lists used to filter search results.
         """
         self.memory = memory or MemoryIndex()
         self.fetcher = fetcher or self._duckduckgo_fetch
         self.session = requests.Session()
+        self.allowed_domains, self.blocked_domains = self._load_domain_config(
+            domain_config_path
+        )
+
+    # ------------------------------------------------------------------
+    def _load_domain_config(
+        self, path: str | Path | None
+    ) -> tuple[set[str], set[str]]:
+        """Load allowed and blocked domains from config file."""
+        config_path = (
+            Path(path)
+            if path is not None
+            else Path(__file__).resolve().parents[2]
+            / "config"
+            / "search_domains.json"
+        )
+        try:
+            with config_path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:  # pragma: no cover - missing or invalid config
+            data = {}
+        allowed = {d.lower() for d in data.get("allowed_domains", [])}
+        blocked = {d.lower() for d in data.get("blocked_domains", [])}
+        return allowed, blocked
 
     # ------------------------------------------------------------------
     def _duckduckgo_fetch(self, query: str, limit: int) -> Iterable[Dict[str, str]]:
@@ -57,12 +88,21 @@ class SearchAPIClient:
     # ------------------------------------------------------------------
     def search(self, query: str, limit: int = 5) -> List[Dict[str, str]]:
         """Return search results ranked by source reliability."""
-        results = list(self.fetcher(query, limit))
-        results.sort(
+        raw_results = list(self.fetcher(query, limit))
+        filtered: List[Dict[str, str]] = []
+        for result in raw_results:
+            url = result.get("url", "")
+            domain = urlparse(url).netloc.lower()
+            if domain.startswith("www."):
+                domain = domain[4:]
+            if (self.allowed_domains and domain not in self.allowed_domains) or domain in self.blocked_domains:
+                continue
+            filtered.append(result)
+        filtered.sort(
             key=lambda r: self.memory.source_reliability.get(r.get("url", ""), 0.5),
             reverse=True,
         )
-        return results
+        return filtered
 
     # ------------------------------------------------------------------
     def extract_facts(self, text: str) -> List[str]:
