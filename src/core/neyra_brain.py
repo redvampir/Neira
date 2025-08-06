@@ -14,6 +14,7 @@ from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
 from src.analysis import VerificationSystem, VerificationResult, UncertaintyManager
+from src.iteration import DraftGenerator
 from src.models import Character
 from src.core.cache_manager import CacheManager
 
@@ -33,6 +34,8 @@ class Neyra:
         self.characters_memory = CharacterMemory()
         self.world_memory = WorldMemory()
         self.style_memory = StyleMemory()
+        self.draft_generator = DraftGenerator()
+        self.last_draft: str = ""
         self.verification_system = VerificationSystem()
         self.uncertainty_manager = UncertaintyManager()
         self.current_user_id = "default"
@@ -171,6 +174,9 @@ class Neyra:
 
     def process_command(self, text: str) -> str:
         """Обрабатываю команды с пониманием и творчеством."""
+        self.last_draft = self.draft_generator.generate_draft(
+            text, self.verification_system.memory
+        )
         tags = self.parser.parse_user_input(text)
 
         if not tags:
