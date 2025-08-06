@@ -66,6 +66,26 @@ class BehaviorPattern:
         return actions
 
     # ------------------------------------------------------------------
+    def record_result(self, success: bool, alpha: float = 0.2) -> None:
+        """Update ``success_rate`` based on the latest outcome.
+
+        The rate is tracked using an exponential moving average so that more
+        recent executions have a stronger impact while still keeping the
+        historical performance in consideration.
+
+        Parameters
+        ----------
+        success:
+            Whether the latest execution was successful.
+        alpha:
+            Smoothing factor for the exponential moving average. A higher
+            value makes the metric react faster to new results.
+        """
+
+        outcome = 1.0 if success else 0.0
+        self.success_rate = self.success_rate * (1 - alpha) + outcome * alpha
+
+    # ------------------------------------------------------------------
     def get_strength(self) -> float:
         """Return an aggregate measure of the pattern's significance."""
 
