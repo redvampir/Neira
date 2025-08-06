@@ -2,7 +2,8 @@
 
 from .base_llm import BaseLLM, LLMFactory
 from .mistral_interface import MistralLLM
-from .manager import LLMManager, ModelSpec
+from .manager import LLMManager, ModelSpec, Task
+from .prompts import chat_prompt, apply_user_style
 
 __all__ = [
     "BaseLLM",
@@ -10,4 +11,7 @@ __all__ = [
     "MistralLLM",
     "LLMManager",
     "ModelSpec",
+    "Task",
+    "chat_prompt",
+    "apply_user_style",
 ]

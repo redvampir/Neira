@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Tests for :mod:`src.llm.manager`."""
 
-from src.llm.manager import LLMManager
+from src.llm.manager import LLMManager, Task
 from src.llm.base_llm import BaseLLM
 
 
@@ -31,24 +31,24 @@ def test_selection_and_prompt_adaptation() -> None:
     )
 
     # Request explicitly asking for speed selects fast model
-    name, model, adapted = manager.select_model("hi", request_type="fast")
+    name, model, adapted = manager.select_model(Task(prompt="hi", request_type="fast"))
     assert name == "fast"
     assert model is fast
     assert adapted == "hi"
 
     # General request prefers accuracy and applies adapter
-    name, model, adapted = manager.select_model("hello", request_type="general")
+    name, model, adapted = manager.select_model(Task(prompt="hello"))
     assert name == "accurate"
     assert adapted == "HELLO"
 
     # Long prompt should favour speed
     long_prompt = "x" * 101
-    name, _, _ = manager.select_model(long_prompt)
+    name, _, _ = manager.select_model(Task(prompt=long_prompt))
     assert name == "fast"
 
     # If fast becomes unavailable, accurate is chosen
     fast.available = False
-    name, _, _ = manager.select_model("short")
+    name, _, _ = manager.select_model(Task(prompt="short"))
     assert name == "accurate"
 
 
@@ -60,7 +60,7 @@ def test_ensemble_and_learning_integration() -> None:
     manager.register_model("fast", fast, speed=10, cost=1, accuracy=0.5)
     manager.register_model("accurate", accurate, speed=1, cost=2, accuracy=0.9)
 
-    result = manager.generate("prompt", ensemble=True)
+    result = manager.generate(Task(prompt="prompt"), ensemble=True)
     assert result == "accurate:prompt"
     assert manager.learning_system.experience_buffer  # interaction recorded
     interaction = manager.learning_system.experience_buffer[0]
