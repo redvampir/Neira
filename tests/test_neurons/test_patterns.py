@@ -23,8 +23,8 @@ def test_behavior_pattern_execute_and_strength() -> None:
 
     result = pattern.execute("hello world")
 
-    # Memory neuron should store the data
-    assert memory.memory == ["hello world"]
+    # Memory neuron should store the data under its key
+    assert memory.query("hello world") == "hello world"
 
     # Action stage should be executed based on analysis results
     assert result == ["action:{'length': 11, 'words': 2}"]
