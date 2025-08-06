@@ -15,6 +15,7 @@ def test_search_ranking_and_update():
         ]
 
     client = SearchAPIClient(memory=mem, fetcher=fake_fetch)
+    client.check_license = lambda url: True
     results = client.search_and_update("test")
 
     assert [r["url"] for r in results] == ["https://a", "https://b"]

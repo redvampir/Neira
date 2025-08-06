@@ -8,6 +8,7 @@ import re
 import json
 from pathlib import Path
 from urllib.parse import urlparse
+import yaml
 
 from src.memory import MemoryIndex
 from src.utils.spam_filter import is_spam
@@ -22,6 +23,7 @@ class SearchAPIClient:
         memory: MemoryIndex | None = None,
         fetcher: Callable[[str, int], Iterable[Dict[str, str]]] | None = None,
         domain_config_path: str | Path | None = None,
+        license_config_path: str | Path | None = None,
     ) -> None:
         """
         Parameters
@@ -44,6 +46,7 @@ class SearchAPIClient:
         self.allowed_domains, self.blocked_domains = self._load_domain_config(
             domain_config_path
         )
+        self.allowed_licenses = self._load_license_config(license_config_path)
 
     # ------------------------------------------------------------------
     def _load_domain_config(
@@ -65,6 +68,23 @@ class SearchAPIClient:
         allowed = {d.lower() for d in data.get("allowed_domains", [])}
         blocked = {d.lower() for d in data.get("blocked_domains", [])}
         return allowed, blocked
+
+    # ------------------------------------------------------------------
+    def _load_license_config(self, path: str | Path | None) -> set[str]:
+        """Load allowed licenses from config file."""
+        config_path = (
+            Path(path)
+            if path is not None
+            else Path(__file__).resolve().parents[2]
+            / "config"
+            / "licenses.yml"
+        )
+        try:
+            with config_path.open("r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+        except Exception:  # pragma: no cover - missing or invalid config
+            data = {}
+        return set(data.get("allowed_licenses", []))
 
     # ------------------------------------------------------------------
     def _duckduckgo_fetch(self, query: str, limit: int) -> Iterable[Dict[str, str]]:
@@ -113,6 +133,32 @@ class SearchAPIClient:
         return [s.strip() for s in sentences if s.strip()]
 
     # ------------------------------------------------------------------
+    def check_license(self, url: str) -> bool:
+        """Verify that the page at ``url`` uses an allowed license."""
+        if not self.allowed_licenses:
+            return False
+        try:
+            resp = self.session.get(url, timeout=5)
+        except Exception:  # pragma: no cover - network errors
+            return False
+        license_val = resp.headers.get("License") or resp.headers.get("X-License")
+        if not license_val:
+            meta = re.search(
+                r'<meta[^>]+name=["\']license["\'][^>]*content=["\']([^"\']+)["\']',
+                resp.text,
+                re.IGNORECASE,
+            )
+            if not meta:
+                meta = re.search(
+                    r'<meta[^>]+content=["\']([^"\']+)["\'][^>]*name=["\']license["\']',
+                    resp.text,
+                    re.IGNORECASE,
+                )
+            if meta:
+                license_val = meta.group(1)
+        return bool(license_val and license_val in self.allowed_licenses)
+
+    # ------------------------------------------------------------------
     def search_and_update(self, query: str, limit: int = 5) -> List[Dict[str, str]]:
         """Perform a search and update memory with extracted facts."""
         results = self.search(query, limit)
@@ -120,6 +166,8 @@ class SearchAPIClient:
             url = result.get("url", "")
             snippet = result.get("snippet", "")
             if is_spam(snippet):
+                continue
+            if not self.check_license(url):
                 continue
             reliability = self.memory.source_reliability.get(url, 0.5)
             for fact in self.extract_facts(snippet):
