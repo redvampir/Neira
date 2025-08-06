@@ -5,6 +5,7 @@ from unittest.mock import patch
 from src.memory import CharacterMemory, StyleMemory
 from src.tags.command_executor import CommandExecutor
 from src.tags.enhanced_parser import Tag
+from src.llm import BaseLLM
 
 
 def test_unknown_tag_returns_message():
@@ -71,7 +72,7 @@ def test_style_example_handler_persists_example(tmp_path):
     )
     executor.execute_command(tag)
     data = json.loads((tmp_path / "styles.json").read_text(encoding="utf-8"))
-    assert 'пример' in data['Автор']['examples']
+    assert 'пример' in data['default']['Автор']['examples']
 
 
 def test_character_reminder_handler_updates_memory(tmp_path):
@@ -110,3 +111,34 @@ def test_generate_content_handler_without_llm():
     tag = Tag(type='generate_content', content='история', position=(0, 0))
     result = executor.execute_command(tag)
     assert 'история' in result
+
+
+def test_generate_content_includes_user_style(tmp_path):
+    class DummyLLM(BaseLLM):
+        model_name = "dummy"
+
+        def __init__(self) -> None:
+            self.last_prompt = ""
+
+        def generate(self, prompt: str, max_tokens: int = 512) -> str:
+            self.last_prompt = prompt
+            return "resp"
+
+        def is_available(self) -> bool:  # pragma: no cover - simple
+            return True
+
+    class DummyBrain:
+        def __init__(self) -> None:
+            self.llm = DummyLLM()
+            self.llm_max_tokens = 16
+            self.style_memory = StyleMemory(tmp_path / "styles.json")
+            self.current_user_id = "u1"
+
+    brain = DummyBrain()
+    brain.style_memory.add("u1", "preferred", description="веселый", example="пример")
+
+    executor = CommandExecutor(brain)
+    tag = Tag(type='generate_content', content='история', position=(0, 0))
+    executor.execute_command(tag)
+    assert "веселый" in brain.llm.last_prompt
+    assert "пример" in brain.llm.last_prompt

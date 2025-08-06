@@ -32,6 +32,7 @@ class Neyra:
         self.characters_memory = CharacterMemory()
         self.world_memory = WorldMemory()
         self.style_memory = StyleMemory()
+        self.current_user_id = "default"
         self.current_style = ""
         self.emotional_state = "любопытная"
         self.history = RequestHistory()
@@ -180,8 +181,11 @@ class Neyra:
             response_parts.append(result)
 
         if context.get("style_examples"):
+            user_id = getattr(self, "current_user_id", "default")
             for example in context["style_examples"]:
-                self.style_memory.add(self.current_style or "общий", example=example)
+                self.style_memory.add(
+                    user_id, self.current_style or "общий", example=example
+                )
             self.style_memory.save()
 
         return "\n\n".join(response_parts) if response_parts else "💭 Хм, интересная команда! Обдумываю..."
@@ -262,12 +266,14 @@ class Neyra:
         description: str | None = None,
     ) -> None:
         """Запоминаю стиль письма и его примеры."""
-        self.style_memory.add(style, example=example, description=description)
+        user_id = getattr(self, "current_user_id", "default")
+        self.style_memory.add(user_id, style, example=example, description=description)
         self.style_memory.save()
 
     def get_style(self, style: str | None = None) -> Any:
         """Возвращаю сведения о стилях."""
-        return self.style_memory.get(style)
+        user_id = getattr(self, "current_user_id", "default")
+        return self.style_memory.get_style(user_id, style)
 
     def _add_emotion(self, emotion: str) -> str:
         """Добавляю эмоциональную окраску."""

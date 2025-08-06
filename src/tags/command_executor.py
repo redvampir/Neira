@@ -16,6 +16,7 @@ from src.action.dialogue_master import DialogueMaster
 from src.action.scene_painter import ScenePainter
 from src.action.description_writer import DescriptionWriter
 from src.models import Character, Scene
+from src.memory.style_memory import StylePattern
 
 
 DEFAULT_DIALOGUE_STYLE = "дружеский"
@@ -66,6 +67,12 @@ class CommandExecutor:
         self.dialogue_master = DialogueMaster(llm)
         self.scene_painter = ScenePainter(llm)
         self.description_writer = DescriptionWriter(llm)
+
+    def _get_user_style(self) -> Optional[StylePattern]:
+        if self.neyra_brain and hasattr(self.neyra_brain, "style_memory"):
+            user_id = getattr(self.neyra_brain, "current_user_id", "default")
+            return self.neyra_brain.style_memory.get_style(user_id, "preferred")
+        return None
 
     # ------------------------------------------------------------------
     # Регистрация обработчиков
@@ -118,7 +125,16 @@ class CommandExecutor:
         """Ищу запросы пользователя по истории."""
         if self.neyra_brain is None or not hasattr(self.neyra_brain, "history"):
             return "📝 История пока недоступна."
-        return self.neyra_brain.history.search(query)
+        history = self.neyra_brain.history
+        if query.isdigit():
+            idx = int(query) - 1
+            if 0 <= idx < len(history._entries):  # pragma: no cover - simple access
+                return history._entries[idx].text
+            return "📝 Совпадений не найдено."
+        results = history.search(query)
+        if not results:
+            return "📝 Совпадений не найдено."
+        return "\n".join(entry.text for entry in results)
 
     # ------------------------------------------------------------------
     # Обработчики отдельных команд
@@ -217,7 +233,10 @@ class CommandExecutor:
         """Обработчик для прямого тега создания диалога."""
         max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
         if self.dialogue_master.llm is not None:
-            return self.dialogue_master.create(command, max_tokens=max_tokens)
+            style = self._get_user_style()
+            return self.dialogue_master.create(
+                command, max_tokens=max_tokens, style=style
+            )
         return self._create_smart_dialogue(command, context)
 
     def _work_with_character(self, character_info: str, context: Dict[str, Any]) -> str:
@@ -282,7 +301,10 @@ class CommandExecutor:
     def _build_scene(self, scene_description: str, context: Dict[str, Any]) -> str:
         max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
         if self.scene_painter.llm is not None:
-            scene = self.scene_painter.paint(scene_description, max_tokens=max_tokens)
+            style = self._get_user_style()
+            scene = self.scene_painter.paint(
+                scene_description, max_tokens=max_tokens, style=style
+            )
         else:
             scene = self._create_creative_scene(scene_description, context)
         return scene.content
@@ -290,7 +312,10 @@ class CommandExecutor:
     def _write_description(self, description: str, context: Dict[str, Any]) -> str:
         max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
         if self.description_writer.llm is not None:
-            return self.description_writer.write(description, max_tokens=max_tokens)
+            style = self._get_user_style()
+            return self.description_writer.write(
+                description, max_tokens=max_tokens, style=style
+            )
         return f"📜 Описание: {description}"
 
     def _check_consistency(self, check_target: str, context: Dict[str, Any]) -> str:
@@ -308,7 +333,8 @@ class CommandExecutor:
         """Store a style example in persistent memory if available."""
         author = context.get("params", {}).get("author", "неизвестный")
         if self.neyra_brain and hasattr(self.neyra_brain, "style_memory"):
-            self.neyra_brain.style_memory.add_style_example(author, example)
+            user_id = getattr(self.neyra_brain, "current_user_id", "default")
+            self.neyra_brain.style_memory.add_style_example(user_id, author, example)
             self.neyra_brain.style_memory.save()
         else:
             examples: List[str] = context.setdefault("style_examples", [])
@@ -382,5 +408,13 @@ class CommandExecutor:
         llm = getattr(self.neyra_brain, "llm", None) if self.neyra_brain else None
         max_tokens = getattr(self.neyra_brain, "llm_max_tokens", 512)
         if llm is not None:
+            style = self._get_user_style()
+            if style is not None:
+                style_prompt = ""
+                if style.description:
+                    style_prompt += f"Тон: {style.description}\n"
+                if style.examples:
+                    style_prompt += "Примеры:\n" + "\n".join(style.examples) + "\n"
+                prompt = f"{style_prompt}{prompt}"
             return llm.generate(prompt, max_tokens=max_tokens)
         return f"✨ Генерирую контент: {prompt}"

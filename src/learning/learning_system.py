@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Type
 
 from src.neurons import Neuron, NeuronFactory
+from src.memory import StyleMemory
 
 
 @dataclass
@@ -30,6 +31,7 @@ class LearningSystem:
     )
     failure_analysis: Dict[str, int] = field(default_factory=dict)
     adaptation_weights: Dict[str, int] = field(default_factory=dict)
+    style_memory: StyleMemory = field(default_factory=StyleMemory)
 
     # ------------------------------------------------------------------
     def learn_from_interaction(
@@ -63,6 +65,15 @@ class LearningSystem:
 
         if rating >= 0:
             self.success_metrics["positive"] += 1
+            if context:
+                user_id = context.get("user_id", "default")
+                tone = context.get("tone")
+                examples = context.get("examples", [])
+                if tone or examples:
+                    self.style_memory.add(user_id, "preferred", description=tone)
+                    for ex in examples:
+                        self.style_memory.add_style_example(user_id, "preferred", ex)
+                    self.style_memory.save()
         else:
             self.success_metrics["negative"] += 1
             self._analyze_failure(interaction)

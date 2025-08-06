@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from src.llm import BaseLLM
+from src.memory.style_memory import StylePattern
 from .base_generator import BaseGenerator
 
 
@@ -13,7 +14,9 @@ class DescriptionWriter(BaseGenerator):
     def __init__(self, llm: Optional[BaseLLM]) -> None:
         super().__init__(llm, template="Опиши: {prompt}")
 
-    def write(self, description: str, max_tokens: int = 512) -> str:
+    def write(
+        self, description: str, max_tokens: int = 512, style: StylePattern | None = None
+    ) -> str:
         """Сгенерировать описание для указанной идеи."""
         fallback = f"📜 Описание: {description}"
-        return self.generate(description, fallback, max_tokens=max_tokens)
+        return self.generate(description, fallback, max_tokens=max_tokens, style=style)

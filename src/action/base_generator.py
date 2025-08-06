@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from src.llm import BaseLLM
+from src.memory.style_memory import StylePattern
 
 
 class BaseGenerator:
@@ -19,7 +20,11 @@ class BaseGenerator:
         self.template = template
 
     def generate(
-        self, prompt: str, fallback_text: str, max_tokens: int = 512
+        self,
+        prompt: str,
+        fallback_text: str,
+        max_tokens: int = 512,
+        style: StylePattern | None = None,
     ) -> str:
         """Generate text using the LLM if available.
 
@@ -31,8 +36,17 @@ class BaseGenerator:
             Text returned when ``llm`` is ``None``.
         max_tokens:
             Maximum amount of tokens for the generation.
+        style:
+            Optional :class:`StylePattern` influencing the prompt.
         """
         if self.llm is None:
             return fallback_text
         formatted_prompt = self.template.format(prompt=prompt)
+        if style is not None:
+            style_prompt = ""
+            if style.description:
+                style_prompt += f"Тон: {style.description}\n"
+            if style.examples:
+                style_prompt += "Примеры:\n" + "\n".join(style.examples) + "\n"
+            formatted_prompt = style_prompt + formatted_prompt
         return self.llm.generate(formatted_prompt, max_tokens=max_tokens)

@@ -28,23 +28,26 @@ class StylePattern:
 
 
 class StyleMemory:
-    """Remember styles and their examples, persisted to disk."""
+    """Remember user specific styles and their examples, persisted to disk."""
 
     def __init__(self, storage_path: str | Path | None = None) -> None:
         self.storage_path = Path(storage_path or "data/styles.json")
-        self._data: Dict[str, StylePattern] = {}
+        # user_id -> {author -> StylePattern}
+        self._data: Dict[str, Dict[str, StylePattern]] = {}
         self.load()
 
     # ------------------------------------------------------------------
     def add(
         self,
+        user_id: str,
         author: str,
         example: str | None = None,
         description: str | None = None,
         characteristics: List[str] | None = None,
-    ) -> None:
-        """Add or update information about an author's style."""
-        pattern = self._data.setdefault(author, StylePattern(author=author))
+    ) -> StylePattern:
+        """Add or update information about an author's style for ``user_id``."""
+        user_styles = self._data.setdefault(user_id, {})
+        pattern = user_styles.setdefault(author, StylePattern(author=author))
         if description:
             pattern.description = description
         if example:
@@ -53,30 +56,37 @@ class StyleMemory:
             pattern.characteristics.extend(characteristics)
         return pattern
 
-    def add_style_example(self, author: str, example: str) -> None:
-        """Store a writing example linked to a particular author."""
-        self.add(author, example=example)
+    def add_style_example(self, user_id: str, author: str, example: str) -> None:
+        """Store a writing example linked to a particular author for ``user_id``."""
+        self.add(user_id, author, example=example)
 
-    def get_style(self, author: str | None = None) -> StylePattern | Dict[str, StylePattern] | None:
+    def get_style(
+        self, user_id: str, author: str | None = None
+    ) -> StylePattern | Dict[str, StylePattern] | None:
         """Retrieve stored style information."""
+        user_styles = self._data.get(user_id, {})
         if author is None:
-            return self._data
-        return self._data.get(author)
+            return user_styles
+        return user_styles.get(author)
 
-    def get_examples(self, author: str | None = None) -> List[str]:
-        """Return a list of style examples."""
+    def get_examples(self, user_id: str, author: str | None = None) -> List[str]:
+        """Return a list of style examples for ``user_id``."""
+        user_styles = self._data.get(user_id, {})
         if author:
-            pattern = self._data.get(author)
+            pattern = user_styles.get(author)
             return list(pattern.examples) if pattern else []
         examples: List[str] = []
-        for pattern in self._data.values():
+        for pattern in user_styles.values():
             examples.extend(pattern.examples)
         return examples
 
     # ------------------------------------------------------------------
     def save(self) -> None:
         """Persist memory to disk."""
-        serialised = {author: pattern.to_dict() for author, pattern in self._data.items()}
+        serialised = {
+            user_id: {author: pattern.to_dict() for author, pattern in styles.items()}
+            for user_id, styles in self._data.items()
+        }
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         self.storage_path.write_text(
             json.dumps(serialised, ensure_ascii=False, indent=2),
@@ -91,7 +101,13 @@ class StyleMemory:
             raw: Dict[str, Any] = json.loads(self.storage_path.read_text(encoding="utf-8"))
         except Exception:
             raw = {}
-        self._data = {author: StylePattern.from_dict(info) for author, info in raw.items()}
+        self._data = {
+            user_id: {
+                author: StylePattern.from_dict(info)
+                for author, info in styles.items()
+            }
+            for user_id, styles in raw.items()
+        }
 
 
 __all__ = ["StyleMemory", "StylePattern"]

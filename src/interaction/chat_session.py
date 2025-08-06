@@ -73,9 +73,10 @@ class ChatSession:
 
     # ------------------------------------------------------------------
     # Public API
-    def ask(self, message: str, rating: Optional[int] = None) -> str:
+    def ask(self, message: str, rating: Optional[int] = None, user_id: str = "default") -> str:
         """Send ``message`` to Neyra, request rating and return her response."""
 
+        setattr(self.neyra, "current_user_id", user_id)
         try:
             prepared = self._prepare_message(message)
             result = handle_command(self.neyra, prepared, self.processor)
@@ -107,7 +108,14 @@ class ChatSession:
                     pass
             # Inform learning system
             try:
-                self.learning.learn_from_interaction(message, result.text, rating)
+                context = {
+                    "user_id": user_id,
+                    "tone": getattr(self.neyra, "current_style", None),
+                    "examples": [result.text],
+                }
+                self.learning.learn_from_interaction(
+                    message, result.text, rating, context
+                )
             except Exception:  # pragma: no cover - best effort
                 pass
 
