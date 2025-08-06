@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Mapping
 
+from .low_resource_optimizer import LowResourceOptimizer
+
 
 class ResourceAwareIterator:
     """Determine iteration plan given resource constraints.
@@ -18,6 +20,8 @@ class ResourceAwareIterator:
 
     def __init__(self, resources: Mapping[str, float]) -> None:
         self.resources = dict(resources)
+        self.optimizer = LowResourceOptimizer(self.resources)
+        self.config = self.optimizer.suggest()
 
     # ------------------------------------------------------------------
     def plan(self, per_iteration: Mapping[str, float]) -> list[int]:
