@@ -66,3 +66,22 @@ def test_positive_feedback_saves_user_style(tmp_path) -> None:
     assert pattern.description == "дружелюбный"
     assert "пример" in pattern.examples
 
+
+def test_feedback_interface_called(monkeypatch) -> None:
+    system = LearningSystem()
+    called: dict = {}
+
+    def fake_record(user_id, interaction):
+        called["user_id"] = user_id
+        called["interaction"] = interaction
+
+    monkeypatch.setattr(
+        "src.learning.feedback.FeedbackInterface.record", fake_record
+    )
+
+    context = {"user_id": "u1", "start_time": 0.0, "end_time": 0.1}
+    system.learn_from_interaction("hi", "hello", 1, context)
+
+    assert called["user_id"] == "u1"
+    assert called["interaction"]["request"] == "hi"
+
