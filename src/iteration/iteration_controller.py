@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .strategy_manager import AdaptiveIterationManager
+
 
 @dataclass
 class IterationController:
@@ -11,18 +13,29 @@ class IterationController:
 
     Parameters
     ----------
+    strategy:
+        Name of the iteration strategy preset managed by
+        :class:`AdaptiveIterationManager`.  Defaults to ``"standard"``.
     max_iterations:
-        Maximum number of additional iterations allowed. The controller assumes
-        there is already an initial response (iteration 0) and counts only
-        further refinement steps.
+        Maximum number of additional iterations allowed. When ``None`` the
+        value from the selected ``strategy`` is used.
     max_critical_spaces:
         Threshold for unresolved placeholders (``"___"``) allowed in a response
-        before stopping the loop.
+        before stopping the loop. When ``None`` the value from ``strategy`` is
+        applied.
     """
 
-    max_iterations: int = 3
-    max_critical_spaces: int = 0
+    strategy: str = "standard"
+    max_iterations: int | None = None
+    max_critical_spaces: int | None = None
     _iterations: int = 0
+
+    def __post_init__(self) -> None:
+        manager = AdaptiveIterationManager(self.strategy)
+        if self.max_iterations is None:
+            self.max_iterations = manager.max_iterations
+        if self.max_critical_spaces is None:
+            self.max_critical_spaces = manager.max_critical_spaces
 
     # ------------------------------------------------------------------
     def assess_quality(self, text: str) -> int:
