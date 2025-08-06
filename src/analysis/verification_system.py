@@ -9,7 +9,7 @@ and designed primarily for unit testing and demonstration purposes.
 
 from dataclasses import dataclass, field
 import re
-from typing import Callable, List, Tuple
+from typing import Callable, Iterable, List, Tuple, Dict
 
 from src.memory import MemoryIndex
 
@@ -119,5 +119,29 @@ class VerificationSystem:
         return False, 0.0
 
 
-__all__ = ["VerificationSystem", "VerificationResult"]
+def verify_fact(
+    fact: str,
+    search_func: Callable[[str, int], Iterable[Dict[str, str]]] | None = None,
+    limit: int = 3,
+) -> bool:
+    """Perform an additional search for ``fact`` and verify matches.
+
+    The ``search_func`` should accept a query and a limit and return an
+    iterable of result dictionaries containing a ``snippet`` field.  The fact
+    is considered verified if it appears in any snippet.
+    """
+
+    search_func = search_func or (lambda q, limit=limit: [])
+    try:
+        results = search_func(fact, limit)
+    except Exception:  # pragma: no cover - defensive programming
+        return False
+    for result in results:
+        snippet = result.get("snippet", "")
+        if fact.lower() in snippet.lower():
+            return True
+    return False
+
+
+__all__ = ["VerificationSystem", "VerificationResult", "verify_fact"]
 

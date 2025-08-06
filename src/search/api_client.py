@@ -14,6 +14,7 @@ from src.memory import MemoryIndex
 from src.utils.spam_filter import is_spam
 from src.utils.pii import redact_pii
 from src.utils.lang_quality import detect_language, quality_score
+from src.analysis.verification_system import verify_fact
 
 
 class SearchAPIClient:
@@ -204,11 +205,14 @@ class SearchAPIClient:
                     continue
                 if quality_score(fact) < self.quality_threshold:
                     continue
+                original_fact = fact
                 fact = redact_pii(fact)
-                # Store the fact itself as the value so that the memory index
-                # can perform deduplication based on content rather than the
-                # constant ``True`` placeholder.
-                self.memory.set(fact, fact, reliability=reliability)
+                # Only store the fact if independent search confirms it.
+                if verify_fact(original_fact, search_func=self.search):
+                    # Store the redacted fact so that the memory index can perform
+                    # deduplication based on content rather than the constant
+                    # ``True`` placeholder.
+                    self.memory.set(fact, fact, reliability=reliability)
             # ``MemoryIndex.update_reliability`` only updates existing keys, so we
             # modify the reliability mapping directly to ensure the source is
             # tracked even if it wasn't previously stored.
