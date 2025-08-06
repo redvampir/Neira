@@ -3,11 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from src.neurons import Neuron, NeuronFactory
 from src.neurons.evolution import EvolutionConfig, evolve
 from src.memory import StyleMemory
+from src.learning.error_analysis import classify_error, recommend_action
 
 
 @dataclass
@@ -21,7 +22,7 @@ class LearningSystem:
     success_metrics:
         Mapping of metric name to value (e.g. positive/negative counts).
     failure_analysis:
-        Counts of failure reasons gathered during analysis.
+        Logged failures with error description, context, model and response.
     adaptation_weights:
         Threshold values used to decide when to create new neuron types.
     """
@@ -30,7 +31,7 @@ class LearningSystem:
     success_metrics: Dict[str, int] = field(
         default_factory=lambda: {"positive": 0, "negative": 0}
     )
-    failure_analysis: Dict[str, int] = field(default_factory=dict)
+    failure_analysis: List[Dict[str, Any]] = field(default_factory=list)
     adaptation_weights: Dict[str, int] = field(default_factory=dict)
     style_memory: StyleMemory = field(default_factory=StyleMemory)
 
@@ -62,6 +63,12 @@ class LearningSystem:
             "rating": rating,
             "context": context or {},
         }
+
+        prev_failure = self.check_previous_failures(user_request)
+        if prev_failure:
+            interaction["context"]["warning"] = prev_failure.get("recommendation")
+            print(f"Warning: previous failure detected. {prev_failure.get('recommendation')}")
+
         self.experience_buffer.append(interaction)
 
         if rating >= 0:
@@ -81,10 +88,28 @@ class LearningSystem:
 
     # ------------------------------------------------------------------
     def _analyze_failure(self, interaction: Dict[str, Any]) -> None:
-        """Record failure reason statistics."""
+        """Record failure details and recommended actions."""
 
-        reason = interaction["context"].get("topic", "unknown")
-        self.failure_analysis[reason] = self.failure_analysis.get(reason, 0) + 1
+        error_type = classify_error(interaction)
+        entry = {
+            "request": interaction.get("request"),
+            "response": interaction.get("response"),
+            "context": interaction.get("context", {}),
+            "model": interaction.get("context", {}).get("model"),
+            "description": error_type,
+            "recommendation": recommend_action(error_type),
+            "error_type": error_type,
+        }
+        self.failure_analysis.append(entry)
+
+    # ------------------------------------------------------------------
+    def check_previous_failures(self, user_request: str) -> Optional[Dict[str, Any]]:
+        """Return previous failure entry if the request was seen before."""
+
+        for failure in self.failure_analysis:
+            if failure.get("request") == user_request:
+                return failure
+        return None
 
     # ------------------------------------------------------------------
     def create_new_neuron_type(self) -> Optional[str]:
@@ -96,7 +121,13 @@ class LearningSystem:
         """
 
         cfg = EvolutionConfig()
-        for reason, count in self.failure_analysis.items():
+
+        error_counts: Dict[str, int] = {}
+        for entry in self.failure_analysis:
+            et = entry.get("error_type", "unknown")
+            error_counts[et] = error_counts.get(et, 0) + 1
+
+        for reason, count in error_counts.items():
             weight = self.adaptation_weights.get(reason, 0)
             source = Neuron(
                 id=reason,
@@ -133,7 +164,7 @@ class LearningSystem:
         instance = cls()
         instance.experience_buffer = data.get("experience_buffer", [])
         instance.success_metrics = data.get("success_metrics", {})
-        instance.failure_analysis = data.get("failure_analysis", {})
+        instance.failure_analysis = data.get("failure_analysis", [])
         instance.adaptation_weights = data.get("adaptation_weights", {})
         return instance
 
