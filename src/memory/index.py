@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from collections import OrderedDict
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Set
+from pathlib import Path
+
+try:
+    import yaml
+except Exception:  # pragma: no cover - optional dependency
+    yaml = None  # type: ignore
 
 
 class MemoryIndex:
@@ -22,6 +28,8 @@ class MemoryIndex:
         warm_threshold: int = 2,
         hot_limit: int = 128,
         warm_limit: int = 256,
+        dedup_threshold: float | None = None,
+        config_path: str | Path | None = None,
     ) -> None:
         self.hot_cache: "OrderedDict[str, Any]" = OrderedDict()
         self.warm_cache: "OrderedDict[str, Any]" = OrderedDict()
@@ -35,11 +43,17 @@ class MemoryIndex:
         self.warm_threshold = warm_threshold
         self.hot_limit = hot_limit
         self.warm_limit = warm_limit
+        self.dedup_threshold = (
+            dedup_threshold
+            if dedup_threshold is not None
+            else self._load_dedup_threshold(config_path)
+        )
+        self._fingerprints: Dict[str, Set[str]] = {}
 
     # ------------------------------------------------------------------
     # public API
     def set(self, key: str, value: Any, reliability: float = 0.5) -> None:
-        """Store ``key``/``value`` in cold storage.
+        """Store ``key``/``value`` in cold storage if not a duplicate.
 
         Parameters
         ----------
@@ -52,6 +66,11 @@ class MemoryIndex:
             of this record is. Defaults to ``0.5`` which means neutral
             reliability.
         """
+        text = str(value)
+        tokens = self._tokenize(text)
+        if self._is_duplicate(tokens):
+            return
+        self._fingerprints[key] = tokens
         self.cold_storage[key] = value
         self.usage_stats[key] = 0
         self.access_times[key] = time.time()
@@ -153,6 +172,42 @@ class MemoryIndex:
     def _search_cold_storage(self, key: str) -> Any:
         """Look up an entry in cold storage."""
         return self.cold_storage.get(key)
+
+    def _load_dedup_threshold(self, path: str | Path | None) -> float:
+        """Load deduplication threshold from config file."""
+        config_path = (
+            Path(path)
+            if path is not None
+            else Path(__file__).resolve().parents[2] / "config" / "memory.yml"
+        )
+        if yaml is None:
+            return 1.0
+        try:
+            with config_path.open("r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+        except Exception:  # pragma: no cover - missing or invalid config
+            data = {}
+        return float(data.get("deduplication_threshold", 1.0))
+
+    def _tokenize(self, text: str) -> Set[str]:
+        """Tokenize text into a set of lowercase words."""
+        return {tok for tok in text.lower().split() if tok}
+
+    def _jaccard(self, a: Set[str], b: Set[str]) -> float:
+        """Compute Jaccard similarity between two token sets."""
+        if not a and not b:
+            return 1.0
+        union = len(a | b)
+        if union == 0:
+            return 0.0
+        return len(a & b) / union
+
+    def _is_duplicate(self, tokens: Set[str]) -> bool:
+        """Check if tokens are similar to existing fingerprints."""
+        for existing in self._fingerprints.values():
+            if self._jaccard(tokens, existing) >= self.dedup_threshold:
+                return True
+        return False
 
 
 __all__ = ["MemoryIndex"]
