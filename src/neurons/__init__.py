@@ -8,6 +8,7 @@ from .base import Neuron
 from .memory import MemoryNeuron
 from .analysis import AnalysisNeuron
 from .action import ActionNeuron
+from .planning import PlanningNeuron
 from .patterns import BehaviorPattern
 from .network import NeuronNetwork
 from .factory import NeuronFactory
@@ -18,6 +19,7 @@ __all__ = [
     "MemoryNeuron",
     "AnalysisNeuron",
     "ActionNeuron",
+    "PlanningNeuron",
     "BehaviorPattern",
     "NeuronNetwork",
     "NeuronFactory",

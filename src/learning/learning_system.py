@@ -34,6 +34,9 @@ class LearningSystem:
     )
     failure_analysis: List[Dict[str, Any]] = field(default_factory=list)
     adaptation_weights: Dict[str, int] = field(default_factory=dict)
+    error_categories: Dict[str, int] = field(
+        default_factory=lambda: {"logical": 0, "linguistic": 0, "system": 0}
+    )
     style_memory: StyleMemory = field(default_factory=StyleMemory)
     response_cache: Dict[str, str] = field(default_factory=dict)
 
@@ -169,10 +172,11 @@ class LearningSystem:
 
         cfg = EvolutionConfig()
 
-        error_counts: Dict[str, int] = {}
+        error_counts: Dict[str, int] = {k: 0 for k in self.error_categories}
         for entry in self.failure_analysis:
             et = entry.get("error_type", "unknown")
             error_counts[et] = error_counts.get(et, 0) + 1
+        self.error_categories.update(error_counts)
 
         for reason, count in error_counts.items():
             weight = self.adaptation_weights.get(reason, 0)
