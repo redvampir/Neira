@@ -13,7 +13,7 @@ from src.utils.encoding_detector import detect_encoding
 from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
-from src.analysis import VerificationSystem, VerificationResult
+from src.analysis import VerificationSystem, VerificationResult, UncertaintyManager
 from src.models import Character
 from src.core.cache_manager import CacheManager
 
@@ -34,6 +34,7 @@ class Neyra:
         self.world_memory = WorldMemory()
         self.style_memory = StyleMemory()
         self.verification_system = VerificationSystem()
+        self.uncertainty_manager = UncertaintyManager()
         self.current_user_id = "default"
         self.current_style = ""
         self.emotional_state = "любопытная"
@@ -163,7 +164,8 @@ class Neyra:
     def verify_claim(self, claim: str) -> VerificationResult:
         """Проверяю утверждение с помощью системы верификации."""
         result = self.verification_system.verify_claim(claim)
-        if result.confidence < 0.5:
+        result = self.uncertainty_manager.handle(result)
+        if result.confidence < self.uncertainty_manager.threshold:
             result.clarifying_questions = self.verification_system.generate_clarifying_questions(claim)
         return result
 

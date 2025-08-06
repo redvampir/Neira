@@ -23,6 +23,7 @@ class VerificationResult:
     confidence: float
     sources: List[str] = field(default_factory=list)
     clarifying_questions: List[str] = field(default_factory=list)
+    disclaimer: str | None = None
 
 
 class VerificationSystem:
