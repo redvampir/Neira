@@ -9,6 +9,7 @@ except Exception:  # noqa: BLE001 - fallback when requests is missing
 from .response_enhancer import ResponseEnhancer, IntegrationType
 from .iteration_controller import IterationController
 from .strategy_manager import AdaptiveIterationManager, IterationStrategy
+from .resource_iterator import ResourceAwareIterator
 
 __all__ = [
     "DraftGenerator",
@@ -20,4 +21,5 @@ __all__ = [
     "IterationController",
     "AdaptiveIterationManager",
     "IterationStrategy",
+    "ResourceAwareIterator",
 ]
