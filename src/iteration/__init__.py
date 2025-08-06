@@ -2,8 +2,12 @@
 
 from .draft_generator import DraftGenerator
 from .gap_analyzer import GapAnalyzer, KnowledgeGap
-from .deep_searcher import DeepSearcher
+try:  # pragma: no cover - optional dependency during tests
+    from .deep_searcher import DeepSearcher
+except Exception:  # noqa: BLE001 - fallback when requests is missing
+    DeepSearcher = None  # type: ignore
 from .response_enhancer import ResponseEnhancer, IntegrationType
+from .iteration_controller import IterationController
 
 __all__ = [
     "DraftGenerator",
@@ -12,4 +16,5 @@ __all__ = [
     "DeepSearcher",
     "ResponseEnhancer",
     "IntegrationType",
+    "IterationController",
 ]
