@@ -13,6 +13,7 @@ import yaml
 from src.memory import MemoryIndex
 from src.utils.spam_filter import is_spam
 from src.utils.pii import redact_pii
+from src.utils.lang_quality import detect_language, quality_score
 
 
 class SearchAPIClient:
@@ -24,6 +25,7 @@ class SearchAPIClient:
         fetcher: Callable[[str, int], Iterable[Dict[str, str]]] | None = None,
         domain_config_path: str | Path | None = None,
         license_config_path: str | Path | None = None,
+        lang_quality_config_path: str | Path | None = None,
     ) -> None:
         """
         Parameters
@@ -39,6 +41,12 @@ class SearchAPIClient:
         domain_config_path:
             Optional path to a JSON file containing ``allowed_domains`` and
             ``blocked_domains`` lists used to filter search results.
+        license_config_path:
+            Optional path to a YAML file specifying ``allowed_licenses`` used to
+            filter sources based on licensing information.
+        lang_quality_config_path:
+            Optional path to a YAML file defining ``allowed_languages`` and a
+            ``min_quality`` threshold for extracted facts.
         """
         self.memory = memory or MemoryIndex()
         self.fetcher = fetcher or self._duckduckgo_fetch
@@ -47,6 +55,10 @@ class SearchAPIClient:
             domain_config_path
         )
         self.allowed_licenses = self._load_license_config(license_config_path)
+        (
+            self.allowed_languages,
+            self.quality_threshold,
+        ) = self._load_lang_quality_config(lang_quality_config_path)
 
     # ------------------------------------------------------------------
     def _load_domain_config(
@@ -72,19 +84,36 @@ class SearchAPIClient:
     # ------------------------------------------------------------------
     def _load_license_config(self, path: str | Path | None) -> set[str]:
         """Load allowed licenses from config file."""
-        config_path = (
-            Path(path)
-            if path is not None
-            else Path(__file__).resolve().parents[2]
-            / "config"
-            / "licenses.yml"
-        )
+        if path is None:
+            return set()
+        config_path = Path(path)
         try:
             with config_path.open("r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
         except Exception:  # pragma: no cover - missing or invalid config
             data = {}
         return set(data.get("allowed_licenses", []))
+
+    # ------------------------------------------------------------------
+    def _load_lang_quality_config(
+        self, path: str | Path | None
+    ) -> tuple[set[str], float]:
+        """Load allowed languages and quality threshold."""
+        config_path = (
+            Path(path)
+            if path is not None
+            else Path(__file__).resolve().parents[2]
+            / "config"
+            / "lang_quality.yml"
+        )
+        try:
+            with config_path.open("r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+        except Exception:  # pragma: no cover - missing or invalid config
+            data = {}
+        allowed = set(data.get("allowed_languages", []))
+        threshold = float(data.get("min_quality", 0.0))
+        return allowed, threshold
 
     # ------------------------------------------------------------------
     def _duckduckgo_fetch(self, query: str, limit: int) -> Iterable[Dict[str, str]]:
@@ -136,7 +165,7 @@ class SearchAPIClient:
     def check_license(self, url: str) -> bool:
         """Verify that the page at ``url`` uses an allowed license."""
         if not self.allowed_licenses:
-            return False
+            return True
         try:
             resp = self.session.get(url, timeout=5)
         except Exception:  # pragma: no cover - network errors
@@ -171,8 +200,15 @@ class SearchAPIClient:
                 continue
             reliability = self.memory.source_reliability.get(url, 0.5)
             for fact in self.extract_facts(snippet):
+                if self.allowed_languages and detect_language(fact) not in self.allowed_languages:
+                    continue
+                if quality_score(fact) < self.quality_threshold:
+                    continue
                 fact = redact_pii(fact)
-                self.memory.set(fact, True, reliability=reliability)
+                # Store the fact itself as the value so that the memory index
+                # can perform deduplication based on content rather than the
+                # constant ``True`` placeholder.
+                self.memory.set(fact, fact, reliability=reliability)
             # ``MemoryIndex.update_reliability`` only updates existing keys, so we
             # modify the reliability mapping directly to ensure the source is
             # tracked even if it wasn't previously stored.

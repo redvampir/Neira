@@ -1,0 +1,4 @@
+allowed_languages:
+  - en
+  - ru
+min_quality: 0.5
