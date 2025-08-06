@@ -10,6 +10,7 @@ from .response_enhancer import ResponseEnhancer, IntegrationType
 from .iteration_controller import IterationController
 from .strategy_manager import AdaptiveIterationManager, IterationStrategy
 from .resource_iterator import ResourceAwareIterator
+from .low_resource_optimizer import LowResourceOptimizer
 from .smart_cache import SmartCache
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "AdaptiveIterationManager",
     "IterationStrategy",
     "ResourceAwareIterator",
+    "LowResourceOptimizer",
     "SmartCache",
 ]
