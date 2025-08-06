@@ -162,8 +162,10 @@ class Neyra:
 
     def verify_claim(self, claim: str) -> VerificationResult:
         """Проверяю утверждение с помощью системы верификации."""
-
-        return self.verification_system.verify_claim(claim)
+        result = self.verification_system.verify_claim(claim)
+        if result.confidence < 0.5:
+            result.clarifying_questions = self.verification_system.generate_clarifying_questions(claim)
+        return result
 
     def process_command(self, text: str) -> str:
         """Обрабатываю команды с пониманием и творчеством."""

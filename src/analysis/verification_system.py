@@ -8,6 +8,7 @@ and designed primarily for unit testing and demonstration purposes.
 """
 
 from dataclasses import dataclass, field
+import re
 from typing import Callable, List, Tuple
 
 from src.memory import MemoryIndex
@@ -21,6 +22,7 @@ class VerificationResult:
     verdict: bool | None
     confidence: float
     sources: List[str] = field(default_factory=list)
+    clarifying_questions: List[str] = field(default_factory=list)
 
 
 class VerificationSystem:
@@ -78,19 +80,34 @@ class VerificationSystem:
 
     # ------------------------------------------------------------------
     def generate_clarifying_questions(self, claim: str, num_questions: int = 2) -> List[str]:
-        """Generate simple clarifying questions for ``claim``."""
+        """Generate clarifying questions for ``claim`` based on simple heuristics."""
 
-        questions = [
-            f"Что вы подразумеваете под: '{claim}'?",
-            "Можете уточнить источник этой информации?",
-        ]
-        if num_questions > len(questions):
-            questions.extend(
-                [
-                    f"Есть ли дополнительные детали о '{claim}'?"
-                    for _ in range(num_questions - len(questions))
-                ]
-            )
+        claim_lower = claim.lower()
+        questions: List[str] = [f"Что вы подразумеваете под: '{claim}'?"]
+
+        if not re.search(r"\b(кто|кому|кого|чей)\b", claim_lower):
+            questions.append("Кто в этом участвует?")
+
+        location_words = r"\b(где|место|локац|город|страна)\b"
+        location_pattern = r"\b(?:в|на|из)\s+[A-ZА-ЯЁ]"
+        if not re.search(location_words, claim_lower) and not re.search(location_pattern, claim):
+            questions.append("Где это происходит?")
+
+        if not (
+            re.search(r"\b(когда|дата|время|срок|год|месяц|день|вчера|сегодня|завтра)\b", claim_lower)
+            or re.search(r"\d", claim_lower)
+        ):
+            questions.append("Когда это происходит?")
+
+        if not re.search(r"\b(почему|зачем|причина)\b", claim_lower):
+            questions.append("Почему это происходит?")
+
+        if not re.search(r"\b(как|каким образом)\b", claim_lower):
+            questions.append("Как это происходит?")
+
+        while len(questions) < num_questions:
+            questions.append(f"Есть ли дополнительные детали о '{claim}'?")
+
         return questions[:num_questions]
 
     # ------------------------------------------------------------------
