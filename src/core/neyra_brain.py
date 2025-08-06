@@ -41,7 +41,7 @@ class Neyra:
         self.current_user_id = "default"
         self.current_style = ""
         self.emotional_state = "любопытная"
-        self.history = RequestHistory()
+        self.history = RequestHistory(load_existing=False)
         self.cache = CacheManager()
 
         self.logger.info("Нейра проснулась! ✨")
