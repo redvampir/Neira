@@ -42,3 +42,6 @@ chardet>=5.0.0
 
 # Local LLM
 llama-cpp-python>=0.2.77
+
+schedule>=1.2.0
+requests>=2.31.0
