@@ -34,6 +34,7 @@ class LearningSystem:
     failure_analysis: List[Dict[str, Any]] = field(default_factory=list)
     adaptation_weights: Dict[str, int] = field(default_factory=dict)
     style_memory: StyleMemory = field(default_factory=StyleMemory)
+    response_cache: Dict[str, str] = field(default_factory=dict)
 
     # ------------------------------------------------------------------
     def learn_from_interaction(
@@ -64,6 +65,12 @@ class LearningSystem:
             "context": context or {},
         }
 
+        metrics = {
+            "success": rating >= 0,
+            "reaction_time": None,
+            "error_type": None,
+        }
+
         prev_failure = self.check_previous_failures(user_request)
         if prev_failure:
             interaction["context"]["warning"] = prev_failure.get("recommendation")
@@ -84,13 +91,37 @@ class LearningSystem:
                     self.style_memory.save()
         else:
             self.success_metrics["negative"] += 1
-            self._analyze_failure(interaction)
+            metrics["error_type"] = classify_error(interaction)
+            self._analyze_failure(interaction, metrics["error_type"])
+
+        # Capture reaction time if provided
+        if context:
+            start = context.get("start_time")
+            end = context.get("end_time")
+            if start is not None and end is not None:
+                metrics["reaction_time"] = end - start
+
+        interaction["metrics"] = metrics
+
+        # Cache the response for future lookups
+        self.response_cache[user_request] = response
+
+        # Update adaptation weights based on success ratio
+        total_pos = self.success_metrics["positive"]
+        total_neg = self.success_metrics["negative"]
+        total = total_pos + total_neg
+        if total:
+            ratio = total_pos / total
+            self.adaptation_weights["success_rate"] = ratio
+            for key in list(self.adaptation_weights.keys()):
+                if key == "success_rate":
+                    continue
+                weight = self.adaptation_weights[key]
+                self.adaptation_weights[key] = max(1, int(weight * ratio))
 
     # ------------------------------------------------------------------
-    def _analyze_failure(self, interaction: Dict[str, Any]) -> None:
+    def _analyze_failure(self, interaction: Dict[str, Any], error_type: str) -> None:
         """Record failure details and recommended actions."""
-
-        error_type = classify_error(interaction)
         entry = {
             "request": interaction.get("request"),
             "response": interaction.get("response"),
@@ -110,6 +141,21 @@ class LearningSystem:
             if failure.get("request") == user_request:
                 return failure
         return None
+
+    # ------------------------------------------------------------------
+    def get_cached_response(self, user_request: str) -> Optional[str]:
+        """Return cached response for ``user_request`` if available.
+
+        The method also checks past failures and prints a warning when a
+        matching failure is found.
+        """
+
+        prev_failure = self.check_previous_failures(user_request)
+        if prev_failure:
+            print(
+                f"Warning: previous failure detected. {prev_failure.get('recommendation')}"
+            )
+        return self.response_cache.get(user_request)
 
     # ------------------------------------------------------------------
     def create_new_neuron_type(self) -> Optional[str]:
