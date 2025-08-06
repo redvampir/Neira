@@ -11,6 +11,7 @@ from .action import ActionNeuron
 from .patterns import BehaviorPattern
 from .network import NeuronNetwork
 from .factory import NeuronFactory
+from .evolution import EvolutionConfig, evolve
 
 __all__ = [
     "Neuron",
@@ -20,4 +21,6 @@ __all__ = [
     "BehaviorPattern",
     "NeuronNetwork",
     "NeuronFactory",
+    "EvolutionConfig",
+    "evolve",
 ]

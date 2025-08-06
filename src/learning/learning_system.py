@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Type
 
 from src.neurons import Neuron, NeuronFactory
+from src.neurons.evolution import EvolutionConfig, evolve
 from src.memory import StyleMemory
 
 
@@ -94,20 +95,19 @@ class LearningSystem:
         registered for that reason and its weight updated.
         """
 
+        cfg = EvolutionConfig()
         for reason, count in self.failure_analysis.items():
             weight = self.adaptation_weights.get(reason, 0)
-            if count > weight:
-                neuron_type = f"{reason}_neuron"
-
-                def _process(self: Neuron, *args: Any, **kwargs: Any) -> Any:  # pragma: no cover - placeholder
-                    return None
-
-                new_cls: Type[Neuron] = type(
-                    neuron_type,
-                    (Neuron,),
-                    {"process": _process},
-                )
-                NeuronFactory.register(neuron_type, new_cls)
+            source = Neuron(
+                id=reason,
+                type=reason,
+                activation_count=count,
+                strength=min(1.0, count / (weight + 1)),
+            )
+            result = evolve(source, cfg)
+            if result:
+                neuron_type, neuron_cls = result
+                NeuronFactory.register(neuron_type, neuron_cls)
                 self.adaptation_weights[reason] = count
                 return neuron_type
         return None
