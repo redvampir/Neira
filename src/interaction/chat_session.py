@@ -13,6 +13,7 @@ adds a convenience layer around it.
 from dataclasses import dataclass
 import re
 from typing import List, Optional
+import time
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
@@ -77,17 +78,29 @@ class ChatSession:
         """Send ``message`` to Neyra, request rating and return her response."""
 
         setattr(self.neyra, "current_user_id", user_id)
-        try:
-            prepared = self._prepare_message(message)
-            result = handle_command(self.neyra, prepared, self.processor)
-        except Exception as exc:  # pragma: no cover - defensive
-            self.console.print(Panel(f"[red]{exc}[/]", title="Error"))
-            return ""
+        start_time = time.perf_counter()
+        prepared = self._prepare_message(message)
+
+        cached = self.learning.get_cached_response(message)
+        if cached is not None:
+            result_text = cached
+        else:
+            try:
+                result = handle_command(self.neyra, prepared, self.processor)
+                result_text = result.text
+            except Exception as exc:  # pragma: no cover - defensive
+                self.console.print(Panel(f"[red]{exc}[/]", title="Error"))
+                return ""
+
+        end_time = time.perf_counter()
 
         # Track conversation history
         self.history.append(ChatEntry("user", message))
-        self.history.append(ChatEntry("neyra", result.text))
+        self.history.append(ChatEntry("neyra", result_text))
         self._trim_history()
+
+        # Ensure response cached for future use
+        self.learning.response_cache[message] = result_text
 
         # Update context based on tags in the prepared message
         tags = self.processor.parse(prepared)
@@ -111,15 +124,17 @@ class ChatSession:
                 context = {
                     "user_id": user_id,
                     "tone": getattr(self.neyra, "current_style", None),
-                    "examples": [result.text],
+                    "examples": [result_text],
+                    "start_time": start_time,
+                    "end_time": end_time,
                 }
                 self.learning.learn_from_interaction(
-                    message, result.text, rating, context
+                    message, result_text, rating, context
                 )
             except Exception:  # pragma: no cover - best effort
                 pass
 
-        return result.text
+        return result_text
 
     def chat_loop(self) -> None:  # pragma: no cover - interactive
         """Run an interactive loop until the user enters ``/exit``."""
