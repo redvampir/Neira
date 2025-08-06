@@ -1,3 +1,3 @@
 """Utility helpers for Neira desktop application."""
 
-__all__ = ["encoding_detector", "source_tracker"]
+__all__ = ["encoding_detector", "source_tracker", "pii"]
