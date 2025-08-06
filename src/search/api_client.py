@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from src.memory import MemoryIndex
+from src.utils.spam_filter import is_spam
 
 
 class SearchAPIClient:
@@ -117,6 +118,8 @@ class SearchAPIClient:
         for result in results:
             url = result.get("url", "")
             snippet = result.get("snippet", "")
+            if is_spam(snippet):
+                continue
             reliability = self.memory.source_reliability.get(url, 0.5)
             for fact in self.extract_facts(snippet):
                 self.memory.set(fact, True, reliability=reliability)
