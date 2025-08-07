@@ -243,6 +243,7 @@ class Neyra:
     ) -> str:
         """Return a refined response using iterative improvement pipeline."""
         self.logger.info("Starting iterative response")
+        self.cache.cleanup()
         update_progress("start")
         # Sync dynamic personality traits with iteration controller
         self.iteration_controller.personality = self.personality

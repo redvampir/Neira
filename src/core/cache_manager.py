@@ -55,3 +55,9 @@ class CacheManager:
             path = self._path_for(key)
             if path.exists():
                 path.unlink()
+
+    # ------------------------------------------------------------------
+    # maintenance hooks
+    def cleanup(self) -> None:
+        """Hook for subclasses to remove expired or stale entries."""
+        return None
