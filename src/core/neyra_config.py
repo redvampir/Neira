@@ -93,6 +93,7 @@ class NeyraConfig:
     """Общие переключатели функций Нейры."""
 
     enable_grammar_check: bool = True
+    min_iterations: int = 2
 
 
 # Глобальные константы

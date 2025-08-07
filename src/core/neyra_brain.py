@@ -301,6 +301,8 @@ class Neyra:
         # Sync dynamic personality traits with iteration controller
         self.iteration_controller.personality = self.personality
         self.iteration_controller.emotional_state = self.emotional_state
+        self.iteration_controller.min_iterations = self.config.min_iterations
+        self.iteration_controller.reset()
         if strategy is not None:
             self.iteration_controller.max_iterations = strategy.max_iterations
             self.iteration_controller.max_critical_spaces = (
@@ -318,44 +320,48 @@ class Neyra:
         while True:
             update_progress("iteration", iteration)
             self.logger.info("Iteration %s started", iteration)
-            gaps = self.gap_analyzer.analyze(draft)
-            if not gaps:
-                self.logger.info("No gaps found, finishing at iteration %s", iteration)
-                break
-            search_results: List[Dict[str, Any]] = []
-            self.deep_searcher.current_queries = len(gaps)
-            search_limit = token_manager.search_limit(len(gaps))
-            for gap in gaps:
-                try:
-                    search_results.extend(
-                        self.deep_searcher.search(
-                            gap.claim,
-                            user_id=getattr(self, "current_user_id", "default"),
-                            limit=search_limit,
-                        )
-                    )
-                except Exception:
-                    continue
             previous = response
-            prev_tokens = self.llm_max_tokens
-            self.llm_max_tokens = token_manager.refine_tokens
-            response = self.response_enhancer.enhance(
-                response, search_results, IntegrationType.IMPORTANT_ADDITION
-            )
-            self.llm_max_tokens = prev_tokens
+            if iteration == 2 and self.config.enable_grammar_check and not skip_check:
+                response, corrections = self.grammar_proofreader.proofread(response)
+                if corrections:
+                    self.logger.debug("Grammar corrections: %s", corrections)
+            else:
+                gaps = self.gap_analyzer.analyze(draft)
+                if gaps:
+                    search_results: List[Dict[str, Any]] = []
+                    self.deep_searcher.current_queries = len(gaps)
+                    search_limit = token_manager.search_limit(len(gaps))
+                    for gap in gaps:
+                        try:
+                            search_results.extend(
+                                self.deep_searcher.search(
+                                    gap.claim,
+                                    user_id=getattr(self, "current_user_id", "default"),
+                                    limit=search_limit,
+                                )
+                            )
+                        except Exception:
+                            continue
+                    prev_tokens = self.llm_max_tokens
+                    self.llm_max_tokens = token_manager.refine_tokens
+                    response = self.response_enhancer.enhance(
+                        response, search_results, IntegrationType.IMPORTANT_ADDITION
+                    )
+                    self.llm_max_tokens = prev_tokens
+                else:
+                    self.logger.info("No gaps found at iteration %s", iteration)
             log_metrics(iteration, previous, response)
             self.logger.info("Iteration %s completed", iteration)
             draft = response
+            if iteration >= self.iteration_controller.min_iterations and self.iteration_controller.assess_quality(response) <= self.iteration_controller.max_critical_spaces:
+                break
             if not self.iteration_controller.should_iterate(response):
                 self.logger.info("Iteration controller stopped at %s", iteration)
                 break
             iteration += 1
         update_progress("finished", iteration)
         self.logger.info("Iterative response finished at iteration %s", iteration)
-        if self.config.enable_grammar_check and not skip_check:
-            response, corrections = self.grammar_proofreader.proofread(response)
-            if corrections:
-                self.logger.debug("Grammar corrections: %s", corrections)
+        self.iteration_controller._iterations = iteration
         return response
 
     def _execute_neyra_command(self, command: str) -> str:
