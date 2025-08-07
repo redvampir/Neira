@@ -68,7 +68,7 @@ def main() -> None:
             )
             
             print(f"\n🏷️ Демонстрация тегов: {demo_command}")
-            result = neyra.process_command(demo_command)
+            result = neyra.iterative_response(demo_command)
             print(f"\n✨ Результат Нейры:\n{result}")
             if tracker.get_sources():
                 print("\n🔗 Использованные источники:")

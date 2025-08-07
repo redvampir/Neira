@@ -14,7 +14,14 @@ from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
 from src.analysis import VerificationSystem, VerificationResult, UncertaintyManager
-from src.iteration import DraftGenerator
+from src.iteration import (
+    DraftGenerator,
+    GapAnalyzer,
+    DeepSearcher,
+    ResponseEnhancer,
+    IntegrationType,
+    IterationController,
+)
 from src.models import Character
 from src.core.cache_manager import CacheManager
 
@@ -34,10 +41,18 @@ class Neyra:
         self.characters_memory = CharacterMemory()
         self.world_memory = WorldMemory()
         self.style_memory = StyleMemory()
-        self.draft_generator = DraftGenerator()
+        self.draft_generator = DraftGenerator(
+            self.characters_memory, self.world_memory, self.style_memory
+        )
         self.last_draft: str = ""
         self.verification_system = VerificationSystem()
         self.uncertainty_manager = UncertaintyManager()
+        self.gap_analyzer = GapAnalyzer(self.verification_system, self.uncertainty_manager)
+        self.deep_searcher = DeepSearcher(
+            self.characters_memory, self.world_memory, self.style_memory
+        )
+        self.response_enhancer = ResponseEnhancer()
+        self.iteration_controller = IterationController()
         self.current_user_id = "default"
         self.current_style = ""
         self.emotional_state = "любопытная"
@@ -206,6 +221,32 @@ class Neyra:
             self.style_memory.save()
 
         return "\n\n".join(response_parts) if response_parts else "💭 Хм, интересная команда! Обдумываю..."
+
+    def iterative_response(self, query: str) -> str:
+        """Return a refined response using iterative improvement pipeline."""
+        response = self.process_command(query)
+        draft = self.last_draft or response
+        while True:
+            gaps = self.gap_analyzer.analyze(draft)
+            if not gaps:
+                break
+            search_results: List[Dict[str, Any]] = []
+            for gap in gaps:
+                try:
+                    search_results.extend(
+                        self.deep_searcher.search(
+                            gap.claim, user_id=getattr(self, "current_user_id", "default")
+                        )
+                    )
+                except Exception:
+                    continue
+            response = self.response_enhancer.enhance(
+                response, search_results, IntegrationType.IMPORTANT_ADDITION
+            )
+            draft = response
+            if not self.iteration_controller.should_iterate(response):
+                break
+        return response
 
     def _execute_neyra_command(self, command: str) -> str:
         """Выполняю прямые команды с энтузиазмом!"""
