@@ -82,5 +82,21 @@ class AdaptiveIterationManager:
         controller.max_iterations = self.max_iterations
         controller.max_critical_spaces = self.max_critical_spaces
 
+    # ------------------------------------------------------------------
+    @classmethod
+    def determine_strategy(cls, preset: str) -> IterationStrategy:
+        """Return the strategy configuration for ``preset``.
+
+        Parameters
+        ----------
+        preset:
+            Name of the strategy preset.
+        """
+
+        try:
+            return cls.PRESETS[preset]
+        except KeyError as exc:  # pragma: no cover - defensive programming
+            raise ValueError(f"Unknown iteration preset: {preset}") from exc
+
 
 __all__ = ["AdaptiveIterationManager", "IterationStrategy"]

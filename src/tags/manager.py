@@ -18,7 +18,10 @@
 контекста, а возвращать строку-результат.
 """
 
+import re
 from typing import Callable, Dict, Any, Optional
+
+from src.iteration.strategy_manager import AdaptiveIterationManager
 
 # Словари реестра
 _patterns: Dict[str, str] = {}
@@ -63,3 +66,32 @@ def get_patterns() -> Dict[str, str]:
 def available_tags() -> Dict[str, Callable[[str, Dict[str, Any]], str]]:
     """Возвращает копию реестра обработчиков."""
     return dict(_handlers)
+
+
+def iteration_strategy_handler(mode: str, context: Dict[str, Any]) -> str:
+    """Handle iteration strategy selection tag.
+
+    Parameters
+    ----------
+    mode:
+        Strategy preset name provided inside the tag.
+    context:
+        Execution context which must contain the original user query under
+        ``"query"`` and a reference to the :class:`Neyra` instance under
+        ``"neyra"``.
+    """
+
+    neyra = context.get("neyra")
+    query = context.get("query", "")
+    strategy = AdaptiveIterationManager.determine_strategy(mode.strip().lower())
+    clean_query = re.sub(r"@Итерация:\s*[^@]+@", "", query, flags=re.IGNORECASE).strip()
+    if neyra and hasattr(neyra, "iterative_response"):
+        return neyra.iterative_response(clean_query, strategy)
+    return "🤔 Команда итерации недоступна."
+
+
+register_tag(
+    "iteration_strategy",
+    iteration_strategy_handler,
+    pattern=r"@Итерация:\s*([^@]+)@",
+)
