@@ -13,6 +13,7 @@ from .resource_iterator import ResourceAwareIterator
 from .low_resource_optimizer import LowResourceOptimizer
 from .smart_cache import SmartCache
 from .metrics import similarity, length, corrected_errors, log_metrics
+from .memory_inspector import MemoryInspector
 
 __all__ = [
     "DraftGenerator",
@@ -27,6 +28,7 @@ __all__ = [
     "ResourceAwareIterator",
     "LowResourceOptimizer",
     "SmartCache",
+    "MemoryInspector",
     "similarity",
     "length",
     "corrected_errors",
