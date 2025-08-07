@@ -79,5 +79,14 @@ class ReferenceMemory:
         """Proxy search requests to the underlying :class:`DeepSearcher`."""
         return self.searcher.search(query, user_id=user_id, limit=limit)
 
+    # ------------------------------------------------------------------
+    def report(self) -> str:
+        """Return a report of all linked sources."""
+
+        from .memory_inspector import MemoryInspector
+
+        inspector = MemoryInspector(self)
+        return inspector.generate_report()
+
 
 __all__ = ["ReferenceMemory", "ReferenceEntry"]
