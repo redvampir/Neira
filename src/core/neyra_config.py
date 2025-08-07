@@ -88,6 +88,13 @@ class MemoryConfig:
     emotional_memory_depth: int = 100
 
 
+@dataclass
+class NeyraConfig:
+    """Общие переключатели функций Нейры."""
+
+    enable_grammar_check: bool = True
+
+
 # Глобальные константы
 NEYRA_VERSION = "0.1.0"
 NEYRA_GREETING = "Привет! Я Нейра, ваш персональный помощник для творчества! ✨"
