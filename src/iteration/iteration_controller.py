@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.core.neyra_config import NeyraPersonality
+
 from .strategy_manager import AdaptiveIterationManager
 
 
@@ -28,6 +30,8 @@ class IterationController:
     strategy: str = "standard"
     max_iterations: int | None = None
     max_critical_spaces: int | None = None
+    personality: NeyraPersonality | None = None
+    emotional_state: str = "neutral"
     _iterations: int = 0
 
     def __post_init__(self) -> None:
@@ -38,15 +42,35 @@ class IterationController:
             self.max_critical_spaces = manager.max_critical_spaces
 
     # ------------------------------------------------------------------
-    def assess_quality(self, text: str) -> int:
-        """Return the number of critical placeholders remaining in ``text``.
+    def _priority_multiplier(self) -> float:
+        """Return weighting factor based on personality and emotion."""
+
+        factor = 1.0
+        if self.personality:
+            # Combine relevant personality traits
+            factor *= (
+                self.personality.curiosity_level
+                + self.personality.attention_to_detail
+            ) / 2
+        mood = {
+            "спокойная": 0.9,
+            "любопытная": 1.0,
+            "взволнованная": 1.1,
+        }
+        factor *= mood.get(self.emotional_state, 1.0)
+        return factor
+
+    def assess_quality(self, text: str) -> float:
+        """Return weighted count of critical placeholders in ``text``.
 
         A *critical space* is represented by the sequence ``"___"``. Each
         occurrence signals missing or uncertain information that should be
-        resolved before finalising the response.
+        resolved before finalising the response.  The count is weighted by
+        :class:`NeyraPersonality` and current ``emotional_state`` to reflect
+        how much attention should be given to these gaps.
         """
 
-        return text.count("___")
+        return text.count("___") * self._priority_multiplier()
 
     # ------------------------------------------------------------------
     def should_iterate(self, text: str) -> bool:
