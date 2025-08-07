@@ -7,6 +7,7 @@ try:  # pragma: no cover - optional dependency during tests
 except Exception:  # noqa: BLE001 - fallback when requests is missing
     DeepSearcher = None  # type: ignore
 from .response_enhancer import ResponseEnhancer, IntegrationType
+from .feedback_learner import FeedbackLearner
 from .iteration_controller import IterationController
 from .strategy_manager import AdaptiveIterationManager, IterationStrategy
 from .resource_iterator import ResourceAwareIterator
@@ -21,6 +22,7 @@ __all__ = [
     "KnowledgeGap",
     "DeepSearcher",
     "ResponseEnhancer",
+    "FeedbackLearner",
     "IntegrationType",
     "IterationController",
     "AdaptiveIterationManager",
