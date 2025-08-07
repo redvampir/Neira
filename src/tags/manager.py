@@ -86,7 +86,8 @@ def iteration_strategy_handler(mode: str, context: Dict[str, Any]) -> str:
     strategy = AdaptiveIterationManager.determine_strategy(mode.strip().lower())
     clean_query = re.sub(r"@Итерация:\s*[^@]+@", "", query, flags=re.IGNORECASE).strip()
     if neyra and hasattr(neyra, "iterative_response"):
-        return neyra.iterative_response(clean_query, strategy)
+        result, _ = neyra.iterative_response(clean_query, strategy)
+        return result
     return "🤔 Команда итерации недоступна."
 
 

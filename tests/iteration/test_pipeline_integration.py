@@ -42,9 +42,10 @@ def test_iteration_pipeline_order(monkeypatch):
 
     monkeypatch.setattr(neyra.iteration_controller, "should_iterate", fake_iterate)
 
-    result = neyra.iterative_response("query")
+    result, corrections = neyra.iterative_response("query")
     assert result == "initial info"
     assert calls == ["draft", "gap", "search", "enhance", "iterate"]
+    assert corrections == []
 
 
 def test_two_passes_with_grammar_correction(monkeypatch):
@@ -67,17 +68,7 @@ def test_two_passes_with_grammar_correction(monkeypatch):
 
     monkeypatch.setattr(neyra.gap_analyzer, "analyze", fake_analyze)
 
-    corrections: list[str] = []
-    original_proofread = neyra.grammar_proofreader.proofread
-
-    def fake_proofread(text: str):
-        corrected, applied = original_proofread(text)
-        corrections.extend(applied)
-        return corrected, applied
-
-    monkeypatch.setattr(neyra.grammar_proofreader, "proofread", fake_proofread)
-
-    result = neyra.iterative_response("request")
+    result, corrections = neyra.iterative_response("request")
 
     assert result == expected
     assert len(corrections) > 0

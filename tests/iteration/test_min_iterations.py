@@ -45,12 +45,13 @@ def test_min_iterations_with_grammar(monkeypatch):
     monkeypatch.setattr("src.core.neyra_brain.update_progress", fake_update)
     monkeypatch.setattr("src.core.neyra_brain.log_metrics", fake_metrics)
 
-    result = neyra.iterative_response("query")
+    result, corrections = neyra.iterative_response("query")
 
     assert iterations == [1, 2]
     assert metrics[0] == (1, "превет мир", "превет мир")
     assert metrics[1] == (2, "превет мир", "привет мир")
     assert result == "привет мир"
+    assert corrections  # non-empty list
 
 
 def test_skip_check_tag_disables_grammar(monkeypatch):
@@ -83,10 +84,11 @@ def test_skip_check_tag_disables_grammar(monkeypatch):
 
     monkeypatch.setattr("src.core.neyra_brain.update_progress", fake_update)
 
-    result = neyra.iterative_response("@Проверка:нет@ query")
+    result, corrections = neyra.iterative_response("@Проверка:нет@ query")
 
     assert called == []
     assert iterations == [1]
     assert neyra.iteration_controller.min_iterations == 1
     assert neyra.iteration_controller._iterations == 1
     assert result == "превет мир"
+    assert corrections == []

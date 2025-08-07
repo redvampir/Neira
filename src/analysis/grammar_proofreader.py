@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 try:  # pragma: no cover - optional dependency
     import language_tool_python  # type: ignore
@@ -22,11 +22,18 @@ class GrammarProofreader:
             except Exception:
                 self.tool = None
 
-    def proofread(self, text: str) -> Tuple[str, List[str]]:
-        """Return corrected text and list of applied corrections."""
+    def proofread(self, text: str) -> Tuple[str, List[Dict[str, str]]]:
+        """Return corrected text and list of applied corrections.
+
+        Each correction is a dictionary describing what change was applied. The
+        minimal keys are ``rule`` describing the type of correction and, when
+        applicable, ``before``/``after`` with the original and replacement
+        fragments.
+        """
+
         if not text:
             return text, []
-        corrections: List[str] = []
+        corrections: List[Dict[str, str]] = []
 
         if self.tool is not None:  # pragma: no cover - optional
             matches = self.tool.check(text)
@@ -35,30 +42,46 @@ class GrammarProofreader:
             except Exception:
                 corrected = text
             for m in matches:
+                entry: Dict[str, str] = {
+                    "rule": m.ruleId or "grammar",
+                    "message": m.message,
+                }
                 if m.replacements:
-                    corrections.append(f"{m.ruleId}:{m.replacements[0]}")
-                else:
-                    corrections.append(m.message)
+                    entry["after"] = m.replacements[0]
+                corrections.append(entry)
             return corrected, corrections
 
         corrected = text
+
+        def _record(rule: str, before: str | None = None, after: str | None = None) -> None:
+            entry: Dict[str, str] = {"rule": rule}
+            if before is not None:
+                entry["before"] = before
+            if after is not None:
+                entry["after"] = after
+            corrections.append(entry)
+
         new = re.sub(r"\s+,", ",", corrected)
         if new != corrected:
-            corrections.append("remove_space_before_comma")
+            _record("remove_space_before_comma", before=" ,", after=",")
             corrected = new
         new = re.sub(r",(?=\S)", ", ", corrected)
         if new != corrected:
-            corrections.append("space_after_comma")
+            _record("space_after_comma", before=",", after=", ")
             corrected = new
         new = re.sub(r"\s+\.", ".", corrected)
         if new != corrected:
-            corrections.append("remove_space_before_period")
+            _record("remove_space_before_period", before=" .", after=".")
             corrected = new
         replacements = {"пошол": "пошёл", "превет": "привет"}
         for wrong, right in replacements.items():
             pattern = re.compile(wrong, re.IGNORECASE)
-            new = pattern.sub(right, corrected)
-            if new != corrected:
-                corrections.append(f"{wrong}->{right}")
-                corrected = new
+
+            def repl(match: re.Match[str]) -> str:
+                _record("typo", before=match.group(0), after=right)
+                return right
+
+            new = pattern.sub(repl, corrected)
+            corrected = new
+
         return corrected, corrections
