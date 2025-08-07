@@ -13,6 +13,7 @@ from src.utils.encoding_detector import detect_encoding
 from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
+from .session_scoped_memory import SessionScopedMemory
 from src.analysis import VerificationSystem, VerificationResult, UncertaintyManager
 from types import SimpleNamespace
 
@@ -44,9 +45,12 @@ class Neyra:
         self.executor = CommandExecutor(self)
         self.personality = NeyraPersonality()
         self.known_books: List[str] = []
-        self.characters_memory = CharacterMemory()
-        self.world_memory = WorldMemory()
-        self.style_memory = StyleMemory()
+        self.session_memory = SessionScopedMemory()
+        (
+            self.characters_memory,
+            self.world_memory,
+            self.style_memory,
+        ) = self.session_memory.get("default")
         self.draft_generator = DraftGenerator(
             self.characters_memory, self.world_memory, self.style_memory
         )
@@ -68,12 +72,44 @@ class Neyra:
         self.iteration_controller = IterationController()
         self.iteration_controller.personality = self.personality
         self.iteration_controller.emotional_state = self.emotional_state
-        self.current_user_id = "default"
+        self._current_user_id = "default"
         self.current_style = ""
         self.history = RequestHistory(load_existing=False)
         self.cache = CacheManager()
 
         self.logger.info("Нейра проснулась! ✨")
+
+    # ------------------------------------------------------------------
+    def _apply_memory_set(self, user_id: str) -> None:
+        """Switch all memory references to those associated with ``user_id``."""
+        (
+            self.characters_memory,
+            self.world_memory,
+            self.style_memory,
+        ) = self.session_memory.get(user_id)
+        # Update dependant components to use new memory objects
+        if hasattr(self, "draft_generator"):
+            self.draft_generator.character_memory = self.characters_memory
+            self.draft_generator.world_memory = self.world_memory
+            self.draft_generator.style_memory = self.style_memory
+        if hasattr(self, "deep_searcher"):
+            self.deep_searcher.character_memory = self.characters_memory
+            self.deep_searcher.world_memory = self.world_memory
+            self.deep_searcher.style_memory = self.style_memory
+        if hasattr(self, "feedback_learner"):
+            self.feedback_learner.characters = self.characters_memory
+            self.feedback_learner.worlds = self.world_memory
+            self.feedback_learner.styles = self.style_memory
+
+    # ------------------------------------------------------------------
+    @property
+    def current_user_id(self) -> str:
+        return self._current_user_id
+
+    @current_user_id.setter
+    def current_user_id(self, value: str) -> None:
+        self._current_user_id = value
+        self._apply_memory_set(value)
 
     def _load_llm(self) -> BaseLLM | None:
         """Загружаю локальную LLM при наличии конфига."""

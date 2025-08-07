@@ -40,7 +40,7 @@ class DeepSearcher:
         self.world_memory = world_memory or WorldMemory()
         self.style_memory = style_memory or StyleMemory()
         self.api_client = api_client or SearchAPIClient()
-        self.data_path = Path(data_path or "data")
+        self.data_path = Path(data_path) if data_path else None
         if use_default_plugins:
             register_search_plugin(APISearchPlugin(self.api_client))
 
@@ -118,7 +118,7 @@ class DeepSearcher:
             pass
 
         # Cold storage files -----------------------------------------------
-        if self.data_path.exists():
+        if self.data_path and self.data_path.exists():
             for file in self.data_path.rglob("*"):
                 if not file.is_file():
                     continue
