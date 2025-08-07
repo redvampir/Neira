@@ -24,6 +24,7 @@ from src.iteration import (
     IntegrationType,
     IterationController,
     log_metrics,
+    IterationStrategy,
 )
 from src.models import Character
 from src.core.cache_manager import CacheManager
@@ -211,6 +212,8 @@ class Neyra:
             "known_books": self.known_books,
             "worlds": self.world_memory.get(),
             "style_examples": [],
+            "query": text,
+            "neyra": self,
         }
 
         response_parts = []
@@ -229,10 +232,17 @@ class Neyra:
 
         return "\n\n".join(response_parts) if response_parts else "💭 Хм, интересная команда! Обдумываю..."
 
-    def iterative_response(self, query: str) -> str:
+    def iterative_response(
+        self, query: str, strategy: IterationStrategy | None = None
+    ) -> str:
         """Return a refined response using iterative improvement pipeline."""
         self.logger.info("Starting iterative response")
         update_progress("start")
+        if strategy is not None:
+            self.iteration_controller.max_iterations = strategy.max_iterations
+            self.iteration_controller.max_critical_spaces = (
+                strategy.max_critical_spaces
+            )
         response = self.process_command(query)
         draft = self.last_draft or response
         iteration = 1
