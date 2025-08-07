@@ -27,6 +27,7 @@ from src.iteration import (
 )
 from src.models import Character
 from src.core.cache_manager import CacheManager
+from src.ui import update_progress
 
 
 class Neyra:
@@ -230,12 +231,17 @@ class Neyra:
 
     def iterative_response(self, query: str) -> str:
         """Return a refined response using iterative improvement pipeline."""
+        self.logger.info("Starting iterative response")
+        update_progress("start")
         response = self.process_command(query)
         draft = self.last_draft or response
         iteration = 1
         while True:
+            update_progress("iteration", iteration)
+            self.logger.info("Iteration %s started", iteration)
             gaps = self.gap_analyzer.analyze(draft)
             if not gaps:
+                self.logger.info("No gaps found, finishing at iteration %s", iteration)
                 break
             search_results: List[Dict[str, Any]] = []
             for gap in gaps:
@@ -252,10 +258,14 @@ class Neyra:
                 response, search_results, IntegrationType.IMPORTANT_ADDITION
             )
             log_metrics(iteration, previous, response)
+            self.logger.info("Iteration %s completed", iteration)
             draft = response
             if not self.iteration_controller.should_iterate(response):
+                self.logger.info("Iteration controller stopped at %s", iteration)
                 break
             iteration += 1
+        update_progress("finished", iteration)
+        self.logger.info("Iterative response finished at iteration %s", iteration)
         return response
 
     def _execute_neyra_command(self, command: str) -> str:
