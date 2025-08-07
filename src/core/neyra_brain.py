@@ -301,7 +301,9 @@ class Neyra:
         # Sync dynamic personality traits with iteration controller
         self.iteration_controller.personality = self.personality
         self.iteration_controller.emotional_state = self.emotional_state
-        self.iteration_controller.min_iterations = self.config.min_iterations
+        self.iteration_controller.min_iterations = (
+            1 if skip_check else self.config.min_iterations
+        )
         self.iteration_controller.reset()
         if strategy is not None:
             self.iteration_controller.max_iterations = strategy.max_iterations
