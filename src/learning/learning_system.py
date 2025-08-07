@@ -141,6 +141,24 @@ class LearningSystem:
         self.knowledge_base.add(entry)
         self.knowledge_base.save()
 
+        error_count = sum(
+            1 for e in self.failure_analysis if e.get("error_type") == error_type
+        )
+        weight = self.adaptation_weights.get(error_type, 0)
+        if error_count > weight:
+            neuron_type = self.create_new_neuron_type()
+            if neuron_type is None:
+                log_path = Path("logs/developer_requests.md")
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                with log_path.open("a", encoding="utf-8") as fh:
+                    fh.write(
+                        "- {err} failure on request `{req}`; consider tool/neuron: {rec}\n".format(
+                            err=error_type,
+                            req=interaction.get("request"),
+                            rec=entry["recommendation"],
+                        )
+                    )
+
     # ------------------------------------------------------------------
     def check_previous_failures(self, user_request: str) -> Optional[Dict[str, Any]]:
         """Return previous failure entry if the request was seen before."""

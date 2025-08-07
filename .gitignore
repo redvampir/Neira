@@ -17,6 +17,7 @@ dist/
 # Logs
 logs/*
 !logs/.gitkeep
+!logs/developer_requests.md
 *.log
 
 # Test and coverage outputs
