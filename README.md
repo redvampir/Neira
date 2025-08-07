@@ -104,11 +104,21 @@ source neyra_env/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+*В будущем этот шаг можно будет выполнить командой* `python scripts/setup_neyra.py`.
 
-### 4. Загрузка базовых знаний
-```bash
-python scripts/download_model.py --model llama2-7b
-```
+### 4. Загрузка языковой модели
+- Установка **Qwen‑2.5 Coder**:
+  ```bash
+  python scripts/download_qwen_coder.py
+  ```
+- Установка **Mistral 7B**:
+  ```bash
+  python scripts/download_mistral.py
+  ```
+- Отключение модели:
+  ```bash
+  python scripts/disable_llm.py
+  ```
 
 ### 5. Запуск чата
 ```bash
@@ -132,6 +142,25 @@ python scripts/test_all_features.py
 - `model_type` — тип модели (`mistral`, `qwen_coder`, `none` для отключения);
 - `model_path` — путь к файлу модели в формате GGUF;
 - `max_tokens` — максимальное число токенов, генерируемых за один ответ.
+
+### Переключение языковых моделей
+
+Чтобы выбрать нужный бэкенд, отредактируйте `config/llm_config.json`:
+
+```json
+{
+  "model_type": "mistral",  // или "qwen_coder", "none"
+  "model_path": "models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf"
+}
+```
+
+- `model_type` определяет используемую модель.
+- `model_path` указывает путь к файлу GGUF.
+- Скрипты `download_qwen_coder.py`, `download_mistral.py` и `disable_llm.py`
+  автоматически обновляют эти поля.
+
+Переключение происходит при изменении `model_type` и `model_path` на нужные
+значения и перезапуске Нейры.
 
 ### Mistral 7B Instruct Q6_K
 
