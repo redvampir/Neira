@@ -3,7 +3,7 @@
 """
 import json
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 from pathlib import Path
 
 from src.tags.enhanced_parser import EnhancedTagParser as TagParser, Tag
@@ -292,8 +292,8 @@ class Neyra:
 
     def iterative_response(
         self, query: str, strategy: IterationStrategy | None = None
-    ) -> str:
-        """Return a refined response using iterative improvement pipeline."""
+    ) -> Tuple[str, List[Dict[str, Any]]]:
+        """Return a refined response and a list of applied corrections."""
         skip_check = "@Проверка:нет@" in query
         if skip_check:
             query = query.replace("@Проверка:нет@", "")
@@ -321,6 +321,7 @@ class Neyra:
         draft = self.last_draft or response
         self.deep_searcher.token_budget_manager = token_manager
         iteration = 1
+        all_corrections: List[Dict[str, Any]] = []
         while True:
             previous = response
             if iteration == 2 and self.config.enable_grammar_check and not skip_check:
@@ -328,6 +329,7 @@ class Neyra:
                 self.logger.info("Iteration %s started (grammar check)", iteration)
                 response, corrections = self.grammar_proofreader.proofread(response)
                 if corrections:
+                    all_corrections.extend(corrections)
                     self.logger.debug("Grammar corrections: %s", corrections)
             else:
                 update_progress("iteration", iteration)
@@ -368,7 +370,7 @@ class Neyra:
         update_progress("finished", iteration)
         self.logger.info("Iterative response finished at iteration %s", iteration)
         self.iteration_controller._iterations = iteration
-        return response
+        return response, all_corrections
 
     def _execute_neyra_command(self, command: str) -> str:
         """Выполняю прямые команды с энтузиазмом!"""

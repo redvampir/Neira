@@ -19,7 +19,7 @@ def test_iteration_tag_selects_strategy(monkeypatch, mode, iterations, spaces):
 
     def fake_iterative_response(query: str, strategy: IterationStrategy | None = None):
         captured["strategy"] = strategy
-        return "ok"
+        return "ok", []
 
     monkeypatch.setattr(neyra, "iterative_response", fake_iterative_response)
 
