@@ -8,6 +8,11 @@ import json
 
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
 from src.search import SearchAPIClient
+from .plugin_registry import (
+    APISearchPlugin,
+    get_search_plugins,
+    register_search_plugin,
+)
 
 
 class DeepSearcher:
@@ -25,12 +30,15 @@ class DeepSearcher:
         style_memory: StyleMemory | None = None,
         api_client: SearchAPIClient | None = None,
         data_path: str | Path | None = None,
+        use_default_plugins: bool = True,
     ) -> None:
         self.character_memory = character_memory or CharacterMemory()
         self.world_memory = world_memory or WorldMemory()
         self.style_memory = style_memory or StyleMemory()
         self.api_client = api_client or SearchAPIClient()
         self.data_path = Path(data_path or "data")
+        if use_default_plugins:
+            register_search_plugin(APISearchPlugin(self.api_client))
 
     # ------------------------------------------------------------------
     def search(self, query: str, user_id: str | None = None, limit: int = 5) -> List[Dict[str, Any]]:
@@ -117,19 +125,15 @@ class DeepSearcher:
                     )
                     break
 
-        # Web search -------------------------------------------------------
-        try:
-            for item in self.api_client.search(query, limit):
-                results.append(
-                    {
-                        "source": "web",
-                        "reference": item.get("url", ""),
-                        "content": item.get("snippet", ""),
-                        "priority": 0.3,
-                    }
-                )
-        except Exception:
-            pass
+        # Plugin search ----------------------------------------------------
+        for plugin in get_search_plugins():
+            try:
+                for item in plugin.search(query, limit):
+                    item.setdefault("source", plugin.__class__.__name__)
+                    item.setdefault("priority", 0.0)
+                    results.append(item)
+            except Exception:
+                continue
 
         results.sort(key=lambda r: r["priority"], reverse=True)
         return results
