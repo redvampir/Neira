@@ -15,6 +15,7 @@ from .plugin_registry import (
     register_search_plugin,
 )
 from .resource_iterator import ResourceAwareIterator
+from .token_budget_manager import TokenBudgetManager
 
 
 class DeepSearcher:
@@ -35,6 +36,7 @@ class DeepSearcher:
         use_default_plugins: bool = True,
         resource_iterator: ResourceAwareIterator | None = None,
         parallel: bool | None = None,
+        token_budget_manager: TokenBudgetManager | None = None,
     ) -> None:
         self.character_memory = character_memory or CharacterMemory()
         self.world_memory = world_memory or WorldMemory()
@@ -51,10 +53,30 @@ class DeepSearcher:
                 parallel = True
         self.parallel = parallel
         self.resource_iterator = resource_iterator
+        self.token_budget_manager = token_budget_manager
+        self.current_queries = 1
 
     # ------------------------------------------------------------------
-    def search(self, query: str, user_id: str | None = None, limit: int = 5) -> List[Dict[str, Any]]:
-        """Return ranked results for ``query`` from all configured sources."""
+    def search(
+        self,
+        query: str,
+        user_id: str | None = None,
+        limit: int | None = None,
+    ) -> List[Dict[str, Any]]:
+        """Return ranked results for ``query`` from all configured sources.
+
+        When ``limit`` is ``None`` and a :class:`TokenBudgetManager` is attached,
+        the number of returned results is derived from the remaining token
+        budget.  This allows callers to dynamically control prompt sizes based on
+        available context length.
+        """
+
+        if limit is None:
+            if self.token_budget_manager:
+                limit = self.token_budget_manager.search_limit(self.current_queries)
+            else:
+                limit = 5
+
         results: List[Dict[str, Any]] = []
         q = query.lower()
 
@@ -165,6 +187,16 @@ class DeepSearcher:
                     continue
 
         results.sort(key=lambda r: r["priority"], reverse=True)
+
+        if self.token_budget_manager:
+            max_len = self.token_budget_manager.tokens_per_search_query(
+                self.current_queries
+            )
+            for item in results:
+                content = str(item.get("content", ""))
+                if len(content) > max_len:
+                    item["content"] = content[:max_len]
+
         return results
 
 

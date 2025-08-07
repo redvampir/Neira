@@ -27,6 +27,7 @@ from src.iteration import (
     IterationController,
     log_metrics,
     IterationStrategy,
+    TokenBudgetManager,
 )
 from src.models import Character
 from src.core.cache_manager import CacheManager
@@ -289,8 +290,14 @@ class Neyra:
             self.iteration_controller.max_critical_spaces = (
                 strategy.max_critical_spaces
             )
+        token_manager = TokenBudgetManager(self.llm_max_tokens)
+        self.token_budget_manager = token_manager
+        prev_tokens = self.llm_max_tokens
+        self.llm_max_tokens = token_manager.draft_tokens
         response = self.process_command(query)
+        self.llm_max_tokens = prev_tokens
         draft = self.last_draft or response
+        self.deep_searcher.token_budget_manager = token_manager
         iteration = 1
         while True:
             update_progress("iteration", iteration)
@@ -300,19 +307,26 @@ class Neyra:
                 self.logger.info("No gaps found, finishing at iteration %s", iteration)
                 break
             search_results: List[Dict[str, Any]] = []
+            self.deep_searcher.current_queries = len(gaps)
+            search_limit = token_manager.search_limit(len(gaps))
             for gap in gaps:
                 try:
                     search_results.extend(
                         self.deep_searcher.search(
-                            gap.claim, user_id=getattr(self, "current_user_id", "default")
+                            gap.claim,
+                            user_id=getattr(self, "current_user_id", "default"),
+                            limit=search_limit,
                         )
                     )
                 except Exception:
                     continue
             previous = response
+            prev_tokens = self.llm_max_tokens
+            self.llm_max_tokens = token_manager.refine_tokens
             response = self.response_enhancer.enhance(
                 response, search_results, IntegrationType.IMPORTANT_ADDITION
             )
+            self.llm_max_tokens = prev_tokens
             log_metrics(iteration, previous, response)
             self.logger.info("Iteration %s completed", iteration)
             draft = response

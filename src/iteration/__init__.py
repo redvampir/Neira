@@ -15,6 +15,7 @@ from .low_resource_optimizer import LowResourceOptimizer
 from .smart_cache import SmartCache
 from .metrics import similarity, length, corrected_errors, log_metrics
 from .memory_inspector import MemoryInspector
+from .token_budget_manager import TokenBudgetManager
 
 __all__ = [
     "DraftGenerator",
@@ -31,6 +32,7 @@ __all__ = [
     "LowResourceOptimizer",
     "SmartCache",
     "MemoryInspector",
+    "TokenBudgetManager",
     "similarity",
     "length",
     "corrected_errors",
