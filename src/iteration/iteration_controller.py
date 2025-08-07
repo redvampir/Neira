@@ -25,11 +25,14 @@ class IterationController:
         Threshold for unresolved placeholders (``"___"``) allowed in a response
         before stopping the loop. When ``None`` the value from ``strategy`` is
         applied.
+    min_iterations:
+        Minimum number of iterations to perform regardless of detected gaps.
     """
 
     strategy: str = "standard"
     max_iterations: int | None = None
     max_critical_spaces: int | None = None
+    min_iterations: int = 0
     personality: NeyraPersonality | None = None
     emotional_state: str = "neutral"
     _iterations: int = 0
@@ -40,6 +43,10 @@ class IterationController:
             self.max_iterations = manager.max_iterations
         if self.max_critical_spaces is None:
             self.max_critical_spaces = manager.max_critical_spaces
+
+    def reset(self) -> None:
+        """Reset internal iteration counter."""
+        self._iterations = 0
 
     # ------------------------------------------------------------------
     def _priority_multiplier(self) -> float:
@@ -76,13 +83,14 @@ class IterationController:
     def should_iterate(self, text: str) -> bool:
         """Return ``True`` if another refinement iteration is required.
 
-        The decision is based on two criteria:
-
-        * the response still contains more than ``max_critical_spaces``
-          placeholders, indicating low quality;
-        * the number of iterations performed so far is less than
-          ``max_iterations``.
+        The loop will continue for at least ``min_iterations`` cycles.
+        After that it stops when the number of critical placeholders falls
+        below ``max_critical_spaces`` or ``max_iterations`` is reached.
         """
+
+        if self._iterations < self.min_iterations:
+            self._iterations += 1
+            return True
 
         if self._iterations >= self.max_iterations:
             return False

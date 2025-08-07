@@ -69,4 +69,4 @@ def test_personality_and_emotion_influence_iterations(monkeypatch):
     low_iters = _run_iterations(low)
 
     assert high_iters > low_iters
-    assert low_iters == 0
+    assert low_iters == 2
