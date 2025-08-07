@@ -51,3 +51,42 @@ def test_min_iterations_with_grammar(monkeypatch):
     assert metrics[0] == (1, "превет мир", "превет мир")
     assert metrics[1] == (2, "превет мир", "привет мир")
     assert result == "привет мир"
+
+
+def test_skip_check_tag_disables_grammar(monkeypatch):
+    neyra = Neyra()
+    monkeypatch.setattr(neyra, "process_command", lambda q: "превет мир")
+    monkeypatch.setattr(neyra.gap_analyzer, "analyze", lambda draft: [])
+    monkeypatch.setattr(neyra.deep_searcher, "search", lambda *a, **k: [])
+    monkeypatch.setattr(
+        neyra.response_enhancer,
+        "enhance",
+        lambda text, results, integration, self_correct=True: text,
+    )
+    monkeypatch.setattr(
+        neyra.iteration_controller, "should_iterate", lambda text: False
+    )
+
+    called: list[str] = []
+
+    def fake_proofread(text: str):
+        called.append(text)
+        return text, []
+
+    monkeypatch.setattr(neyra.grammar_proofreader, "proofread", fake_proofread)
+
+    iterations: list[int] = []
+
+    def fake_update(stage, iteration=None):
+        if stage == "iteration":
+            iterations.append(iteration)
+
+    monkeypatch.setattr("src.core.neyra_brain.update_progress", fake_update)
+
+    result = neyra.iterative_response("@Проверка:нет@ query")
+
+    assert called == []
+    assert iterations == [1]
+    assert neyra.iteration_controller.min_iterations == 1
+    assert neyra.iteration_controller._iterations == 1
+    assert result == "превет мир"
