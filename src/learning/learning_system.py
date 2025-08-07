@@ -198,6 +198,18 @@ class LearningSystem:
                 neuron_type, neuron_cls = result
                 NeuronFactory.register(neuron_type, neuron_cls)
                 self.adaptation_weights[reason] = count
+
+                instance = neuron_cls(id=neuron_type, type=neuron_type)
+                base_cls = neuron_cls.__bases__[0]
+                data = {
+                    "neuron_type": neuron_type,
+                    "base_class": f"{base_cls.__module__}.{base_cls.__name__}",
+                    "strength": getattr(instance, "strength", 0.5),
+                }
+                neuron_dir = Path("data/neurons")
+                neuron_dir.mkdir(parents=True, exist_ok=True)
+                (neuron_dir / f"{neuron_type}.json").write_text(json.dumps(data))
+
                 return neuron_type
         return None
 

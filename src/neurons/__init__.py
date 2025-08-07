@@ -13,6 +13,9 @@ from .patterns import BehaviorPattern
 from .network import NeuronNetwork
 from .factory import NeuronFactory
 from .evolution import EvolutionConfig, evolve
+from .loader import load_neurons
+
+load_neurons()
 
 __all__ = [
     "Neuron",
@@ -25,4 +28,5 @@ __all__ = [
     "NeuronFactory",
     "EvolutionConfig",
     "evolve",
+    "load_neurons",
 ]
