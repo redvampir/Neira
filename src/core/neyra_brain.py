@@ -60,10 +60,12 @@ class Neyra:
         else:  # pragma: no cover - fallback when optional deps missing
             self.deep_searcher = SimpleNamespace(search=lambda *a, **k: [])
         self.response_enhancer = ResponseEnhancer()
+        self.emotional_state = "любопытная"
         self.iteration_controller = IterationController()
+        self.iteration_controller.personality = self.personality
+        self.iteration_controller.emotional_state = self.emotional_state
         self.current_user_id = "default"
         self.current_style = ""
-        self.emotional_state = "любопытная"
         self.history = RequestHistory(load_existing=False)
         self.cache = CacheManager()
 
@@ -238,6 +240,9 @@ class Neyra:
         """Return a refined response using iterative improvement pipeline."""
         self.logger.info("Starting iterative response")
         update_progress("start")
+        # Sync dynamic personality traits with iteration controller
+        self.iteration_controller.personality = self.personality
+        self.iteration_controller.emotional_state = self.emotional_state
         if strategy is not None:
             self.iteration_controller.max_iterations = strategy.max_iterations
             self.iteration_controller.max_critical_spaces = (
