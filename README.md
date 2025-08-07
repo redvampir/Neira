@@ -125,7 +125,7 @@ python scripts/test_all_features.py
 ## 🔗 Подключение языковой модели (ВАЖНО)
 
 Нейра может работать с несколькими локальными моделями в формате GGUF. Ниже
-представлены способы установки для **Mistral 7B** и **Qwen‑2.5**.
+представлены способы установки для **Mistral 7B** и **Qwen‑2.5 Coder 1.5B**.
 
 ### Mistral 7B Instruct Q6_K
 
@@ -148,13 +148,13 @@ python scripts/download_mistral.py
 Скрипт скачает модель в `models/mistral/` и автоматически обновит
 `config/llm_config.json`.
 
-### Qwen‑2.5 Instruct Q4_K_M
+### Qwen‑2.5 Coder 1.5B Instruct Q4_K_M
 
 #### Установка через терминал
 1. Создайте директорию и скачайте модель:
    ```bash
    mkdir -p models/qwen
-   wget https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf -O models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf
+   wget https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf -O models/qwen/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf
    ```
 2. Установите зависимости:
    ```bash
@@ -163,14 +163,15 @@ python scripts/download_mistral.py
 3. Пропишите путь к модели и количество токенов в `config/llm_config.json`:
    ```json
    {
-     "model_path": "models/qwen/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
-     "max_tokens": 512
+     "model_type": "qwen_coder",
+     "model_path": "models/qwen/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf",
+     "max_tokens": 1024
    }
    ```
 
 #### Скрипт загрузки
 ```bash
-python scripts/download_qwen.py
+python scripts/download_qwen_coder.py
 ```
 Скрипт скачает модель и укажет её в `config/llm_config.json`.
 
@@ -187,6 +188,7 @@ python scripts/download_qwen.py
 ### Пример `config/llm_config.json`
 ```json
 {
+  "model_type": "mistral",
   "model_path": "models/mistral/mistral-7b-instruct-v0.1.Q6_K.gguf",
   "max_tokens": 512
 }
