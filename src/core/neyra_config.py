@@ -3,8 +3,8 @@
 Здесь живут все настройки того, какой должна быть Нейра.
 """
 
-from dataclasses import dataclass
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Dict, Optional, List
 
 try:
     import torch  # type: ignore
@@ -94,15 +94,16 @@ class NeyraConfig:
 
     Attributes
     ----------
-    enable_grammar_check:
-        Включать ли автоматическую проверку грамматики на второй итерации.
     min_iterations:
         Минимальное количество циклов улучшения, выполняемых даже при
         отсутствии обнаруженных недочётов.
+    post_processors:
+        Список имён пост-процессоров, которые применяются к ответу после
+        завершения итераций.
     """
 
-    enable_grammar_check: bool = True
     min_iterations: int = 2
+    post_processors: List[str] = field(default_factory=lambda: ["GrammarProofreader"])
 
 
 # Глобальные константы

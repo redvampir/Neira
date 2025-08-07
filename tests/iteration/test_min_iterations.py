@@ -16,7 +16,10 @@ rich_panel = types.SimpleNamespace(Panel=lambda *a, **k: None)
 sys.modules.setdefault("rich.console", rich_console)
 sys.modules.setdefault("rich.markdown", rich_markdown)
 sys.modules.setdefault("rich.panel", rich_panel)
-sys.modules.setdefault("rich", types.SimpleNamespace(console=rich_console, markdown=rich_markdown, panel=rich_panel))
+sys.modules.setdefault(
+    "rich",
+    types.SimpleNamespace(console=rich_console, markdown=rich_markdown, panel=rich_panel),
+)
 
 from src.core.neyra_brain import Neyra
 
@@ -32,8 +35,8 @@ def test_min_iterations_with_grammar(monkeypatch):
         lambda text, results, integration, self_correct=True: text,
     )
 
-    iterations = []
-    metrics = []
+    iterations: list[int] = []
+    metrics: list[tuple[int, str, str]] = []
 
     def fake_update(stage, iteration=None):
         if stage == "iteration":
@@ -49,7 +52,7 @@ def test_min_iterations_with_grammar(monkeypatch):
 
     assert iterations == [1, 2]
     assert metrics[0] == (1, "превет мир", "превет мир")
-    assert metrics[1] == (2, "превет мир", "привет мир")
+    assert metrics[1] == (2, "превет мир", "превет мир")
     assert result == "привет мир"
     assert corrections  # non-empty list
 
@@ -70,11 +73,12 @@ def test_skip_check_tag_disables_grammar(monkeypatch):
 
     called: list[str] = []
 
-    def fake_proofread(text: str):
-        called.append(text)
-        return text, []
+    class DummyProcessor:
+        def process(self, text):
+            called.append(text)
+            return text, []
 
-    monkeypatch.setattr(neyra.grammar_proofreader, "proofread", fake_proofread)
+    neyra.post_processors = [DummyProcessor()]
 
     iterations: list[int] = []
 

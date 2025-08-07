@@ -5,13 +5,15 @@ import logging
 import re
 from typing import Dict, List, Tuple
 
+from .post_processor import PostProcessor
+
 try:  # pragma: no cover - optional dependency
     import language_tool_python  # type: ignore
 except Exception:  # pragma: no cover
     language_tool_python = None  # type: ignore
 
 
-class GrammarProofreader:
+class GrammarProofreader(PostProcessor):
     """Apply basic grammar and punctuation corrections."""
 
     def __init__(self, language: str = "ru-RU") -> None:
@@ -90,3 +92,7 @@ class GrammarProofreader:
             corrected = new
 
         return corrected, corrections
+
+    def process(self, text: str) -> Tuple[str, List[Dict[str, str]]]:
+        """Process text according to :class:`PostProcessor` interface."""
+        return self.proofread(text)
