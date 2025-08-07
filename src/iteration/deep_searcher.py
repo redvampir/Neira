@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Dict, Any
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
 from src.search import SearchAPIClient
@@ -13,6 +14,7 @@ from .plugin_registry import (
     get_search_plugins,
     register_search_plugin,
 )
+from .resource_iterator import ResourceAwareIterator
 
 
 class DeepSearcher:
@@ -31,6 +33,8 @@ class DeepSearcher:
         api_client: SearchAPIClient | None = None,
         data_path: str | Path | None = None,
         use_default_plugins: bool = True,
+        resource_iterator: ResourceAwareIterator | None = None,
+        parallel: bool | None = None,
     ) -> None:
         self.character_memory = character_memory or CharacterMemory()
         self.world_memory = world_memory or WorldMemory()
@@ -39,6 +43,14 @@ class DeepSearcher:
         self.data_path = Path(data_path or "data")
         if use_default_plugins:
             register_search_plugin(APISearchPlugin(self.api_client))
+
+        if parallel is None:
+            if resource_iterator is not None:
+                parallel = bool(resource_iterator.config.get("parallel", True))
+            else:
+                parallel = True
+        self.parallel = parallel
+        self.resource_iterator = resource_iterator
 
     # ------------------------------------------------------------------
     def search(self, query: str, user_id: str | None = None, limit: int = 5) -> List[Dict[str, Any]]:
@@ -126,14 +138,31 @@ class DeepSearcher:
                     break
 
         # Plugin search ----------------------------------------------------
-        for plugin in get_search_plugins():
-            try:
-                for item in plugin.search(query, limit):
-                    item.setdefault("source", plugin.__class__.__name__)
-                    item.setdefault("priority", 0.0)
-                    results.append(item)
-            except Exception:
-                continue
+        plugins = get_search_plugins()
+        if self.parallel and len(plugins) > 1:
+            with ThreadPoolExecutor(max_workers=len(plugins)) as executor:
+                future_to_plugin = {
+                    executor.submit(plugin.search, query, limit): plugin
+                    for plugin in plugins
+                }
+                for future in as_completed(future_to_plugin):
+                    plugin = future_to_plugin[future]
+                    try:
+                        for item in future.result():
+                            item.setdefault("source", plugin.__class__.__name__)
+                            item.setdefault("priority", 0.0)
+                            results.append(item)
+                    except Exception:
+                        continue
+        else:
+            for plugin in plugins:
+                try:
+                    for item in plugin.search(query, limit):
+                        item.setdefault("source", plugin.__class__.__name__)
+                        item.setdefault("priority", 0.0)
+                        results.append(item)
+                except Exception:
+                    continue
 
         results.sort(key=lambda r: r["priority"], reverse=True)
         return results
