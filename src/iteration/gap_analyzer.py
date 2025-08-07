@@ -8,6 +8,7 @@ from typing import List
 
 from src.analysis.verification_system import VerificationSystem, VerificationResult
 from src.analysis.uncertainty_manager import UncertaintyManager
+from src.analysis.timeline_checker import TimelineChecker
 
 
 @dataclass
@@ -18,6 +19,7 @@ class KnowledgeGap:
     questions: List[str]
     confidence: float
     disclaimer: str | None = None
+    gap_type: str = "knowledge_gap"
 
 
 class GapAnalyzer:
@@ -27,9 +29,11 @@ class GapAnalyzer:
         self,
         verifier: VerificationSystem | None = None,
         uncertainty: UncertaintyManager | None = None,
+        timeline_checker: TimelineChecker | None = None,
     ) -> None:
         self.verifier = verifier or VerificationSystem()
         self.uncertainty = uncertainty or UncertaintyManager()
+        self.timeline_checker = timeline_checker or TimelineChecker()
 
     # ------------------------------------------------------------------
     def analyze(self, draft: str) -> List[KnowledgeGap]:
@@ -50,6 +54,16 @@ class GapAnalyzer:
                         disclaimer=result.disclaimer,
                     )
                 )
+        timeline_conflicts = self.timeline_checker.check()
+        for conflict in timeline_conflicts:
+            gaps.append(
+                KnowledgeGap(
+                    claim=conflict,
+                    questions=[],
+                    confidence=0.0,
+                    gap_type="timeline_conflict",
+                )
+            )
         return gaps
 
 
