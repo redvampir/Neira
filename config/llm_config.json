@@ -1,4 +1,5 @@
 {
-  "model_path": "models/qwen/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+  "model_type": "qwen_coder",
+  "model_path": "models/qwen/Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf",
   "max_tokens": 1024
 }
