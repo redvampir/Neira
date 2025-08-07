@@ -95,3 +95,26 @@ register_tag(
     iteration_strategy_handler,
     pattern=r"@Итерация:\s*([^@]+)@",
 )
+
+
+def min_iterations_handler(value: str, context: Dict[str, Any]) -> str:
+    """Handle tag to set minimum iteration count dynamically."""
+
+    neyra = context.get("neyra")
+    try:
+        count = int(value.strip())
+    except ValueError:
+        return "⚠️ Некорректное значение минимума итераций."
+
+    if neyra:
+        neyra.config.min_iterations = count
+        if hasattr(neyra, "iteration_controller"):
+            neyra.iteration_controller.min_iterations = count
+    return f"🔁 Минимальное количество итераций установлено: {count}"
+
+
+register_tag(
+    "min_iterations",
+    min_iterations_handler,
+    pattern=r"@Минимум:\s*(\d+)@",
+)
