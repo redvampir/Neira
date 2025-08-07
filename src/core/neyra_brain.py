@@ -10,6 +10,7 @@ from src.tags.enhanced_parser import EnhancedTagParser as TagParser, Tag
 from src.tags.command_executor import CommandExecutor
 from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
 from src.utils.encoding_detector import detect_encoding
+from src.utils.language_adapter import adapt_request, adapt_response
 from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
@@ -240,13 +241,17 @@ class Neyra:
 
     def process_command(self, text: str) -> str:
         """Обрабатываю команды с пониманием и творчеством."""
+        language, text = adapt_request(text)
+        user_id = getattr(self, "current_user_id", "default")
+        self.style_memory.add(user_id, f"language:{language}")
+        self.style_memory.save()
         self.last_draft = self.draft_generator.generate_draft(
             text, self.verification_system.memory
         )
         tags = self.parser.parse_user_input(text)
 
         if not tags:
-            return self._casual_response(text)
+            return adapt_response(self._casual_response(text), language)
 
         # Создаю контекст для исполнителя
         context = {
@@ -273,7 +278,8 @@ class Neyra:
                 )
             self.style_memory.save()
 
-        return "\n\n".join(response_parts) if response_parts else "💭 Хм, интересная команда! Обдумываю..."
+        final = "\n\n".join(response_parts) if response_parts else "💭 Хм, интересная команда! Обдумываю..."
+        return adapt_response(final, language)
 
     def iterative_response(
         self, query: str, strategy: IterationStrategy | None = None
