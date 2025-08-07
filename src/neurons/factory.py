@@ -50,6 +50,12 @@ class NeuronFactory:
         cls._registry[neuron_type] = neuron_cls
 
     @classmethod
+    def deregister(cls, neuron_type: str) -> None:
+        """Remove ``neuron_type`` from the registry if present."""
+
+        cls._registry.pop(neuron_type, None)
+
+    @classmethod
     def create(cls, neuron_type: str, *args: Any, **kwargs: Any) -> Neuron:
         """Instantiate the neuron associated with ``neuron_type``."""
 

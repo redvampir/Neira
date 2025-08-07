@@ -41,6 +41,9 @@ class LearningSystem:
     style_memory: StyleMemory = field(default_factory=StyleMemory)
     response_cache: Dict[str, str] = field(default_factory=dict)
     knowledge_base: KnowledgeBase = field(default_factory=KnowledgeBase)
+    neuron_metrics: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    neuron_use_limit: int = 5
+    neuron_success_threshold: float = 0.3
 
     # ------------------------------------------------------------------
     def learn_from_interaction(
@@ -187,6 +190,32 @@ class LearningSystem:
         return self.response_cache.get(user_request)
 
     # ------------------------------------------------------------------
+    def record_neuron_usage(self, neuron_type: str, success: bool) -> None:
+        """Update metrics for ``neuron_type`` and decommission if underperforming."""
+
+        metrics = self.neuron_metrics.setdefault(
+            neuron_type, {"activations": 0, "positive": 0, "negative": 0}
+        )
+        metrics["activations"] += 1
+        if success:
+            metrics["positive"] += 1
+        else:
+            metrics["negative"] += 1
+
+        uses = metrics["activations"]
+        if uses >= self.neuron_use_limit:
+            rate = metrics["positive"] / uses if uses else 0.0
+            if rate < self.neuron_success_threshold:
+                NeuronFactory.deregister(neuron_type)
+                log_path = Path("logs/developer_requests.md")
+                log_path.parent.mkdir(parents=True, exist_ok=True)
+                with log_path.open("a", encoding="utf-8") as fh:
+                    fh.write(
+                        f"- Neuron `{neuron_type}` decommissioned after {uses} uses (success rate {rate:.2f}); redesign recommended\n"
+                    )
+                del self.neuron_metrics[neuron_type]
+
+    # ------------------------------------------------------------------
     def create_new_neuron_type(self) -> Optional[str]:
         """Create and register a new neuron type if needed.
 
@@ -227,7 +256,11 @@ class LearningSystem:
                 neuron_dir = Path("data/neurons")
                 neuron_dir.mkdir(parents=True, exist_ok=True)
                 (neuron_dir / f"{neuron_type}.json").write_text(json.dumps(data))
-
+                self.neuron_metrics[neuron_type] = {
+                    "activations": 0,
+                    "positive": 0,
+                    "negative": 0,
+                }
                 return neuron_type
         return None
 
@@ -240,6 +273,9 @@ class LearningSystem:
             "success_metrics": self.success_metrics,
             "failure_analysis": self.failure_analysis,
             "adaptation_weights": self.adaptation_weights,
+            "neuron_metrics": self.neuron_metrics,
+            "neuron_use_limit": self.neuron_use_limit,
+            "neuron_success_threshold": self.neuron_success_threshold,
         }
         Path(path).write_text(json.dumps(data))
 
@@ -254,6 +290,9 @@ class LearningSystem:
         instance.success_metrics = data.get("success_metrics", {})
         instance.failure_analysis = data.get("failure_analysis", [])
         instance.adaptation_weights = data.get("adaptation_weights", {})
+        instance.neuron_metrics = data.get("neuron_metrics", {})
+        instance.neuron_use_limit = data.get("neuron_use_limit", 5)
+        instance.neuron_success_threshold = data.get("neuron_success_threshold", 0.3)
         return instance
 
 
