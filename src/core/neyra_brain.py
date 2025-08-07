@@ -149,6 +149,11 @@ class Neyra:
         model_type = cfg.get("model_type", "mistral")
         model_path = cfg.get("model_path")
         self.llm_max_tokens = int(cfg.get("max_tokens", 512))
+
+        if model_type == "none" or not model_path:
+            self.logger.info("LLM отключена в конфигурации")
+            return None
+
         try:
             return LLMFactory.create(model_type, model_path=model_path)
         except (ValueError, RuntimeError, OSError) as e:  # pragma: no cover
