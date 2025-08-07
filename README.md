@@ -390,6 +390,16 @@ neyra.process_command(
 [Unsloth](https://github.com/unslothai/unsloth) и
 [TRL](https://github.com/huggingface/trl).
 
+Для подготовки обучающего набора из накопленного опыта предусмотрен скрипт
+`scripts/export_training_data.py`. Он читает `learning_system.experience_buffer`
+или сохранённый файл состояния и сохраняет каждое взаимодействие в формате
+JSONL с полями `prompt`, `response` и `rating` в каталог `data/training`.
+
+```bash
+python scripts/export_training_data.py --state path/to/state.json \
+    --output data/training/neyra_dataset.jsonl
+```
+
 ### Предварительные требования
 
 - Установленные пакеты: `unsloth`, `trl`, `datasets`, `accelerate`,
