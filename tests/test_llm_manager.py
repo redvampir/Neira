@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from src.llm.manager import LLMManager, Task
 from src.llm.base_llm import BaseLLM
+from src.llm.qwen_coder_interface import QwenCoderLLM
 
 
 class DummyLLM(BaseLLM):
@@ -66,3 +67,27 @@ def test_ensemble_and_learning_integration() -> None:
     interaction = manager.learning_system.experience_buffer[0]
     assert interaction["context"]["model"] == "accurate"
     assert interaction["response"] == "accurate:prompt"
+
+
+def test_code_request_prefers_code_model() -> None:
+    manager = LLMManager()
+
+    general = DummyLLM("general")
+    coder = QwenCoderLLM("model.gguf")
+    coder.model = object()
+    coder._load_error = None
+
+    manager.register_model("general", general, speed=5, cost=1, accuracy=0.6)
+    manager.register_model(
+        "qwen_coder",
+        coder,
+        speed=5,
+        cost=1,
+        accuracy=0.5,
+        capabilities={"code"},
+    )
+
+    task = Task(prompt="print('hi')", request_type="code")
+    name, model, _ = manager.select_model(task)
+    assert name == "qwen_coder"
+    assert model is coder

@@ -8,7 +8,7 @@ ensemble aggregation.  The manager can also forward interaction results to
 :class:`~src.learning.learning_system.LearningSystem` for adaptive feedback.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import time
 from typing import Any, Callable, Dict, Optional, Tuple
 
@@ -25,6 +25,7 @@ class ModelSpec:
     speed: float
     cost: float
     accuracy: float
+    capabilities: set[str] = field(default_factory=set)
     prompt_adapter: Optional[Callable[[str], str]] = None
 
     def adapt_prompt(self, prompt: str) -> str:
@@ -64,6 +65,7 @@ class LLMManager:
         cost: float,
         accuracy: float,
         prompt_adapter: Optional[Callable[[str], str]] = None,
+        capabilities: set[str] | None = None,
     ) -> None:
         """Register an ``llm`` with its performance characteristics."""
 
@@ -72,6 +74,7 @@ class LLMManager:
             speed=speed,
             cost=cost,
             accuracy=accuracy,
+            capabilities=capabilities or set(),
             prompt_adapter=prompt_adapter,
         )
 
@@ -98,6 +101,15 @@ class LLMManager:
                 if name == preferred:
                     adapted = spec.adapt_prompt(task.prompt)
                     return name, spec.llm, adapted
+
+        if task.request_type == "code":
+            code_models = [
+                (name, spec)
+                for name, spec in available
+                if "code" in spec.capabilities
+            ]
+            if code_models:
+                available = code_models
 
         def success_rate(model_name: str) -> float:
             metrics = self.model_metrics.get(model_name, {})
