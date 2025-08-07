@@ -32,6 +32,7 @@ class EnhancedTagParser:
         # ``generate_content`` also exposes the topic via params
         "generate_content": r"@Сгенерируй:\s*(?P<topic>[^@]+)@",
         "iteration_strategy": r"@Итерация:\s*([^@]+)@",
+        "min_iterations": r"@Минимум:\s*(\d+)@",
     }
 
     #: block patterns like ``[Пример стиля автора, X]\n...\n[Пример окончен]``

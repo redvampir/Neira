@@ -78,7 +78,9 @@ class Neyra:
             self.characters_memory, self.world_memory, self.style_memory
         )
         self.emotional_state = "любопытная"
-        self.iteration_controller = IterationController()
+        self.iteration_controller = IterationController(
+            min_iterations=self.config.min_iterations
+        )
         self.iteration_controller.personality = self.personality
         self.iteration_controller.emotional_state = self.emotional_state
         self._current_user_id = "default"

@@ -90,7 +90,16 @@ class MemoryConfig:
 
 @dataclass
 class NeyraConfig:
-    """Общие переключатели функций Нейры."""
+    """Общие переключатели функций Нейры.
+
+    Attributes
+    ----------
+    enable_grammar_check:
+        Включать ли автоматическую проверку грамматики на второй итерации.
+    min_iterations:
+        Минимальное количество циклов улучшения, выполняемых даже при
+        отсутствии обнаруженных недочётов.
+    """
 
     enable_grammar_check: bool = True
     min_iterations: int = 2
