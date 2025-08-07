@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from typing import Any, Iterable
 import hashlib
+import time
 
 from src.core.cache_manager import CacheManager
 
@@ -24,12 +25,15 @@ class SmartCache(CacheManager):
         *,
         hot_limit: int = 32,
         warm_limit: int = 128,
+        default_ttl: float | None = None,
     ) -> None:
         super().__init__(cache_dir)
         self.hot_limit = hot_limit
         self.warm_limit = warm_limit
+        self.default_ttl = default_ttl
         self.hot: OrderedDict[str, Any] = OrderedDict()
         self.warm: OrderedDict[str, Any] = OrderedDict()
+        self.expires_at: dict[str, float] = {}
 
     # ------------------------------------------------------------------
     # key helpers
@@ -58,13 +62,31 @@ class SmartCache(CacheManager):
 
     # ------------------------------------------------------------------
     # public API
-    def set(self, query: str, value: Any, tags: Iterable[str] | None = None) -> None:
+    def set(
+        self,
+        query: str,
+        value: Any,
+        tags: Iterable[str] | None = None,
+        ttl: float | None = None,
+    ) -> None:
         key = self._hash_key(query, tags)
-        super().set(key, {"value": value, "tags": list(tags) if tags else []})
+        ttl_value = ttl if ttl is not None else self.default_ttl
+        if ttl_value is not None:
+            exp = time.time() + ttl_value
+            self.expires_at[key] = exp
+        else:
+            self.expires_at.pop(key, None)
+            exp = None
+        data = {"value": value, "tags": list(tags) if tags else []}
+        if exp is not None:
+            data["expires_at"] = exp
+        super().set(key, data)
         self._promote_to_hot(key, value)
 
     def get(self, query: str, tags: Iterable[str] | None = None) -> Any | None:
         key = self._hash_key(query, tags)
+        if self._is_expired(key):
+            return None
         if key in self.hot:
             self.hot.move_to_end(key)
             return self.hot[key]
@@ -75,6 +97,12 @@ class SmartCache(CacheManager):
         data = super().get(key)
         if data is None:
             return None
+        exp = data.get("expires_at") if isinstance(data, dict) else None
+        if exp is not None:
+            self.expires_at[key] = exp
+            if exp < time.time():
+                self.invalidate(query, tags)
+                return None
         if isinstance(data, dict) and "value" in data:
             value = data["value"]
         else:
@@ -87,9 +115,32 @@ class SmartCache(CacheManager):
         if query is None:
             self.hot.clear()
             self.warm.clear()
+            self.expires_at.clear()
             super().invalidate()
             return
         key = self._hash_key(query, tags)
         self.hot.pop(key, None)
         self.warm.pop(key, None)
+        self.expires_at.pop(key, None)
         super().invalidate(key)
+
+    # ------------------------------------------------------------------
+    # expiration helpers
+    def _is_expired(self, key: str) -> bool:
+        exp = self.expires_at.get(key)
+        if exp is not None and exp < time.time():
+            self.hot.pop(key, None)
+            self.warm.pop(key, None)
+            self.expires_at.pop(key, None)
+            super().invalidate(key)
+            return True
+        return False
+
+    def cleanup(self) -> None:
+        now = time.time()
+        expired = [k for k, v in self.expires_at.items() if v < now]
+        for key in expired:
+            self.hot.pop(key, None)
+            self.warm.pop(key, None)
+            self.expires_at.pop(key, None)
+            super().invalidate(key)
