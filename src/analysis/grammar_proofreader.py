@@ -1,6 +1,7 @@
 """Simple grammar proofreader using language_tool_python when available."""
 from __future__ import annotations
 
+import logging
 import re
 from typing import Dict, List, Tuple
 
@@ -21,6 +22,10 @@ class GrammarProofreader:
                 self.tool = language_tool_python.LanguageTool(language)
             except Exception:
                 self.tool = None
+        else:
+            logging.warning(
+                "language_tool_python is not installed; grammar proofreading quality will be reduced"
+            )
 
     def proofread(self, text: str) -> Tuple[str, List[Dict[str, str]]]:
         """Return corrected text and list of applied corrections.
