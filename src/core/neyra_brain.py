@@ -21,6 +21,7 @@ from src.iteration import (
     GapAnalyzer,
     DeepSearcher,
     ResponseEnhancer,
+    FeedbackLearner,
     IntegrationType,
     IterationController,
     log_metrics,
@@ -60,6 +61,9 @@ class Neyra:
         else:  # pragma: no cover - fallback when optional deps missing
             self.deep_searcher = SimpleNamespace(search=lambda *a, **k: [])
         self.response_enhancer = ResponseEnhancer()
+        self.feedback_learner = FeedbackLearner(
+            self.characters_memory, self.world_memory, self.style_memory
+        )
         self.emotional_state = "любопытная"
         self.iteration_controller = IterationController()
         self.iteration_controller.personality = self.personality
