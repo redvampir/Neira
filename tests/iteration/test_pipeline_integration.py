@@ -72,5 +72,5 @@ def test_two_passes_with_grammar_correction(monkeypatch):
 
     assert result == expected
     assert len(corrections) > 0
-    assert len(gap_calls) == 1
+    assert len(gap_calls) == 2
     assert neyra.iteration_controller._iterations == 2

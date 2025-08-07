@@ -19,7 +19,8 @@ from src.analysis import (
     VerificationSystem,
     VerificationResult,
     UncertaintyManager,
-    GrammarProofreader,
+    PostProcessor,
+    POST_PROCESSOR_REGISTRY,
 )
 from types import SimpleNamespace
 
@@ -43,7 +44,7 @@ from src.ui import update_progress
 class Neyra:
     """Я Нейра, и здесь моя основная логика."""
 
-    def __init__(self) -> None:
+    def __init__(self, config: NeyraConfig | None = None) -> None:
         """Просыпаюсь и готовлю свои модули."""
         self.logger = logging.getLogger(__name__)
         self.parser = TagParser()
@@ -51,8 +52,12 @@ class Neyra:
         self.llm = self._load_llm()
         self.executor = CommandExecutor(self)
         self.personality = NeyraPersonality()
-        self.config = NeyraConfig()
-        self.grammar_proofreader = GrammarProofreader()
+        self.config = config or NeyraConfig()
+        self.post_processors: List[PostProcessor] = [
+            POST_PROCESSOR_REGISTRY[name]()
+            for name in self.config.post_processors
+            if name in POST_PROCESSOR_REGISTRY
+        ]
         self.known_books: List[str] = []
         self.session_memory = SessionScopedMemory()
         (
@@ -324,49 +329,50 @@ class Neyra:
         all_corrections: List[Dict[str, Any]] = []
         while True:
             previous = response
-            if iteration == 2 and self.config.enable_grammar_check and not skip_check:
-                update_progress("iteration", iteration)
-                self.logger.info("Iteration %s started (grammar check)", iteration)
-                response, corrections = self.grammar_proofreader.proofread(response)
-                if corrections:
-                    all_corrections.extend(corrections)
-                    self.logger.debug("Grammar corrections: %s", corrections)
-            else:
-                update_progress("iteration", iteration)
-                self.logger.info("Iteration %s started", iteration)
-                gaps = self.gap_analyzer.analyze(draft)
-                if gaps:
-                    search_results: List[Dict[str, Any]] = []
-                    self.deep_searcher.current_queries = len(gaps)
-                    search_limit = token_manager.search_limit(len(gaps))
-                    for gap in gaps:
-                        try:
-                            search_results.extend(
-                                self.deep_searcher.search(
-                                    gap.claim,
-                                    user_id=getattr(self, "current_user_id", "default"),
-                                    limit=search_limit,
-                                )
+            update_progress("iteration", iteration)
+            self.logger.info("Iteration %s started", iteration)
+            gaps = self.gap_analyzer.analyze(draft)
+            if gaps:
+                search_results: List[Dict[str, Any]] = []
+                self.deep_searcher.current_queries = len(gaps)
+                search_limit = token_manager.search_limit(len(gaps))
+                for gap in gaps:
+                    try:
+                        search_results.extend(
+                            self.deep_searcher.search(
+                                gap.claim,
+                                user_id=getattr(self, "current_user_id", "default"),
+                                limit=search_limit,
                             )
-                        except Exception:
-                            continue
-                    prev_tokens = self.llm_max_tokens
-                    self.llm_max_tokens = token_manager.refine_tokens
-                    response = self.response_enhancer.enhance(
-                        response, search_results, IntegrationType.IMPORTANT_ADDITION
-                    )
-                    self.llm_max_tokens = prev_tokens
-                else:
-                    self.logger.info("No gaps found at iteration %s", iteration)
+                        )
+                    except Exception:
+                        continue
+                prev_tokens = self.llm_max_tokens
+                self.llm_max_tokens = token_manager.refine_tokens
+                response = self.response_enhancer.enhance(
+                    response, search_results, IntegrationType.IMPORTANT_ADDITION
+                )
+                self.llm_max_tokens = prev_tokens
+            else:
+                self.logger.info("No gaps found at iteration %s", iteration)
             log_metrics(iteration, previous, response)
             self.logger.info("Iteration %s completed", iteration)
             draft = response
-            if iteration >= self.iteration_controller.min_iterations and self.iteration_controller.assess_quality(response) <= self.iteration_controller.max_critical_spaces:
+            if (
+                iteration >= self.iteration_controller.min_iterations
+                and self.iteration_controller.assess_quality(response)
+                <= self.iteration_controller.max_critical_spaces
+            ):
                 break
             if not self.iteration_controller.should_iterate(response):
                 self.logger.info("Iteration controller stopped at %s", iteration)
                 break
             iteration += 1
+        if not skip_check:
+            for processor in self.post_processors:
+                response, corrections = processor.process(response)
+                if corrections:
+                    all_corrections.extend(corrections)
         update_progress("finished", iteration)
         self.logger.info("Iterative response finished at iteration %s", iteration)
         self.iteration_controller._iterations = iteration
