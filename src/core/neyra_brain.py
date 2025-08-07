@@ -14,6 +14,8 @@ from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
 from src.analysis import VerificationSystem, VerificationResult, UncertaintyManager
+from types import SimpleNamespace
+
 from src.iteration import (
     DraftGenerator,
     GapAnalyzer,
@@ -21,6 +23,7 @@ from src.iteration import (
     ResponseEnhancer,
     IntegrationType,
     IterationController,
+    log_metrics,
 )
 from src.models import Character
 from src.core.cache_manager import CacheManager
@@ -48,9 +51,12 @@ class Neyra:
         self.verification_system = VerificationSystem()
         self.uncertainty_manager = UncertaintyManager()
         self.gap_analyzer = GapAnalyzer(self.verification_system, self.uncertainty_manager)
-        self.deep_searcher = DeepSearcher(
-            self.characters_memory, self.world_memory, self.style_memory
-        )
+        if DeepSearcher:
+            self.deep_searcher = DeepSearcher(
+                self.characters_memory, self.world_memory, self.style_memory
+            )
+        else:  # pragma: no cover - fallback when optional deps missing
+            self.deep_searcher = SimpleNamespace(search=lambda *a, **k: [])
         self.response_enhancer = ResponseEnhancer()
         self.iteration_controller = IterationController()
         self.current_user_id = "default"
@@ -226,6 +232,7 @@ class Neyra:
         """Return a refined response using iterative improvement pipeline."""
         response = self.process_command(query)
         draft = self.last_draft or response
+        iteration = 1
         while True:
             gaps = self.gap_analyzer.analyze(draft)
             if not gaps:
@@ -240,12 +247,15 @@ class Neyra:
                     )
                 except Exception:
                     continue
+            previous = response
             response = self.response_enhancer.enhance(
                 response, search_results, IntegrationType.IMPORTANT_ADDITION
             )
+            log_metrics(iteration, previous, response)
             draft = response
             if not self.iteration_controller.should_iterate(response):
                 break
+            iteration += 1
         return response
 
     def _execute_neyra_command(self, command: str) -> str:
