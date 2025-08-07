@@ -382,6 +382,35 @@ neyra.process_command(
 
 После этого Нейра сможет учитывать новые образцы в последующих генерациях.
 
+## Обучение модели
+
+Для тонкой настройки языковой модели можно воспользоваться скриптом
+`scripts/train_qwen_coder.py`. Он запускает минимальный цикл обучения для
+`Qwen2.5-Coder-1.5B-Instruct` на основе библиотек
+[Unsloth](https://github.com/unslothai/unsloth) и
+[TRL](https://github.com/huggingface/trl).
+
+### Предварительные требования
+
+- Установленные пакеты: `unsloth`, `trl`, `datasets`, `accelerate`,
+  `bitsandbytes`.
+- Наличие обучающего набора данных в формате JSON с полями `prompt` и
+  `response`.
+- Видеокарта с поддержкой CUDA. Для 4‑битной квантизации достаточно 8 GB VRAM,
+  для 8‑битной или полноточной — 16 GB и более.
+
+### Пример запуска
+
+```bash
+python scripts/train_qwen_coder.py \
+    --dataset_path data/my_dataset.json \
+    --output_dir models/qwen_finetuned \
+    --quantization 4bit
+```
+
+Параметр `--quantization` принимает значения `4bit`, `8bit` или `none` и
+управляет используемым режимом квантизации.
+
 ## 🛠 Настройка личности Нейры
 
 Файл `src/core/neyra_config.py`:
