@@ -322,14 +322,16 @@ class Neyra:
         self.deep_searcher.token_budget_manager = token_manager
         iteration = 1
         while True:
-            update_progress("iteration", iteration)
-            self.logger.info("Iteration %s started", iteration)
             previous = response
             if iteration == 2 and self.config.enable_grammar_check and not skip_check:
+                update_progress("iteration", iteration)
+                self.logger.info("Iteration %s started (grammar check)", iteration)
                 response, corrections = self.grammar_proofreader.proofread(response)
                 if corrections:
                     self.logger.debug("Grammar corrections: %s", corrections)
             else:
+                update_progress("iteration", iteration)
+                self.logger.info("Iteration %s started", iteration)
                 gaps = self.gap_analyzer.analyze(draft)
                 if gaps:
                     search_results: List[Dict[str, Any]] = []
