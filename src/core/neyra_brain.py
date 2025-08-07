@@ -8,14 +8,19 @@ from pathlib import Path
 
 from src.tags.enhanced_parser import EnhancedTagParser as TagParser, Tag
 from src.tags.command_executor import CommandExecutor
-from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality
+from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality, NeyraConfig
 from src.utils.encoding_detector import detect_encoding
 from src.utils.language_adapter import adapt_request, adapt_response
 from src.llm import BaseLLM, LLMFactory
 from src.interaction import RequestHistory
 from src.memory import CharacterMemory, WorldMemory, StyleMemory
 from .session_scoped_memory import SessionScopedMemory
-from src.analysis import VerificationSystem, VerificationResult, UncertaintyManager
+from src.analysis import (
+    VerificationSystem,
+    VerificationResult,
+    UncertaintyManager,
+    GrammarProofreader,
+)
 from types import SimpleNamespace
 
 from src.iteration import (
@@ -46,6 +51,8 @@ class Neyra:
         self.llm = self._load_llm()
         self.executor = CommandExecutor(self)
         self.personality = NeyraPersonality()
+        self.config = NeyraConfig()
+        self.grammar_proofreader = GrammarProofreader()
         self.known_books: List[str] = []
         self.session_memory = SessionScopedMemory()
         (
@@ -285,6 +292,9 @@ class Neyra:
         self, query: str, strategy: IterationStrategy | None = None
     ) -> str:
         """Return a refined response using iterative improvement pipeline."""
+        skip_check = "@Проверка:нет@" in query
+        if skip_check:
+            query = query.replace("@Проверка:нет@", "")
         self.logger.info("Starting iterative response")
         self.cache.cleanup()
         update_progress("start")
@@ -342,6 +352,10 @@ class Neyra:
             iteration += 1
         update_progress("finished", iteration)
         self.logger.info("Iterative response finished at iteration %s", iteration)
+        if self.config.enable_grammar_check and not skip_check:
+            response, corrections = self.grammar_proofreader.proofread(response)
+            if corrections:
+                self.logger.debug("Grammar corrections: %s", corrections)
         return response
 
     def _execute_neyra_command(self, command: str) -> str:
