@@ -7,6 +7,7 @@ from .world_atlas import WorldAtlas
 from .world_memory import WorldMemory
 from .style_memory import StyleMemory
 from .index import MemoryIndex
+from .embedding_memory import EmbeddingMemory
 from .weighted import WeightedMemory
 from .multi_grid import MultiGridMemory
 from .lazy_loader import LazyMemoryLoader
@@ -19,8 +20,8 @@ __all__ = [
     "WorldMemory",
     "StyleMemory",
     "MemoryIndex",
+    "EmbeddingMemory",
     "WeightedMemory",
     "MultiGridMemory",
     "LazyMemoryLoader",
 ]
-
