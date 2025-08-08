@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Mapping
+from typing import Mapping, Any
 
 from .low_resource_optimizer import LowResourceOptimizer
+from .resource_manager import ResourceManager, IterationConfig
 
 
 class ResourceAwareIterator:
@@ -18,10 +19,36 @@ class ResourceAwareIterator:
         the time budget in seconds.
     """
 
-    def __init__(self, resources: Mapping[str, float]) -> None:
-        self.resources = dict(resources)
-        self.optimizer = LowResourceOptimizer(self.resources)
-        self.config = self.optimizer.suggest()
+    def __init__(
+        self,
+        resources: Mapping[str, float] | None = None,
+        resource_manager: ResourceManager | None = None,
+    ) -> None:
+        """Create iterator from explicit resources or a ``ResourceManager``.
+
+        When ``resources`` are provided the behaviour mirrors the legacy
+        implementation and :class:`LowResourceOptimizer` is used to create a
+        configuration.  Otherwise the supplied ``resource_manager`` (or a new
+        instance) determines both available resources and the
+        :class:`IterationConfig`.
+        """
+
+        if resources is not None:
+            self.resources = dict(resources)
+            optimizer = LowResourceOptimizer(self.resources)
+            suggestion = optimizer.suggest()
+            self.config = IterationConfig(
+                max_iterations=4,
+                parallel=suggestion.get("parallel", True),
+                cache=suggestion.get("cache", {}),
+            )
+        else:
+            self.resource_manager = resource_manager or ResourceManager()
+            self.config = self.resource_manager.get_config()
+            self.resources: dict[str, Any] = {
+                "gpu": self.resource_manager.gpu_memory,
+                "cpu": self.resource_manager.cpu_cores,
+            }
 
     # ------------------------------------------------------------------
     def plan(self, per_iteration: Mapping[str, float]) -> list[int]:
