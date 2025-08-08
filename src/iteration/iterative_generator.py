@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, List
 
+from src.utils.source_manager import SourceManager
+
 from .draft_generator import DraftGenerator
 from .gap_analyzer import GapAnalyzer, KnowledgeGap
 try:  # pragma: no cover - optional dependency during tests
@@ -33,6 +35,7 @@ class IterativeGenerator:
         deep_searcher: DeepSearcher | None = None,
         response_enhancer: ResponseEnhancer | None = None,
         iteration_controller: IterationController | None = None,
+        source_manager: SourceManager | None = None,
     ) -> None:
         self.draft_generator = draft_generator or DraftGenerator()
         self.gap_analyzer = gap_analyzer or GapAnalyzer()
@@ -42,6 +45,7 @@ class IterativeGenerator:
             self.deep_searcher = DeepSearcher() if DeepSearcher else None
         self.response_enhancer = response_enhancer or ResponseEnhancer()
         self.iteration_controller = iteration_controller or IterationController()
+        self.source_manager = source_manager or SourceManager()
 
     # ------------------------------------------------------------------
     def generate_response(self, query: str, context: Any) -> str:

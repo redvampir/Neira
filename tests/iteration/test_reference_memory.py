@@ -1,6 +1,7 @@
 """Tests for the ReferenceMemory component."""
 
 from src.iteration.reference_memory import ReferenceMemory
+from src.utils.source_manager import SourceManager
 from src.utils.source_tracker import SourceTracker
 
 
@@ -17,8 +18,9 @@ class DummySearcher:
 
 def test_create_reference_link_internal(tmp_path):
     tracker = SourceTracker()
+    manager = SourceManager(tracker=tracker)
     searcher = DummySearcher()
-    memory = ReferenceMemory(tracker=tracker, searcher=searcher)
+    memory = ReferenceMemory(manager=manager, searcher=searcher)
 
     file = tmp_path / "file.txt"
     file.write_text("hello")
@@ -33,8 +35,9 @@ def test_create_reference_link_internal(tmp_path):
 
 def test_create_reference_link_external():
     tracker = SourceTracker()
+    manager = SourceManager(tracker=tracker)
     searcher = DummySearcher()
-    memory = ReferenceMemory(tracker=tracker, searcher=searcher)
+    memory = ReferenceMemory(manager=manager, searcher=searcher)
 
     url = "https://example.com"
 

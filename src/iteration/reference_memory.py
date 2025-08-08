@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Dict, Any, TYPE_CHECKING
 
-from src.utils.source_tracker import SourceTracker
+from src.utils.source_manager import SourceManager
 
 if TYPE_CHECKING:  # pragma: no cover - only for type hints
     from .deep_searcher import DeepSearcher
@@ -21,7 +21,7 @@ class ReferenceEntry:
 
 
 class ReferenceMemory:
-    """Store references and register them via :class:`SourceTracker`.
+    """Store references and register them via :class:`SourceManager`.
 
     The memory distinguishes between internal references (local file paths)
     and external references (web links). A :class:`DeepSearcher` instance is
@@ -31,10 +31,10 @@ class ReferenceMemory:
 
     def __init__(
         self,
-        tracker: SourceTracker | None = None,
+        manager: SourceManager | None = None,
         searcher: "DeepSearcher" | None = None,
     ) -> None:
-        self.tracker = tracker or SourceTracker()
+        self.manager = manager or SourceManager()
         if searcher is None:
             from .deep_searcher import DeepSearcher
 
@@ -51,14 +51,14 @@ class ReferenceMemory:
     def create_reference_link(self, summary: str, full_path: str, confidence: float) -> str:
         """Create a markdown reference link and track the source.
 
-        The link is registered with :class:`SourceTracker` and stored in either
+        The link is registered with :class:`SourceManager` and stored in either
         the internal or external list depending on its origin. The associated
         :class:`DeepSearcher` is queried with ``summary`` to integrate search
         capabilities.
         """
 
         # Register source
-        self.tracker.add(summary, full_path, confidence)
+        self.manager.register(summary, full_path, confidence)
 
         # Obtain additional context via deep searcher (ignore failures)
         try:
