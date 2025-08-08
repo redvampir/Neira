@@ -21,6 +21,7 @@ except Exception:  # pragma: no cover - fallback when optional modules missing
 
     resource_manager = None
 from .event_bus import Event, EventBus
+from .priority_scheduler import Priority, PriorityScheduler
 
 __all__ = [
     "CacheManager",
@@ -33,4 +34,6 @@ __all__ = [
     "resource_manager",
     "Event",
     "EventBus",
+    "Priority",
+    "PriorityScheduler",
 ]
