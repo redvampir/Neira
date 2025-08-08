@@ -3,8 +3,15 @@ from __future__ import annotations
 """Simple resource detection and iteration configuration utilities."""
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 import os
+import heapq
+from collections import defaultdict, deque
+
+try:  # pragma: no cover - optional dependency
+    import psutil
+except Exception:  # pragma: no cover - handled gracefully
+    psutil = None
 
 
 @dataclass
@@ -40,6 +47,23 @@ class ResourceManager:
     def __init__(self, gpu_memory: float | None = None, cpu_cores: int | None = None) -> None:
         self.gpu_memory = gpu_memory if gpu_memory is not None else self._detect_gpu_memory()
         self.cpu_cores = cpu_cores if cpu_cores is not None else self._detect_cpu_cores()
+
+        # Track currently available CPU resources (simplified model)
+        self.available_cpu = self.cpu_cores
+
+        # Active allocations {component: amount}
+        self.allocations: Dict[Any, int] = {}
+
+        # Priority queue of pending allocation requests: [(-priority, component, amount)]
+        self._queue: List[Tuple[int, Any, int]] = []
+
+        # Historical usage statistics for moving average per component
+        self.resource_usage: Dict[Any, deque[int]] = defaultdict(lambda: deque(maxlen=5))
+
+        # System usage metrics updated via psutil
+        self.current_cpu_usage: float = 0.0
+        self.current_memory_usage: float = 0.0
+        self._update_usage()
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -95,6 +119,83 @@ class ResourceManager:
                 cache={"hot_limit": 32, "warm_limit": 128},
             )
         return config
+
+    # ------------------------------------------------------------------
+    def _update_usage(self) -> None:
+        """Refresh current CPU and memory usage statistics using ``psutil``."""
+
+        if psutil is None:  # pragma: no cover - optional dependency
+            self.current_cpu_usage = 0.0
+            self.current_memory_usage = 0.0
+            return
+
+        try:  # pragma: no cover - system dependent values
+            self.current_cpu_usage = float(psutil.cpu_percent(interval=0))
+            self.current_memory_usage = float(psutil.virtual_memory().percent)
+        except Exception:
+            self.current_cpu_usage = 0.0
+            self.current_memory_usage = 0.0
+
+    def update_usage(self) -> Tuple[float, float]:
+        """Public helper returning current CPU and memory usage."""
+
+        self._update_usage()
+        return self.current_cpu_usage, self.current_memory_usage
+
+    # ------------------------------------------------------------------
+    def _record_usage(self, component: Any, amount: int) -> None:
+        """Store historical usage for ``component``."""
+
+        self.resource_usage[component].append(amount)
+
+    def get_moving_average(self, component: Any, window: int = 5) -> float:
+        """Return moving average of recent allocations for ``component``."""
+
+        data = list(self.resource_usage.get(component, []))[-window:]
+        if not data:
+            return 0.0
+        return sum(data) / len(data)
+
+    # ------------------------------------------------------------------
+    def _schedule(self) -> None:
+        """Attempt to allocate resources to queued components based on priority."""
+
+        if not self._queue:
+            return
+
+        pending: List[Tuple[int, Any, int]] = []
+        while self._queue:
+            priority, component, amount = heapq.heappop(self._queue)
+            if amount <= self.available_cpu:
+                self.available_cpu -= amount
+                self.allocations[component] = amount
+                self._record_usage(component, amount)
+            else:
+                pending.append((priority, component, amount))
+
+        for item in pending:
+            heapq.heappush(self._queue, item)
+
+        self._update_usage()
+
+    # ------------------------------------------------------------------
+    def allocate(self, component: Any, amount: int) -> bool:
+        """Request allocation for ``component`` and return ``True`` if granted."""
+
+        priority = getattr(component, "priority", 0)
+        heapq.heappush(self._queue, (-int(priority), component, int(amount)))
+        self._schedule()
+        return component in self.allocations
+
+    # ------------------------------------------------------------------
+    def release(self, component: Any) -> None:
+        """Release resources held by ``component``."""
+
+        amount = self.allocations.pop(component, 0)
+        if amount:
+            self.available_cpu += amount
+            self._update_usage()
+            self._schedule()
 
 
 __all__ = ["ResourceManager", "IterationConfig"]
