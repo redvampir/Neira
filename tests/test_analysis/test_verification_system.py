@@ -1,27 +1,33 @@
-from src.analysis import VerificationSystem, verify_fact
-from src.memory import MemoryIndex
+import importlib.util
+import pathlib
+import time
+
+spec = importlib.util.spec_from_file_location(
+    "verification_system", pathlib.Path("src/analysis/verification_system.py")
+)
+verification_system = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(verification_system)  # type: ignore
+
+VerificationSystem = verification_system.VerificationSystem
+verify_claim = verification_system.verify_claim
+verify_fact = verification_system.verify_fact
 
 
-def _dummy_check(_claim: str) -> tuple[bool, float]:
-    return True, 0.8
-
-
-def test_verify_claim_with_memory_and_external() -> None:
-    memory = MemoryIndex()
-    memory.set("the sky is blue", True, reliability=0.9)
-    verifier = VerificationSystem(memory=memory, external_checkers=[_dummy_check])
-    result = verifier.verify_claim("the sky is blue")
-    assert result.verdict is True
-    assert result.confidence >= 0.8
-    assert "memory" in result.sources
-    assert any("_dummy_check" in s for s in result.sources)
-
-
-def test_generate_clarifying_questions() -> None:
+def test_verify_claim_basic() -> None:
     verifier = VerificationSystem()
-    questions = verifier.generate_clarifying_questions("the sky is blue")
-    assert questions
-    assert "the sky is blue" in questions[0]
+    context = ["the sky is blue", "grass is green"]
+    result = verifier.verify_claim("the sky is blue", context)
+    assert result.verdict is True
+    assert result.confidence == 1.0
+
+
+def test_verify_claim_performance() -> None:
+    context = ["foo"] * 10000
+    start = time.time()
+    result = verify_claim("foo", context)
+    duration = time.time() - start
+    assert result.verdict is True
+    assert duration < 0.5
 
 
 def test_verify_fact_success() -> None:

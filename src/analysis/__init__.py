@@ -1,5 +1,10 @@
 from .self_corrector import SelfCorrector, SuggestionChooser
-from .verification_system import VerificationSystem, VerificationResult, verify_fact
+from .verification_system import (
+    VerificationSystem,
+    VerificationResult,
+    verify_fact,
+    verify_claim,
+)
 from .uncertainty_manager import UncertaintyManager
 from .timeline_checker import TimelineChecker
 from .post_processor import PostProcessor, run_post_processors
@@ -26,6 +31,7 @@ __all__ = [
     "CandidateSelector",
     "POST_PROCESSOR_REGISTRY",
     "verify_fact",
+    "verify_claim",
     "ReasoningPlanner",
     "ReasoningStep",
 ]
