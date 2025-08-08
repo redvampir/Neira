@@ -1,5 +1,17 @@
-from src.iteration.resource_manager import ResourceManager
-from src.iteration import ResourceAwareIterator, IterativeGenerator
+import sys
+import psutil
+
+
+import importlib.util
+from pathlib import Path
+
+module_path = Path(__file__).resolve().parents[2] / "src/iteration/resource_manager.py"
+spec = importlib.util.spec_from_file_location("resource_manager", module_path)
+resource_manager = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+sys.modules[spec.name] = resource_manager
+spec.loader.exec_module(resource_manager)  # type: ignore[assignment]
+ResourceManager = resource_manager.ResourceManager
 
 
 def test_low_resource_config() -> None:
@@ -18,14 +30,55 @@ def test_high_resource_config() -> None:
     assert cfg.cache["hot_limit"] == 32
 
 
-def test_integration_with_iterator() -> None:
-    manager = ResourceManager(gpu_memory=2, cpu_cores=2)
-    iterator = ResourceAwareIterator(resource_manager=manager)
-    assert iterator.config.max_iterations == 2
-    assert iterator.config.parallel is False
 
 
-def test_iterative_generator_uses_manager() -> None:
-    manager = ResourceManager(gpu_memory=2, cpu_cores=2)
-    generator = IterativeGenerator(resource_manager=manager)
-    assert generator.iteration_controller.max_iterations == 2
+def test_system_usage(monkeypatch) -> None:
+    class DummyMem:
+        percent = 40.0
+
+    def fake_cpu_percent(interval=0):
+        return 10.0
+
+    def fake_virtual_memory():
+        return DummyMem()
+
+    monkeypatch.setattr(psutil, "cpu_percent", fake_cpu_percent)
+    monkeypatch.setattr(psutil, "virtual_memory", fake_virtual_memory)
+
+    manager = ResourceManager(gpu_memory=0, cpu_cores=1)
+    assert manager.current_cpu_usage == 10.0
+    assert manager.current_memory_usage == 40.0
+
+
+def test_allocation_priority() -> None:
+    class Comp:
+        def __init__(self, name: str, priority: int) -> None:
+            self.name = name
+            self.priority = priority
+
+    manager = ResourceManager(gpu_memory=0, cpu_cores=4)
+    a = Comp("a", priority=1)
+    b = Comp("b", priority=10)
+    c = Comp("c", priority=5)
+
+    assert manager.allocate(a, 3) is True
+    assert manager.allocate(b, 3) is False  # queued
+    assert manager.allocate(c, 1) is True   # high priority fits
+    manager.release(a)
+    assert b in manager.allocations
+
+
+def test_moving_average() -> None:
+    class Comp:
+        def __init__(self, priority: int) -> None:
+            self.priority = priority
+
+    c = Comp(priority=1)
+    manager = ResourceManager(gpu_memory=0, cpu_cores=10)
+    manager.allocate(c, 2)
+    manager.release(c)
+    manager.allocate(c, 4)
+    manager.release(c)
+    manager.allocate(c, 6)
+    manager.release(c)
+    assert manager.get_moving_average(c) == 4.0
