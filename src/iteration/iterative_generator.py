@@ -6,6 +6,7 @@ from typing import Any, List
 
 from src.utils.source_manager import SourceManager
 from src.interaction.mode_controller import HiddenSourcesMode, ResponseMode
+from src.interaction.personality_adapter import adapt_response_style
 
 from .draft_generator import DraftGenerator
 from .gap_analyzer import GapAnalyzer, KnowledgeGap
@@ -68,6 +69,7 @@ class IterativeGenerator:
         if hasattr(self.iteration_controller, "reset"):
             self.iteration_controller.reset()
 
+        iterations = 0
         while self.iteration_controller.should_iterate(draft):
             gaps: List[KnowledgeGap] = self.gap_analyzer.analyze(draft)
 
@@ -88,9 +90,12 @@ class IterativeGenerator:
                 search_results,
                 IntegrationType.IMPORTANT_ADDITION,
             )
+            iterations += 1
 
         sources = self.source_manager.all()
-        return self.mode.format_response(draft, sources)
+        style = adapt_response_style(context, iterations)
+        response = self.mode.format_response(draft, sources)
+        return f"[{style}] {response}"
 
 
 __all__ = ["IterativeGenerator"]
