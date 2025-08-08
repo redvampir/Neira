@@ -11,8 +11,10 @@ snapshots are created using :func:`copy.deepcopy` so that mutations after
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import copy
+
+from .migration import Migrator, Version
 
 
 @dataclass
@@ -29,11 +31,21 @@ class StateManager:
     :meth:`begin` takes a deep copy of the current state and pushes it on a
     stack.  :meth:`commit` discards the most recent snapshot while
     :meth:`rollback` restores the last snapshot.
+
+    A schema ``version`` is associated with the state.  When the version is
+    changed via :meth:`set_version`, registered migration steps are executed to
+    transform the state to the new format.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        version: Version = (1, 0),
+        migrator: Optional[Migrator] = None,
+    ) -> None:
         self._state: Dict[str, Any] = {}
         self._history: List[_Snapshot] = []
+        self._version: Version = version
+        self._migrator = migrator or Migrator()
 
     # ------------------------------------------------------------------
     def register(self, name: str, value: Any) -> None:
@@ -68,6 +80,21 @@ class StateManager:
             raise RuntimeError("no transaction to rollback")
         snapshot = self._history.pop()
         self._state = snapshot.data
+
+    # ------------------------------------------------------------------
+    @property
+    def version(self) -> Version:
+        """Return the current state version."""
+
+        return self._version
+
+    def set_version(self, new_version: Version) -> None:
+        """Update to ``new_version`` applying migrations if necessary."""
+
+        if new_version == self._version:
+            return
+        self._state = self._migrator.migrate(self._state, self._version, new_version)
+        self._version = new_version
 
     # ------------------------------------------------------------------
     @property
