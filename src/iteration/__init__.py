@@ -14,6 +14,7 @@ from .strategy_manager import AdaptiveIterationManager, IterationStrategy
 from .resource_iterator import ResourceAwareIterator
 from .low_resource_optimizer import LowResourceOptimizer
 from .smart_cache import SmartCache
+from .resource_manager import ResourceManager, IterationConfig
 from .metrics import similarity, length, corrected_errors, log_metrics
 from .memory_inspector import MemoryInspector
 from .token_budget_manager import TokenBudgetManager
@@ -33,6 +34,8 @@ __all__ = [
     "ResourceAwareIterator",
     "LowResourceOptimizer",
     "SmartCache",
+    "ResourceManager",
+    "IterationConfig",
     "MemoryInspector",
     "TokenBudgetManager",
     "similarity",

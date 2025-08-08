@@ -15,6 +15,7 @@ except Exception:  # noqa: BLE001 - fallback when requests is missing
     DeepSearcher = None  # type: ignore
 from .response_enhancer import ResponseEnhancer, IntegrationType
 from .iteration_controller import IterationController
+from .resource_manager import ResourceManager
 
 
 class IterativeGenerator:
@@ -38,6 +39,7 @@ class IterativeGenerator:
         iteration_controller: IterationController | None = None,
         source_manager: SourceManager | None = None,
         mode: ResponseMode | None = None,
+        resource_manager: ResourceManager | None = None,
     ) -> None:
         self.draft_generator = draft_generator or DraftGenerator()
         self.gap_analyzer = gap_analyzer or GapAnalyzer()
@@ -46,7 +48,14 @@ class IterativeGenerator:
         else:
             self.deep_searcher = DeepSearcher() if DeepSearcher else None
         self.response_enhancer = response_enhancer or ResponseEnhancer()
-        self.iteration_controller = iteration_controller or IterationController()
+        self.resource_manager = resource_manager or ResourceManager()
+        if iteration_controller is not None:
+            self.iteration_controller = iteration_controller
+        else:
+            cfg = self.resource_manager.get_config()
+            self.iteration_controller = IterationController(
+                max_iterations=cfg.max_iterations
+            )
         self.source_manager = source_manager or SourceManager()
         self.mode = mode or HiddenSourcesMode()
 
