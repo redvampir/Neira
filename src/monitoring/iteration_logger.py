@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 """Utilities for logging each iteration of the response generation process."""
-from dataclasses import dataclass, asdict, is_dataclass
+from dataclasses import dataclass, asdict, is_dataclass, field
+from datetime import datetime
 import json
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,9 @@ class IterationLogger:
     """Persist information about each iteration to separate JSON files."""
 
     log_dir: Path = Path("logs/iterations")
+    run_id: str = field(
+        default_factory=lambda: datetime.utcnow().strftime("%Y%m%dT%H%M%S")
+    )
 
     def log_iteration(
         self,
@@ -48,7 +52,8 @@ class IterationLogger:
             Result returned by the response enhancer.
         """
 
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        run_dir = self.log_dir / self.run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
         entry = {
             "iteration": iter_idx,
             "draft": draft,
@@ -56,7 +61,7 @@ class IterationLogger:
             "sources": _serialize(sources),
             "enhancements": _serialize(enhancements),
         }
-        file_path = self.log_dir / f"iteration_{iter_idx}.json"
+        file_path = run_dir / f"iteration_{iter_idx}.json"
         with file_path.open("w", encoding="utf-8") as fh:
             json.dump(entry, fh, ensure_ascii=False, indent=2)
 
