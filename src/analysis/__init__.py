@@ -13,6 +13,8 @@ from .candidate_generator import CandidateGenerator
 from .candidate_selector import CandidateSelector
 from .reasoning_planner import ReasoningPlanner, ReasoningStep
 
+from src.core.state_manager import StateManager
+
 POST_PROCESSOR_REGISTRY = {
     "GrammarProofreader": GrammarProofreader,
 }
@@ -34,4 +36,30 @@ __all__ = [
     "verify_claim",
     "ReasoningPlanner",
     "ReasoningStep",
+    "analysis_state",
+    "begin",
+    "commit",
+    "rollback",
 ]
+
+# Global state manager for analysis subsystem to allow transactional
+# operations when multiple analysis components interact.
+analysis_state = StateManager()
+
+
+def begin() -> None:
+    """Create a snapshot of the analysis state."""
+
+    analysis_state.begin()
+
+
+def commit() -> None:
+    """Commit changes performed since the last :func:`begin`."""
+
+    analysis_state.commit()
+
+
+def rollback() -> None:
+    """Restore the analysis state from the last snapshot."""
+
+    analysis_state.rollback()

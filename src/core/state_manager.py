@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+"""Generic state snapshot manager.
+
+This module provides :class:`StateManager` which offers a minimal
+transaction-like interface for Python objects. Components can register
+arbitrary pieces of state with the manager and then use ``begin``,
+``commit`` and ``rollback`` to manage snapshots of that state.  The
+snapshots are created using :func:`copy.deepcopy` so that mutations after
+``begin`` do not affect the stored copy.
+"""
+
+from dataclasses import dataclass
+from typing import Any, Dict, List
+import copy
+
+
+@dataclass
+class _Snapshot:
+    """Container for a single state snapshot."""
+
+    data: Dict[str, Any]
+
+
+class StateManager:
+    """Keep track of subsystem state and allow rollbacks.
+
+    The manager stores named pieces of state in ``_state``.  Calling
+    :meth:`begin` takes a deep copy of the current state and pushes it on a
+    stack.  :meth:`commit` discards the most recent snapshot while
+    :meth:`rollback` restores the last snapshot.
+    """
+
+    def __init__(self) -> None:
+        self._state: Dict[str, Any] = {}
+        self._history: List[_Snapshot] = []
+
+    # ------------------------------------------------------------------
+    def register(self, name: str, value: Any) -> None:
+        """Register ``value`` under ``name`` in the current state."""
+
+        self._state[name] = value
+
+    def get(self, name: str) -> Any:
+        """Return previously registered state ``name`` if present."""
+
+        return self._state.get(name)
+
+    # ------------------------------------------------------------------
+    # transaction handling
+    def begin(self) -> None:
+        """Store a snapshot of the current state."""
+
+        snapshot = copy.deepcopy(self._state)
+        self._history.append(_Snapshot(snapshot))
+
+    def commit(self) -> None:
+        """Discard the last stored snapshot."""
+
+        if not self._history:
+            raise RuntimeError("no transaction to commit")
+        self._history.pop()
+
+    def rollback(self) -> None:
+        """Restore the most recent snapshot."""
+
+        if not self._history:
+            raise RuntimeError("no transaction to rollback")
+        snapshot = self._history.pop()
+        self._state = snapshot.data
+
+    # ------------------------------------------------------------------
+    @property
+    def state(self) -> Dict[str, Any]:
+        """Expose the current state mapping."""
+
+        return self._state
+
+
+__all__ = ["StateManager"]
