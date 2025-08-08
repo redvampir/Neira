@@ -33,8 +33,9 @@ class VerificationSystem:
         self,
         memory: MemoryIndex | None = None,
         external_checkers: List[Callable[[str], Tuple[bool, float]]] | None = None,
+        vector_backend: str | None = None,
     ) -> None:
-        self.memory = memory or MemoryIndex()
+        self.memory = memory or MemoryIndex(vector_backend=vector_backend)
         # External checkers are callables returning a tuple of (verdict, confidence)
         self.external_checkers = (
             external_checkers if external_checkers is not None else [self._stub_check]
@@ -57,9 +58,15 @@ class VerificationSystem:
         confidence = 0.0
 
         memory_value = self.memory.get(claim)
+        used_key = claim
+        if memory_value is None:
+            similar_keys = self.memory.similar(claim, 1)
+            if similar_keys:
+                used_key = similar_keys[0]
+                memory_value = self.memory.get(used_key)
         if memory_value is not None:
             verdict = bool(memory_value)
-            confidence = self.memory.source_reliability.get(claim, 0.0)
+            confidence = self.memory.source_reliability.get(used_key, 0.0)
             sources.append("memory")
 
         for checker in self.external_checkers:
@@ -77,10 +84,14 @@ class VerificationSystem:
                 continue
             confidence = (confidence + ext_conf) / 2 if confidence else ext_conf
 
-        return VerificationResult(claim=claim, verdict=verdict, confidence=confidence, sources=sources)
+        return VerificationResult(
+            claim=claim, verdict=verdict, confidence=confidence, sources=sources
+        )
 
     # ------------------------------------------------------------------
-    def generate_clarifying_questions(self, claim: str, num_questions: int = 2) -> List[str]:
+    def generate_clarifying_questions(
+        self, claim: str, num_questions: int = 2
+    ) -> List[str]:
         """Generate clarifying questions for ``claim`` based on simple heuristics."""
 
         claim_lower = claim.lower()
@@ -91,11 +102,16 @@ class VerificationSystem:
 
         location_words = r"\b(где|место|локац|город|страна)\b"
         location_pattern = r"\b(?:в|на|из)\s+[A-ZА-ЯЁ]"
-        if not re.search(location_words, claim_lower) and not re.search(location_pattern, claim):
+        if not re.search(location_words, claim_lower) and not re.search(
+            location_pattern, claim
+        ):
             questions.append("Где это происходит?")
 
         if not (
-            re.search(r"\b(когда|дата|время|срок|год|месяц|день|вчера|сегодня|завтра)\b", claim_lower)
+            re.search(
+                r"\b(когда|дата|время|срок|год|месяц|день|вчера|сегодня|завтра)\b",
+                claim_lower,
+            )
             or re.search(r"\d", claim_lower)
         ):
             questions.append("Когда это происходит?")
@@ -144,4 +160,3 @@ def verify_fact(
 
 
 __all__ = ["VerificationSystem", "VerificationResult", "verify_fact"]
-

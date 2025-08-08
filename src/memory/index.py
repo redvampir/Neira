@@ -7,6 +7,8 @@ import time
 from typing import Any, Dict, Set
 from pathlib import Path
 
+from .embedding_memory import EmbeddingMemory
+
 try:
     import yaml
 except Exception:  # pragma: no cover - optional dependency
@@ -30,6 +32,8 @@ class MemoryIndex:
         warm_limit: int = 256,
         dedup_threshold: float | None = None,
         config_path: str | Path | None = None,
+        vector_backend: str | None = None,
+        vector_path: str | Path | None = None,
     ) -> None:
         self.hot_cache: "OrderedDict[str, Any]" = OrderedDict()
         self.warm_cache: "OrderedDict[str, Any]" = OrderedDict()
@@ -49,6 +53,13 @@ class MemoryIndex:
             else self._load_dedup_threshold(config_path)
         )
         self._fingerprints: Dict[str, Set[str]] = {}
+        self.embedding_memory = (
+            EmbeddingMemory(
+                storage_path=vector_path or "data/embeddings", backend=vector_backend
+            )
+            if vector_backend
+            else None
+        )
 
     # ------------------------------------------------------------------
     # public API
@@ -75,6 +86,8 @@ class MemoryIndex:
         self.usage_stats[key] = 0
         self.access_times[key] = time.time()
         self.source_reliability[key] = max(0.0, min(1.0, reliability))
+        if self.embedding_memory is not None:
+            self.embedding_memory.add(key)
         self._age_items(key)
         self._check_demotions()
         self._enforce_limits()
@@ -109,6 +122,12 @@ class MemoryIndex:
         self._check_demotions()
         self._enforce_limits()
         return value
+
+    def similar(self, query: str, k: int = 5):
+        """Return ``k`` keys that are semantically similar to ``query``."""
+        if self.embedding_memory is None:
+            return []
+        return self.embedding_memory.similar(query, k)
 
     # ------------------------------------------------------------------
     # internal helpers
@@ -211,4 +230,3 @@ class MemoryIndex:
 
 
 __all__ = ["MemoryIndex"]
-
