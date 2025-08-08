@@ -354,9 +354,13 @@ class Neyra:
                         continue
                 prev_tokens = self.llm_max_tokens
                 self.llm_max_tokens = token_manager.refine_tokens
-                response = self.response_enhancer.enhance(
+                result = self.response_enhancer.enhance(
                     response, search_results, IntegrationType.IMPORTANT_ADDITION
                 )
+                if isinstance(result, dict):
+                    response = result.get("text", "")
+                else:
+                    response = result
                 self.llm_max_tokens = prev_tokens
             else:
                 self.logger.info("No gaps found at iteration %s", iteration)

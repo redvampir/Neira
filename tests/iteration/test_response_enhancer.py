@@ -6,7 +6,8 @@ def test_critical_correction_replaces_text():
     draft = "Earth is flat"
     results = [{"content": "Earth is round"}]
     final = enhancer.enhance(draft, results, IntegrationType.CRITICAL_CORRECTION)
-    assert final == "Earth is round"
+    assert final["text"] == "Earth is round"
+    assert final["rules_refs"] == []
 
 
 def test_important_addition_and_self_corrector():
@@ -14,9 +15,11 @@ def test_important_addition_and_self_corrector():
     draft = "teh ocean is vast"
     results = [{"content": "It covers 70% of Earth"}]
     final = enhancer.enhance(draft, results, IntegrationType.IMPORTANT_ADDITION)
-    assert final.startswith("the ocean is vast")
-    assert "It covers 70% of Earth" in final
-    assert "teh" not in final
+    text = final["text"]
+    assert text.startswith("the ocean is vast")
+    assert "It covers 70% of Earth" in text
+    assert "teh" not in text
+    assert final["rules_refs"] == []
 
 
 def test_context_enrichment_without_correction():
@@ -26,5 +29,6 @@ def test_context_enrichment_without_correction():
     final = enhancer.enhance(
         draft, results, IntegrationType.CONTEXT_ENRICHMENT, self_correct=False
     )
-    assert final.startswith("Cats are mammals")
-    assert final.endswith("I like cats")
+    text = final["text"]
+    assert text.startswith("Cats are mammals")
+    assert text.endswith("I like cats")

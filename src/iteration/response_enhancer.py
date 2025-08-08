@@ -3,9 +3,11 @@ from __future__ import annotations
 """Utilities to enhance draft responses with external information."""
 
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from src.analysis import SelfCorrector
+from src.quality import GrammarRuleChecker
+from src.quality.grammar_rule_checker import GrammarIssue
 
 
 class IntegrationType(Enum):
@@ -27,8 +29,13 @@ class ResponseEnhancer:
         enhanced text before returning it to the caller.
     """
 
-    def __init__(self, corrector: SelfCorrector | None = None) -> None:
+    def __init__(
+        self,
+        corrector: SelfCorrector | None = None,
+        grammar_checker: GrammarRuleChecker | None = None,
+    ) -> None:
         self.corrector = corrector or SelfCorrector()
+        self.grammar_checker = grammar_checker or GrammarRuleChecker()
 
     # ------------------------------------------------------------------
     def enhance(
@@ -38,7 +45,7 @@ class ResponseEnhancer:
         integration: IntegrationType,
         *,
         self_correct: bool = True,
-    ) -> str:
+    ) -> Dict[str, Any]:
         """Return an improved version of ``draft``.
 
         The function applies the strategy specified by ``integration`` to mix the
@@ -74,7 +81,18 @@ class ResponseEnhancer:
 
         if self_correct:
             text, _ = self.corrector.correct_errors(text)
-        return text
+
+        text, rules_refs = self.apply_grammar_check(text)
+
+        return {"text": text, "rules_refs": rules_refs}
+
+    # ------------------------------------------------------------------
+    def apply_grammar_check(self, text: str) -> Tuple[str, List[str]]:
+        """Apply grammar rules and return references to triggered rules."""
+
+        issues: List[GrammarIssue] = self.grammar_checker.check(text)
+        refs = [issue.rule_id for issue in issues]
+        return text, refs
 
 
 __all__ = ["ResponseEnhancer", "IntegrationType"]
