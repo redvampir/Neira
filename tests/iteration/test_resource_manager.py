@@ -1,9 +1,16 @@
 import sys
-import psutil
+import math
+import pytest
 
+try:  # pragma: no cover - optional dependency
+    import psutil
+except Exception:  # pragma: no cover - handled gracefully
+    psutil = None  # type: ignore[assignment]
 
 import importlib.util
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[2] / "src"))
 
 module_path = Path(__file__).resolve().parents[2] / "src/iteration/resource_manager.py"
 spec = importlib.util.spec_from_file_location("resource_manager", module_path)
@@ -33,6 +40,9 @@ def test_high_resource_config() -> None:
 
 
 def test_system_usage(monkeypatch) -> None:
+    if psutil is None:
+        pytest.skip("psutil not installed")
+
     class DummyMem:
         percent = 40.0
 
@@ -82,3 +92,21 @@ def test_moving_average() -> None:
     manager.allocate(c, 6)
     manager.release(c)
     assert manager.get_moving_average(c) == 4.0
+
+
+def test_demand_prediction() -> None:
+    class Comp:
+        def __init__(self, priority: int) -> None:
+            self.priority = priority
+
+    c = Comp(priority=1)
+    manager = ResourceManager(gpu_memory=0, cpu_cores=10)
+    # Repeating pattern to build history
+    for amount in [2, 4, 2, 4]:
+        manager._record_usage(c, amount)
+
+    predicted = manager.predict_next_demand(c)
+    assert predicted == pytest.approx(3.25, rel=1e-2)
+
+    assert manager.allocate(c, 1) is True
+    assert manager.allocations[c] == math.ceil(predicted)

@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 import os
 import heapq
+import math
 from collections import defaultdict, deque
+
+from optimization import UsagePredictor
 
 try:  # pragma: no cover - optional dependency
     import psutil
@@ -59,6 +62,9 @@ class ResourceManager:
 
         # Historical usage statistics for moving average per component
         self.resource_usage: Dict[Any, deque[int]] = defaultdict(lambda: deque(maxlen=5))
+
+        # Demand forecasting helper
+        self._predictor = UsagePredictor()
 
         # System usage metrics updated via psutil
         self.current_cpu_usage: float = 0.0
@@ -147,6 +153,7 @@ class ResourceManager:
         """Store historical usage for ``component``."""
 
         self.resource_usage[component].append(amount)
+        self._predictor.record(component, amount)
 
     def get_moving_average(self, component: Any, window: int = 5) -> float:
         """Return moving average of recent allocations for ``component``."""
@@ -155,6 +162,11 @@ class ResourceManager:
         if not data:
             return 0.0
         return sum(data) / len(data)
+
+    def predict_next_demand(self, component: Any) -> float:
+        """Forecast the next allocation amount for ``component``."""
+
+        return self._predictor.predict(component)
 
     # ------------------------------------------------------------------
     def _schedule(self) -> None:
@@ -166,10 +178,12 @@ class ResourceManager:
         pending: List[Tuple[int, Any, int]] = []
         while self._queue:
             priority, component, amount = heapq.heappop(self._queue)
-            if amount <= self.available_cpu:
-                self.available_cpu -= amount
-                self.allocations[component] = amount
-                self._record_usage(component, amount)
+            predicted = max(float(amount), self.predict_next_demand(component))
+            required = int(math.ceil(predicted))
+            if required <= self.available_cpu:
+                self.available_cpu -= required
+                self.allocations[component] = required
+                self._record_usage(component, required)
             else:
                 pending.append((priority, component, amount))
 
