@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from typing import Any, Iterable
 import hashlib
+import json
 import time
 
 from src.core.cache_manager import CacheManager
@@ -23,17 +24,28 @@ class SmartCache(CacheManager):
         self,
         cache_dir: str | None = ".cache",
         *,
-        hot_limit: int = 32,
-        warm_limit: int = 128,
+        hot_limit_mb: float = 32,
+        warm_limit_mb: float = 128,
+        cold_limit_mb: float = 1024,
+        warm_threshold: int = 2,
+        hot_threshold: int = 5,
         default_ttl: float | None = None,
     ) -> None:
         super().__init__(cache_dir)
-        self.hot_limit = hot_limit
-        self.warm_limit = warm_limit
+        self.hot_limit = int(hot_limit_mb * 1024 * 1024)
+        self.warm_limit = int(warm_limit_mb * 1024 * 1024)
+        self.cold_limit = int(cold_limit_mb * 1024 * 1024)
+        self.warm_threshold = warm_threshold
+        self.hot_threshold = hot_threshold
         self.default_ttl = default_ttl
         self.hot: OrderedDict[str, Any] = OrderedDict()
         self.warm: OrderedDict[str, Any] = OrderedDict()
         self.expires_at: dict[str, float] = {}
+        self.access_counts: dict[str, int] = {}
+        self.sizes: dict[str, int] = {}
+        self.hot_size = 0
+        self.warm_size = 0
+        self.cold_size = 0
 
     # ------------------------------------------------------------------
     # key helpers
@@ -44,21 +56,56 @@ class SmartCache(CacheManager):
 
     # ------------------------------------------------------------------
     # tier maintenance
-    def _trim_hot(self) -> None:
-        while len(self.hot) > self.hot_limit:
-            key, value = self.hot.popitem(last=False)
-            self.warm[key] = value
-            self._trim_warm()
-
-    def _trim_warm(self) -> None:
-        while len(self.warm) > self.warm_limit:
-            # dropping from warm leaves it only in cold storage (disk)
-            self.warm.popitem(last=False)
-
     def _promote_to_hot(self, key: str, value: Any) -> None:
+        if key in self.warm:
+            self.warm.pop(key, None)
+            self.warm_size -= self.sizes.get(key, 0)
+        if key not in self.hot:
+            self.hot_size += self.sizes.get(key, 0)
         self.hot[key] = value
         self.hot.move_to_end(key)
-        self._trim_hot()
+        self._enforce_hot_limit()
+
+    def _promote_to_warm(self, key: str, value: Any) -> None:
+        if key in self.hot:
+            self.hot.pop(key, None)
+            self.hot_size -= self.sizes.get(key, 0)
+        if key not in self.warm:
+            self.warm_size += self.sizes.get(key, 0)
+        self.warm[key] = value
+        self.warm.move_to_end(key)
+        self._enforce_warm_limit()
+
+    def _enforce_hot_limit(self) -> None:
+        while self.hot_size > self.hot_limit and self.hot:
+            key = min(self.hot, key=lambda k: self.access_counts.get(k, 0))
+            value = self.hot.pop(key)
+            self.hot_size -= self.sizes.get(key, 0)
+            self._promote_to_warm(key, value)
+
+    def _enforce_warm_limit(self) -> None:
+        while self.warm_size > self.warm_limit and self.warm:
+            key = min(self.warm, key=lambda k: self.access_counts.get(k, 0))
+            self.warm.pop(key, None)
+            self.warm_size -= self.sizes.get(key, 0)
+
+    def _enforce_cold_limit(self) -> None:
+        while self.cold_size > self.cold_limit and self.sizes:
+            key = min(self.sizes, key=lambda k: self.access_counts.get(k, 0))
+            self._invalidate_key(key)
+
+    def _invalidate_key(self, key: str) -> None:
+        if key in self.hot:
+            self.hot.pop(key, None)
+            self.hot_size -= self.sizes.get(key, 0)
+        if key in self.warm:
+            self.warm.pop(key, None)
+            self.warm_size -= self.sizes.get(key, 0)
+        self.expires_at.pop(key, None)
+        self.access_counts.pop(key, None)
+        size = self.sizes.pop(key, 0)
+        self.cold_size -= size
+        super().invalidate(key)
 
     # ------------------------------------------------------------------
     # public API
@@ -80,19 +127,30 @@ class SmartCache(CacheManager):
         data = {"value": value, "tags": list(tags) if tags else []}
         if exp is not None:
             data["expires_at"] = exp
+        size = len(json.dumps(data, ensure_ascii=False).encode("utf-8"))
+        prev = self.sizes.get(key, 0)
+        self.cold_size += size - prev
+        self.sizes[key] = size
+        self.access_counts.setdefault(key, 0)
         super().set(key, data)
         self._promote_to_hot(key, value)
+        self._enforce_cold_limit()
 
     def get(self, query: str, tags: Iterable[str] | None = None) -> Any | None:
         key = self._hash_key(query, tags)
         if self._is_expired(key):
             return None
         if key in self.hot:
+            self.access_counts[key] = self.access_counts.get(key, 0) + 1
             self.hot.move_to_end(key)
             return self.hot[key]
         if key in self.warm:
-            value = self.warm.pop(key)
-            self._promote_to_hot(key, value)
+            value = self.warm[key]
+            self.access_counts[key] = self.access_counts.get(key, 0) + 1
+            if self.access_counts[key] >= self.hot_threshold:
+                self._promote_to_hot(key, value)
+            else:
+                self.warm.move_to_end(key)
             return value
         data = super().get(key)
         if data is None:
@@ -107,8 +165,11 @@ class SmartCache(CacheManager):
             value = data["value"]
         else:
             value = data
-        self.warm[key] = value
-        self._trim_warm()
+        self.access_counts[key] = self.access_counts.get(key, 0) + 1
+        if self.access_counts[key] >= self.hot_threshold:
+            self._promote_to_hot(key, value)
+        elif self.access_counts[key] >= self.warm_threshold:
+            self._promote_to_warm(key, value)
         return value
 
     def invalidate(self, query: str | None = None, tags: Iterable[str] | None = None) -> None:
@@ -116,23 +177,20 @@ class SmartCache(CacheManager):
             self.hot.clear()
             self.warm.clear()
             self.expires_at.clear()
+            self.access_counts.clear()
+            self.sizes.clear()
+            self.hot_size = self.warm_size = self.cold_size = 0
             super().invalidate()
             return
         key = self._hash_key(query, tags)
-        self.hot.pop(key, None)
-        self.warm.pop(key, None)
-        self.expires_at.pop(key, None)
-        super().invalidate(key)
+        self._invalidate_key(key)
 
     # ------------------------------------------------------------------
     # expiration helpers
     def _is_expired(self, key: str) -> bool:
         exp = self.expires_at.get(key)
         if exp is not None and exp < time.time():
-            self.hot.pop(key, None)
-            self.warm.pop(key, None)
-            self.expires_at.pop(key, None)
-            super().invalidate(key)
+            self._invalidate_key(key)
             return True
         return False
 
@@ -140,7 +198,5 @@ class SmartCache(CacheManager):
         now = time.time()
         expired = [k for k, v in self.expires_at.items() if v < now]
         for key in expired:
-            self.hot.pop(key, None)
-            self.warm.pop(key, None)
-            self.expires_at.pop(key, None)
-            super().invalidate(key)
+            self._invalidate_key(key)
+        self._enforce_cold_limit()
