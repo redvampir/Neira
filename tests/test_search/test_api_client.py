@@ -1,6 +1,7 @@
-from src.search import SearchAPIClient
+from src.search.api_client import SearchAPIClient
 from src.memory import MemoryIndex
 import json
+import pytest
 
 
 def test_search_ranking_and_update():
@@ -47,3 +48,9 @@ def test_domain_filtering(tmp_path):
     client = SearchAPIClient(fetcher=fake_fetch, domain_config_path=config_path)
     results = client.search("test")
     assert [r["url"] for r in results] == ["https://good.com/a"]
+
+
+def test_search_rejects_invalid_token():
+    client = SearchAPIClient(fetcher=lambda q, l: [], token="bad")
+    with pytest.raises(PermissionError):
+        client.search("test")

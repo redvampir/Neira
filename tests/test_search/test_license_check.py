@@ -1,4 +1,4 @@
-from src.search import SearchAPIClient
+from src.search.api_client import SearchAPIClient
 
 
 class DummyResponse:
