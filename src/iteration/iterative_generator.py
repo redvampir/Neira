@@ -108,6 +108,13 @@ class IterativeGenerator:
                     except Exception:
                         continue
 
+            for result in search_results:
+                self.source_manager.register(
+                    result["content"],
+                    result["reference"],
+                    result["priority"],
+                )
+
             result = self.response_enhancer.enhance(
                 draft,
                 search_results,

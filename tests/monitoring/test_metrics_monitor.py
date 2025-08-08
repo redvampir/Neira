@@ -28,7 +28,9 @@ class DummyDeepSearcher:
 
     def search(self, query, user_id=None, limit=None):
         self.queries.append(query)
-        return [{"content": "resolved"}]
+        return [
+            {"content": "resolved", "reference": "ref", "priority": 0.5}
+        ]
 
 
 class DummyResponseEnhancer:

@@ -24,7 +24,9 @@ class DummyGapAnalyzer:
 
 class DummyDeepSearcher:
     def search(self, query, user_id=None, limit=None):
-        return [{"content": "resolved"}]
+        return [
+            {"content": "resolved", "reference": "ref", "priority": 0.5}
+        ]
 
 
 class DummyResponseEnhancer:

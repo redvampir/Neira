@@ -27,7 +27,9 @@ def test_iterative_generator_includes_style_and_rules(monkeypatch) -> None:
 
     class DummyDeepSearcher:
         def search(self, query, user_id=None, limit=None):
-            return [{"content": "resolved"}]
+            return [
+                {"content": "resolved", "reference": "ref", "priority": 0.5}
+            ]
 
     class DummyEnhancer:
         def __init__(self) -> None:
