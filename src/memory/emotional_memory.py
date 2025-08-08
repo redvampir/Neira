@@ -9,8 +9,11 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
-import logging
 from typing import Any, Dict, List
+
+from src.core.config import get_logger
+
+logger = get_logger(__name__)
 
 
 class EmotionalMemory:
@@ -26,7 +29,7 @@ class EmotionalMemory:
             try:
                 self._data = json.loads(self.storage_path.read_text(encoding="utf-8"))
             except json.JSONDecodeError as exc:
-                logging.getLogger(__name__).warning(
+                logger.warning(
                     "Failed to decode emotions file %s: %s", self.storage_path, exc
                 )
                 self._data = {}

@@ -1,9 +1,10 @@
 """Simple grammar proofreader using language_tool_python when available."""
 from __future__ import annotations
 
-import logging
 import re
 from typing import Dict, List, Tuple
+
+from src.core.config import get_logger
 
 from .post_processor import PostProcessor
 
@@ -25,7 +26,7 @@ class GrammarProofreader(PostProcessor):
             except Exception:
                 self.tool = None
         else:
-            logging.warning(
+            get_logger(__name__).warning(
                 "language_tool_python is not installed; grammar proofreading quality will be reduced"
             )
 

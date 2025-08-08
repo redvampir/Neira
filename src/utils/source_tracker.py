@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import logging
 from typing import List
+
+from src.core.config import get_logger
 
 
 @dataclass
@@ -21,7 +22,7 @@ class SourceTracker:
     def __init__(self, reliability_threshold: float = 0.5) -> None:
         self.reliability_threshold = reliability_threshold
         self.entries: List[SourceEntry] = []
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
 
     def add(self, info: str, source: str, confidence: float) -> None:
         """Register a new source for *info* with *confidence* rating.

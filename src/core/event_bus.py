@@ -5,12 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 import asyncio
 import inspect
-import logging
 import threading
 import time
 from typing import Any, Awaitable, Callable, Dict, List, TypeVar, Generic
 
-logger = logging.getLogger(__name__)
+from src.core.config import get_logger
+
+logger = get_logger(__name__)
 
 
 PayloadT = TypeVar("PayloadT")

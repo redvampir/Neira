@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+from src.core.config import get_logger
 
 
 class NeuronNetwork:
@@ -11,7 +11,7 @@ class NeuronNetwork:
     """
 
     def __init__(self) -> None:
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
 
     def process(self, command: str) -> str:
         """Process a command and return a textual response."""

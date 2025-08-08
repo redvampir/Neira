@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, MutableMapping
+
+from src.core.config import get_logger
 
 
 @dataclass
@@ -16,7 +17,7 @@ class MetricsMonitor:
     """Log metrics to a JSONL file and console."""
 
     log_file: Path = Path("logs/metrics.jsonl")
-    logger: logging.Logger = field(default_factory=lambda: logging.getLogger("metrics"))
+    logger: logging.Logger = field(default_factory=lambda: get_logger("metrics"))
     thresholds: MutableMapping[str, Dict[str, float]] = field(default_factory=dict)
     time_series: MutableMapping[str, List[Dict[str, float]]] = field(default_factory=dict)
     resource_metrics: set[str] = field(default_factory=lambda: {"cpu", "memory"})
@@ -24,13 +25,6 @@ class MetricsMonitor:
     def __post_init__(self) -> None:
         # Ensure log directory exists
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
-
-        # Configure logger for console output
-        if not self.logger.handlers:
-            handler = logging.StreamHandler(stream=sys.stdout)
-            handler.setFormatter(logging.Formatter("%(message)s"))
-            self.logger.addHandler(handler)
-        self.logger.setLevel(logging.INFO)
 
     # ------------------------------------------------------------------
     def _write_jsonl(self, data: Dict[str, Any]) -> None:

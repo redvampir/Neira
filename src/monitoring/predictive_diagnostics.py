@@ -7,6 +7,7 @@ from typing import Dict
 import logging
 import statistics
 
+from src.core.config import get_logger
 from .metrics_monitor import MetricsMonitor
 
 
@@ -17,9 +18,7 @@ class PredictiveDiagnostics:
     monitor: MetricsMonitor
     window: int = 3
     threshold: float = 0.2  # 20% increase triggers alert
-    logger: logging.Logger = field(
-        default_factory=lambda: logging.getLogger("diagnostics")
-    )
+    logger: logging.Logger = field(default_factory=lambda: get_logger("diagnostics"))
 
     def analyse(self) -> Dict[str, str]:
         """Return alerts for metrics with rising trends."""

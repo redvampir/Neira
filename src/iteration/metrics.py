@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from difflib import SequenceMatcher
-import logging
 from typing import Dict
 
-logger = logging.getLogger(__name__)
+from src.core.config import get_logger
+
+logger = get_logger(__name__)
 
 
 def similarity(original: str, revised: str) -> float:
