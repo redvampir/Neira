@@ -6,6 +6,7 @@ from .post_processor import PostProcessor, run_post_processors
 from .grammar_proofreader import GrammarProofreader
 from .candidate_generator import CandidateGenerator
 from .candidate_selector import CandidateSelector
+from .reasoning_planner import ReasoningPlanner, ReasoningStep
 
 POST_PROCESSOR_REGISTRY = {
     "GrammarProofreader": GrammarProofreader,
@@ -25,4 +26,6 @@ __all__ = [
     "CandidateSelector",
     "POST_PROCESSOR_REGISTRY",
     "verify_fact",
+    "ReasoningPlanner",
+    "ReasoningStep",
 ]

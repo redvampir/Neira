@@ -8,7 +8,11 @@ from pathlib import Path
 import re
 from typing import List, Optional
 
+from src.analysis import PostProcessor, run_post_processors
+from src.analysis.reasoning_planner import ReasoningStep
+from src.memory.index import MemoryIndex
 from src.memory.knowledge_base import KB_ROOT
+from src.search.retriever import Retriever
 
 
 # ---------------------------------------------------------------------------
@@ -168,6 +172,41 @@ class TagProcessor:
                 json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
             )
         return examples
+
+    # ------------------------------------------------------------------
+    def run_reasoning_plan(
+        self,
+        plan: List[ReasoningStep],
+        memory: MemoryIndex | None = None,
+        retriever: Retriever | None = None,
+        post_processors: List[PostProcessor] | None = None,
+    ) -> str:
+        """Execute ``plan`` handling ``ACT`` steps.
+
+        ``ACT`` steps with ``source='memory'`` query :class:`MemoryIndex` while
+        ``source='rag'`` steps leverage :class:`src.search.retriever.Retriever`.
+        After all actions are performed the aggregated text is run through the
+        provided ``post_processors`` using :func:`run_post_processors`.
+        """
+
+        outputs: List[str] = []
+        mem = memory or MemoryIndex()
+        rag = retriever or Retriever()
+        for step in plan:
+            if step.marker != "ACT":
+                continue
+            if step.source == "memory":
+                result = mem.get(step.content)
+                if result is not None:
+                    outputs.append(str(result))
+            elif step.source == "rag":
+                snippets = rag.retrieve(step.content)
+                if snippets:
+                    outputs.extend(snippets)
+        text = "\n".join(outputs)
+        processors = post_processors or []
+        text, _ = run_post_processors(text, processors)
+        return text
 
     # Slash command execution -------------------------------------------
     def execute_slash(self, command: str) -> Optional[str]:
