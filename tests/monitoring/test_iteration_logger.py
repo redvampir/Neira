@@ -36,10 +36,10 @@ class DummyResponseEnhancer:
 
 def test_iteration_logger_writes_files(tmp_path):
     log_dir = tmp_path / "iterations"
-    logger = IterationLogger(log_dir=log_dir)
+    logger = IterationLogger(log_dir=log_dir, run_id="run_a")
     gaps = [KnowledgeGap(claim="claim", questions=[], confidence=0.5)]
     logger.log_iteration(1, "draft", gaps, sources=["src"], enhancements={"x": 1})
-    log_file = log_dir / "iteration_1.json"
+    log_file = log_dir / "run_a" / "iteration_1.json"
     assert log_file.exists()
     data = json.loads(log_file.read_text())
     assert data["iteration"] == 1
@@ -49,7 +49,7 @@ def test_iteration_logger_writes_files(tmp_path):
 
 def test_iterative_generator_logs_iterations(tmp_path):
     log_dir = tmp_path / "iterations"
-    logger = IterationLogger(log_dir=log_dir)
+    logger = IterationLogger(log_dir=log_dir, run_id="run_b")
     controller = IterationController(max_iterations=3, max_critical_spaces=0)
     generator = IterativeGenerator(
         draft_generator=DummyDraftGenerator(),
@@ -62,5 +62,20 @@ def test_iterative_generator_logs_iterations(tmp_path):
 
     generator.generate_response("question", {})
 
-    log_file = log_dir / "iteration_1.json"
+    log_file = log_dir / "run_b" / "iteration_1.json"
     assert log_file.exists()
+
+
+def test_logger_creates_separate_files_for_same_iter_idx(tmp_path):
+    log_dir = tmp_path / "iterations"
+    gaps = [KnowledgeGap(claim="claim", questions=[], confidence=0.5)]
+    logger1 = IterationLogger(log_dir=log_dir, run_id="run1")
+    logger2 = IterationLogger(log_dir=log_dir, run_id="run2")
+    logger1.log_iteration(1, "draft1", gaps, sources=["src1"], enhancements={"x": 1})
+    logger2.log_iteration(1, "draft2", gaps, sources=["src2"], enhancements={"x": 2})
+    file1 = log_dir / "run1" / "iteration_1.json"
+    file2 = log_dir / "run2" / "iteration_1.json"
+    assert file1.exists()
+    assert file2.exists()
+    assert json.loads(file1.read_text())["draft"] == "draft1"
+    assert json.loads(file2.read_text())["draft"] == "draft2"
