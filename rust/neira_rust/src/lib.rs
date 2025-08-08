@@ -4,6 +4,7 @@ mod tag_processor;
 mod memory_index;
 mod knowledge_graph;
 mod verification;
+mod event_bus;
 
 #[pyfunction]
 fn ping() -> PyResult<&'static str> {
@@ -20,6 +21,8 @@ fn neira_rust(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<knowledge_graph::KnowledgeGraph>()?;
     m.add_class::<verification::VerificationResult>()?;
     m.add_function(wrap_pyfunction!(verification::verify_claim, m)?)?;
+    m.add_class::<event_bus::Event>()?;
+    m.add_class::<event_bus::EventBus>()?;
     Ok(())
 }
 
