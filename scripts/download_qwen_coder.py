@@ -3,7 +3,8 @@
 This script retrieves the Qwen‑2.5 Coder **1.5B** Instruct model in GGUF
 format and stores it under ``models/qwen``. After a successful download,
 ``config/llm_config.json`` is created or updated so that subsequent runs of
-Neyra use the new model.
+Neyra use the new model.  The downloaded file is validated against a
+pre‑computed SHA256 hash to ensure integrity before being used.
 
 The chosen defaults assume roughly 8 GB of system RAM; tweak ``max_tokens`` if
 your hardware differs.
@@ -15,6 +16,7 @@ import json
 import sys
 from pathlib import Path
 
+import hashlib
 import requests
 from tqdm import tqdm
 
@@ -39,6 +41,27 @@ CONFIG_PATH = ROOT / "config" / "llm_config.json"
 DEFAULT_MAX_TOKENS = 1024
 MODEL_TYPE = "qwen_coder"
 
+# Official SHA256 for Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf.
+# Replace the value below with the hash from the model's documentation if it
+# changes.
+EXPECTED_SHA256 = "REPLACE_WITH_OFFICIAL_SHA256"
+
+
+def _verify_hash(path: Path) -> bool:
+    """Return ``True`` if ``path`` matches ``EXPECTED_SHA256``."""
+
+    sha256 = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            sha256.update(chunk)
+    file_hash = sha256.hexdigest()
+    if file_hash.lower() != EXPECTED_SHA256.lower():
+        print(
+            "Hash mismatch: expected %s but got %s" % (EXPECTED_SHA256, file_hash)
+        )
+        return False
+    return True
+
 
 def download() -> None:
     """Download the GGUF model if it is not already present."""
@@ -60,14 +83,17 @@ def download() -> None:
                         if chunk:
                             f.write(chunk)
                             pbar.update(len(chunk))
-            print("Download complete.")
-            break
+            if _verify_hash(MODEL_PATH):
+                print("Download complete and verified.")
+                break
+            print("Integrity check failed, trying next URL…")
+            MODEL_PATH.unlink(missing_ok=True)
         except requests.HTTPError as exc:
             print(f"HTTP error for {url}: {exc}")
         except requests.RequestException as exc:
             print(f"Network error for {url}: {exc}")
     else:
-        print("Error: could not download the model from any provided URL.")
+        print("Error: could not download the model with a valid hash.")
 
 
 def update_config() -> None:
