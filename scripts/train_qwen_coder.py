@@ -1,4 +1,9 @@
-"""Minimal fine-tuning of Qwen2.5-Coder-1.5B using Unsloth and TRL."""
+"""Fine-tune Qwen2.5-Coder-1.5B and produce a LoRA adapter.
+
+The resulting directory contains weights compatible with :mod:`peft`.  After
+training, move ``output_dir`` to ``models/adapters/<name>`` so that the
+adapter can be loaded at runtime.
+"""
 
 from __future__ import annotations
 
@@ -99,6 +104,9 @@ def main() -> None:
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     model.save_pretrained(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
+    print(
+        "Saved LoRA adapter. Copy the directory to models/adapters/<name> for use"
+    )
 
 
 if __name__ == "__main__":

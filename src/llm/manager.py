@@ -12,6 +12,11 @@ from dataclasses import dataclass, field
 import time
 from typing import Any, Callable, Dict, Optional, Tuple
 
+try:  # pragma: no cover - optional peft dependency
+    from peft import PeftModel  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    PeftModel = None  # type: ignore
+
 from .base_llm import BaseLLM
 from src.learning.learning_system import LearningSystem
 from .prompts import chat_prompt
@@ -44,6 +49,7 @@ class Task:
     user_id: str | None = None
     request_type: str = "general"
     context: Dict[str, Any] | None = None
+    lora_adapters: list[str] | None = None
 
 
 class LLMManager:
@@ -77,6 +83,19 @@ class LLMManager:
             capabilities=capabilities or set(),
             prompt_adapter=prompt_adapter,
         )
+
+    # ------------------------------------------------------------------
+    def _apply_lora(self, llm: BaseLLM, adapters: list[str] | None) -> None:
+        """Attach ``adapters`` to ``llm`` using :mod:`peft` if available."""
+
+        if not adapters or PeftModel is None or not hasattr(llm, "model"):
+            return
+        model = getattr(llm, "model", None)
+        if model is None:
+            return
+        for path in adapters:
+            model = PeftModel.from_pretrained(model, path)
+        llm.model = model
 
     # ------------------------------------------------------------------
     def select_model(self, task: Task) -> Tuple[str, BaseLLM, str]:
@@ -164,6 +183,7 @@ class LLMManager:
             for name, spec in self.models.items():
                 if not spec.llm.is_available():
                     continue
+                self._apply_lora(spec.llm, task.lora_adapters)
                 adapted = spec.adapt_prompt(task.prompt)
                 start = time.perf_counter()
                 outputs[name] = spec.llm.generate(adapted, **kwargs)
@@ -177,6 +197,7 @@ class LLMManager:
             return result
 
         name, model, adapted = self.select_model(task)
+        self._apply_lora(model, task.lora_adapters)
         start = time.perf_counter()
         result = model.generate(adapted, **kwargs)
         end = time.perf_counter()

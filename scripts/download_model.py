@@ -3,7 +3,10 @@
 
 The script fetches a GGUF model from a provided URL, stores it under
 ``models/<model_type>`` and updates ``config/llm_config.json`` so that
-subsequent runs of Neyra use the new model.
+subsequent runs of Neyra use the new model.  LoRA adapters generated with
+``train_qwen_coder.py`` should be copied manually to
+``models/adapters/<name>`` and referenced in personalities via their
+``lora_adapters`` attribute.
 """
 
 from __future__ import annotations

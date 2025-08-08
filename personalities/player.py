@@ -20,6 +20,7 @@ class PlayerPersonality(AIPersonality):
     """AI personality for players with action choices."""
 
     traits: Dict[str, float] = field(default_factory=lambda: DEFAULT_TRAITS.copy())
+    lora_adapters: List[str] = field(default_factory=list)
 
     archetypes: ClassVar[Dict[str, Dict[str, List[str]]]] = {
         "warrior": {
@@ -34,7 +35,24 @@ class PlayerPersonality(AIPersonality):
         },
     }
 
-    def __init__(self, name: str, archetype: str = "warrior") -> None:
+    def __init__(
+        self,
+        name: str,
+        archetype: str = "warrior",
+        lora_adapters: List[str] | None = None,
+    ) -> None:
+        """Initialize a player personality.
+
+        Parameters
+        ----------
+        name:
+            Display name of the personality.
+        archetype:
+            Optional archetype preset such as ``warrior``.
+        lora_adapters:
+            Identifiers for LoRA adapters associated with this personality.
+        """
+
         preset = self.archetypes.get(archetype, {})
         super().__init__(
             name=name,
@@ -43,9 +61,12 @@ class PlayerPersonality(AIPersonality):
             personality_traits=preset.get("personality_traits", []),
             current_character=archetype.capitalize(),
             decision_style=preset.get("decision_style", "balanced"),
-            communication_style=preset.get("communication_style", "conversational"),
+            communication_style=preset.get(
+                "communication_style", "conversational"
+            ),
         )
         self.traits = DEFAULT_TRAITS.copy()
+        self.lora_adapters = lora_adapters or []
 
     def choose_action(self, situation: str, options: List[str]) -> str:
         """Select an action from ``options`` given the ``situation``."""
