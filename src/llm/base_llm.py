@@ -4,6 +4,24 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Type
 
 
+def get_available_vram() -> float:
+    """Return available VRAM in megabytes.
+
+    Tries to query ``torch.cuda`` if available.  A return value of ``0``
+    indicates that GPU memory could not be determined or no GPU is present.
+    """
+
+    try:  # pragma: no cover - best effort probing
+        import torch
+
+        if torch.cuda.is_available():
+            free, _ = torch.cuda.mem_get_info()  # type: ignore[attr-defined]
+            return free / (1024**2)
+    except Exception:  # pragma: no cover - any probing failure
+        pass
+    return 0.0
+
+
 class BaseLLM(ABC):
     """Abstract base class for all LLM implementations."""
 

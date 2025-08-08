@@ -118,9 +118,18 @@ class Neyra:
                 self.iteration_controller.max_iterations = min(
                     self.iteration_controller.max_iterations, iteration
                 )
+                if data["memory"] > self.memory_threshold:
+                    # Emergency cache invalidation when memory usage is critical
+                    self.cache.invalidate()
         if suggestions:
             self.optimization_history.extend(suggestions)
         self.profiler.metrics.clear()
+
+    # ------------------------------------------------------------------
+    def emergency_clear_cache(self) -> None:
+        """Public helper to clear all caches immediately."""
+
+        self.cache.invalidate()
 
     # ------------------------------------------------------------------
     def _apply_memory_set(self, user_id: str) -> None:

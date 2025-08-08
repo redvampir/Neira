@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable, Optional
 
-from .base_llm import BaseLLM, LLMFactory
+from .base_llm import BaseLLM, LLMFactory, get_available_vram
 
 # The real implementation relies on ``llama_cpp`` which may not be available
 # in lightweight environments (like the test environment for this kata).
@@ -55,6 +55,29 @@ class MistralLLM(BaseLLM):
         self._load_error: Optional[str] = None
 
     # ------------------------------------------------------------------
+    def _ensure_vram(self) -> None:
+        """Adapt configuration to the currently available VRAM."""
+
+        available = get_available_vram()
+        if available <= 0:  # Could not determine VRAM or no GPU
+            return
+
+        required = self.n_ctx * self.n_batch * 2 / 1024  # very rough estimate in MB
+        while required > available and (self.n_ctx > 128 or self.n_batch > 1):
+            if self.n_ctx > 128:
+                self.n_ctx //= 2
+            if self.n_batch > 1:
+                self.n_batch = max(1, self.n_batch // 2)
+            required = self.n_ctx * self.n_batch * 2 / 1024
+            logger.warning(
+                "Reducing context to %s and batch to %s due to low VRAM", self.n_ctx, self.n_batch
+            )
+
+        if required > available:
+            logger.warning("Switching to CPU due to insufficient VRAM")
+            self.n_gpu_layers = 0
+
+    # ------------------------------------------------------------------
     def _load_model(self) -> None:
         """Load the underlying ``Llama`` model if it hasn't been loaded yet."""
 
@@ -66,6 +89,7 @@ class MistralLLM(BaseLLM):
             return
 
         try:
+            self._ensure_vram()
             logger.info("Loading Mistral model from %s", self.model_path)
             self.model = Llama(
                 model_path=self.model_path,
