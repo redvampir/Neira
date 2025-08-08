@@ -115,6 +115,10 @@ pip install -r requirements.txt
   ```bash
   python scripts/download_mistral.py
   ```
+- Загрузка произвольной GGUF-модели:
+  ```bash
+  python scripts/download_model.py <тип> <url>
+  ```
 - Отключение модели:
   ```bash
   python scripts/disable_llm.py
