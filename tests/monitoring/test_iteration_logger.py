@@ -1,37 +1,32 @@
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
+import types
+
+sys.modules.setdefault(
+    "neira_rust",
+    types.SimpleNamespace(
+        KnowledgeGraph=object,
+        MemoryIndex=object,
+        VerificationResult=object,
+        verify_claim=lambda *a, **k: None,
+        ping=lambda: "pong",
+    ),
+)
+sys.modules.setdefault("requests", types.ModuleType("requests"))
+
 from src.monitoring.iteration_logger import IterationLogger
-from src.iteration.iterative_generator import IterativeGenerator
-from src.iteration.gap_analyzer import KnowledgeGap
-from src.iteration.iteration_controller import IterationController
 
 
-class DummyDraftGenerator:
-    def generate_draft(self, query, context):
-        return "draft ___"
-
-
-class DummyGapAnalyzer:
-    def analyze(self, draft):
-        if "___" in draft:
-            return [KnowledgeGap(claim="info", questions=[], confidence=0.0)]
-        return []
-
-
-class DummyDeepSearcher:
-    def search(self, query, user_id=None, limit=None):
-        return [
-            {"content": "resolved", "reference": "ref", "priority": 0.5}
-        ]
-
-
-class DummyResponseEnhancer:
-    def enhance(self, draft, search_results, integration, self_correct=True):
-        return draft.replace("___", search_results[0]["content"])
+@dataclass
+class KnowledgeGap:
+    claim: str
+    questions: list
+    confidence: float
 
 
 def test_iteration_logger_writes_files(tmp_path):
@@ -47,23 +42,21 @@ def test_iteration_logger_writes_files(tmp_path):
     assert data["gaps"][0]["claim"] == "claim"
 
 
-def test_iterative_generator_logs_iterations(tmp_path):
+def test_iteration_logger_records_resource_metrics(tmp_path):
     log_dir = tmp_path / "iterations"
-    logger = IterationLogger(log_dir=log_dir, run_id="run_b")
-    controller = IterationController(max_iterations=3, max_critical_spaces=0)
-    generator = IterativeGenerator(
-        draft_generator=DummyDraftGenerator(),
-        gap_analyzer=DummyGapAnalyzer(),
-        deep_searcher=DummyDeepSearcher(),
-        response_enhancer=DummyResponseEnhancer(),
-        iteration_controller=controller,
-        iteration_logger=logger,
+    logger = IterationLogger(log_dir=log_dir, run_id="run_metrics")
+    gaps = [KnowledgeGap(claim="c", questions=[], confidence=0.5)]
+    logger.log_iteration(
+        1,
+        "draft",
+        gaps,
+        sources=["src"],
+        enhancements={"x": 1},
+        resource_metrics={"cpu": 10},
     )
-
-    generator.generate_response("question", {})
-
-    log_file = log_dir / "run_b" / "iteration_1.json"
-    assert log_file.exists()
+    log_file = log_dir / "run_metrics" / "iteration_1.json"
+    data = json.loads(log_file.read_text(encoding="utf-8"))
+    assert data["resource_metrics"]["cpu"] == 10
 
 
 def test_logger_creates_separate_files_for_same_iter_idx(tmp_path):

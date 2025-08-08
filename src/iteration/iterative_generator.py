@@ -130,6 +130,14 @@ class IterativeGenerator:
                 rules_refs = []
             iterations += 1
 
+            resource_metrics = None
+            if self.resource_manager:
+                cpu, memory = self.resource_manager.update_usage()
+                resource_metrics = {"cpu": cpu, "memory": memory}
+
+            if self.metrics_monitor and resource_metrics is not None:
+                self.metrics_monitor.log_performance_metrics(**resource_metrics)
+
             if self.iteration_logger:
                 self.iteration_logger.log_iteration(
                     iterations,
@@ -137,6 +145,7 @@ class IterativeGenerator:
                     gaps,
                     search_results,
                     result,
+                    resource_metrics=resource_metrics,
                 )
 
         sources = self.source_manager.all()
