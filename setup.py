@@ -13,6 +13,8 @@ setup(
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=open("requirements.txt", encoding="utf-8").read().splitlines(),
+    setup_requires=["maturin>=1.0"],
+    include_package_data=True,
     entry_points={
         "console_scripts": [
             "neyra=main:main",
