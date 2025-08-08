@@ -42,6 +42,7 @@ from src.iteration import (
 from src.models import Character
 from src.core.cache_manager import CacheManager
 from src.ui import update_progress
+from src.monitoring import PerformanceProfiler
 
 
 class Neyra:
@@ -99,8 +100,27 @@ class Neyra:
         self.current_style = ""
         self.history = RequestHistory(load_existing=False)
         self.cache = CacheManager()
+        self.profiler = PerformanceProfiler()
+        self.optimization_history: List[str] = []
+        self.time_threshold = 0.5
+        self.memory_threshold = 10_000_000.0
 
         self.logger.info("Нейра проснулась! ✨")
+
+    # ------------------------------------------------------------------
+    def _check_and_optimize(self, iteration: int) -> None:
+        """Adjust behaviour based on profiler metrics."""
+        suggestions = self.profiler.suggest_optimizations()
+        for name, data in self.profiler.metrics.items():
+            if data["time"] > self.time_threshold or data["memory"] > self.memory_threshold:
+                if name == "search_sources":
+                    self.deep_searcher.parallel = False
+                self.iteration_controller.max_iterations = min(
+                    self.iteration_controller.max_iterations, iteration
+                )
+        if suggestions:
+            self.optimization_history.extend(suggestions)
+        self.profiler.metrics.clear()
 
     # ------------------------------------------------------------------
     def _apply_memory_set(self, user_id: str) -> None:
@@ -271,8 +291,11 @@ class Neyra:
         user_id = getattr(self, "current_user_id", "default")
         self.style_memory.add(user_id, f"language:{language}")
         self.style_memory.save()
-        self.last_draft = self.draft_generator.generate_draft(
-            text, self.verification_system.memory
+        self.last_draft = self.profiler.profile_operation(
+            "generate_draft",
+            self.draft_generator.generate_draft,
+            text,
+            self.verification_system.memory,
         )
         tags = self.parser.parse_user_input(text)
 
@@ -329,12 +352,14 @@ class Neyra:
             self.iteration_controller.max_critical_spaces = (
                 strategy.max_critical_spaces
             )
+        self.profiler.metrics.clear()
         token_manager = TokenBudgetManager(self.llm_max_tokens)
         self.token_budget_manager = token_manager
         prev_tokens = self.llm_max_tokens
         self.llm_max_tokens = token_manager.draft_tokens
         response = self.process_command(query)
         self.llm_max_tokens = prev_tokens
+        self._check_and_optimize(1)
         draft = self.last_draft or response
         self.deep_searcher.token_budget_manager = token_manager
         iteration = 1
@@ -345,20 +370,27 @@ class Neyra:
             self.logger.info("Iteration %s started", iteration)
             gaps = self.gap_analyzer.analyze(draft)
             if gaps:
-                search_results: List[Dict[str, Any]] = []
                 self.deep_searcher.current_queries = len(gaps)
                 search_limit = token_manager.search_limit(len(gaps))
-                for gap in gaps:
-                    try:
-                        search_results.extend(
-                            self.deep_searcher.search(
-                                gap.claim,
-                                user_id=getattr(self, "current_user_id", "default"),
-                                limit=search_limit,
+
+                def perform_search() -> List[Dict[str, Any]]:
+                    results: List[Dict[str, Any]] = []
+                    for gap in gaps:
+                        try:
+                            results.extend(
+                                self.deep_searcher.search(
+                                    gap.claim,
+                                    user_id=getattr(self, "current_user_id", "default"),
+                                    limit=search_limit,
+                                )
                             )
-                        )
-                    except Exception:
-                        continue
+                        except Exception:
+                            continue
+                    return results
+
+                search_results: List[Dict[str, Any]] = self.profiler.profile_operation(
+                    "search_sources", perform_search
+                )
                 prev_tokens = self.llm_max_tokens
                 self.llm_max_tokens = token_manager.refine_tokens
                 result = self.response_enhancer.enhance(
@@ -374,6 +406,7 @@ class Neyra:
             log_metrics(iteration, previous, response)
             self.logger.info("Iteration %s completed", iteration)
             draft = response
+            self._check_and_optimize(iteration)
             if (
                 iteration >= self.iteration_controller.min_iterations
                 and self.iteration_controller.assess_quality(response)
@@ -385,12 +418,15 @@ class Neyra:
                 break
             iteration += 1
         if not skip_check:
-            response, corrections = run_post_processors(
+            response, corrections = self.profiler.profile_operation(
+                "post_processing",
+                run_post_processors,
                 response,
                 self.post_processors,
                 candidate_generator=self.candidate_generator,
                 candidate_selector=self.candidate_selector,
             )
+            self._check_and_optimize(iteration)
             if corrections:
                 all_corrections.extend(corrections)
         update_progress("finished", iteration)
