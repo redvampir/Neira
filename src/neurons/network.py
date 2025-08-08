@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from src.core.config import get_logger
+from .partners import run_partners
 
 
 class NeuronNetwork:
@@ -17,6 +18,9 @@ class NeuronNetwork:
         """Process a command and return a textual response."""
 
         self.logger.debug("NeuronNetwork received command: %s", command)
+        if command.startswith("partner:"):
+            text = command.split(":", 1)[1].strip()
+            return run_partners(text)
         return f"processed: {command}"
 
 
