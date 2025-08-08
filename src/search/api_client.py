@@ -10,11 +10,12 @@ from pathlib import Path
 from urllib.parse import urlparse
 import yaml
 
+from src.core.security import require_permission
+
 from src.memory import MemoryIndex
 from src.utils.spam_filter import is_spam
 from src.utils.pii import redact_pii
 from src.utils.lang_quality import detect_language, quality_score
-from src.analysis.verification_system import verify_fact
 
 
 class SearchAPIClient:
@@ -27,6 +28,7 @@ class SearchAPIClient:
         domain_config_path: str | Path | None = None,
         license_config_path: str | Path | None = None,
         lang_quality_config_path: str | Path | None = None,
+        token: str = "public",
     ) -> None:
         """
         Parameters
@@ -55,6 +57,7 @@ class SearchAPIClient:
         self.allowed_domains, self.blocked_domains = self._load_domain_config(
             domain_config_path
         )
+        self.token = token
         self.allowed_licenses = self._load_license_config(license_config_path)
         (
             self.allowed_languages,
@@ -140,6 +143,7 @@ class SearchAPIClient:
     # ------------------------------------------------------------------
     def search(self, query: str, limit: int = 5) -> List[Dict[str, str]]:
         """Return search results ranked by source reliability."""
+        require_permission(self.token, "external.search")
         raw_results = list(self.fetcher(query, limit))
         filtered: List[Dict[str, str]] = []
         for result in raw_results:
@@ -191,6 +195,9 @@ class SearchAPIClient:
     # ------------------------------------------------------------------
     def search_and_update(self, query: str, limit: int = 5) -> List[Dict[str, str]]:
         """Perform a search and update memory with extracted facts."""
+        # Import lazily to avoid heavy optional dependencies during module import.
+        from src.analysis.verification_system import verify_fact
+
         results = self.search(query, limit)
         for result in results:
             url = result.get("url", "")

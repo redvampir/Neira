@@ -9,6 +9,8 @@ import threading
 import time
 from typing import Any, Awaitable, Callable, Dict, List, TypeVar, Generic
 
+from .security import require_permission
+
 from src.core.config import get_logger
 
 logger = get_logger(__name__)
@@ -51,15 +53,17 @@ class EventBus:
         self._loop.call_soon_threadsafe(_init)
 
     # ------------------------------------------------------------------
-    def subscribe(self, event_type: str, handler: Handler) -> None:
+    def subscribe(self, event_type: str, handler: Handler, token: str = "public") -> None:
         """Register a handler for ``event_type`` events."""
 
+        require_permission(token, "event.subscribe")
         self._subscribers.setdefault(event_type, []).append(handler)
 
     # ------------------------------------------------------------------
-    def publish(self, event: Event[Any]) -> None:
+    def publish(self, event: Event[Any], token: str = "public") -> None:
         """Publish an event by placing it into the internal queue."""
 
+        require_permission(token, "event.publish")
         # wait until queue is initialised by background thread
         while self._queue is None:
             time.sleep(0.01)

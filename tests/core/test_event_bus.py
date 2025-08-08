@@ -3,6 +3,8 @@ import time
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 from src.core.event_bus import EventBus, Event
@@ -34,3 +36,9 @@ def test_event_bus_sync_and_async_handlers() -> None:
 
     wait_for(lambda: results)
     assert results == [21, 42]
+
+
+def test_event_bus_rejects_invalid_token() -> None:
+    bus = EventBus()
+    with pytest.raises(PermissionError):
+        bus.publish(Event("number", 1), token="invalid")

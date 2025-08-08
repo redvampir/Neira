@@ -1,7 +1,7 @@
 """Tests for PII redaction utilities."""
 
 from src.utils.pii import redact_pii
-from src.search import SearchAPIClient
+from src.search.api_client import SearchAPIClient
 from src.memory import MemoryIndex
 
 
