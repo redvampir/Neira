@@ -5,9 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 import importlib.util
 import inspect
+import logging
 from typing import List
 
 from .plugin_base import Plugin
+
+logger = logging.getLogger(__name__)
 
 
 class PluginManager:
@@ -44,7 +47,16 @@ class PluginManager:
         for plugin in self.plugins:
             func = getattr(plugin, hook, None)
             if callable(func):
-                func(*args, **kwargs)
+                try:
+                    func(*args, **kwargs)
+                except Exception as e:
+                    logger.warning(
+                        "Error in plugin %s for hook %s: %s",
+                        plugin.__class__.__name__,
+                        hook,
+                        e,
+                        exc_info=True,
+                    )
 
     # Convenience wrappers ------------------------------------------------
     def on_draft(self, draft: str, context) -> None:
