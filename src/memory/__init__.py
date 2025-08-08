@@ -19,6 +19,7 @@ __all__ = [
     "LazyMemoryLoader",
     "KnowledgeGraph",
     "knowledge_graph",
+    "IdeaCatalog",
     "memory_state",
     "begin",
     "commit",
@@ -39,6 +40,7 @@ _MODULES = {
     "LazyMemoryLoader": "lazy_loader",
     "KnowledgeGraph": "knowledge_graph",
     "knowledge_graph": "knowledge_graph",
+    "IdeaCatalog": "idea_catalog",
 }
 
 # Global state manager for the memory subsystem.  Components that mutate
