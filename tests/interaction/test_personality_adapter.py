@@ -55,5 +55,5 @@ def test_iterative_generator_includes_style_and_rules(monkeypatch) -> None:
     result = generator.generate_response("question", {})
     assert "[confident_but_open]" in result
     assert "draft  resolved" in result
-    assert "см. правило §double_space" in result
+    assert "см. §2" in result
     assert "замените несколько пробелов одним" in result

@@ -14,16 +14,19 @@ class GrammarIssue:
     rule_id: str
     snippet: str
     suggestion: str
+    ref: str
 
 
 RULES: Dict[str, Dict[str, object]] = {
     "point_after_abbrev": {
         "pattern": re.compile(r"\bг(?!\.)\s+[A-ZА-Я][\w-]*"),
         "suggestion": "используйте 'г.' после сокращения",
+        "ref": "§1",
     },
     "double_space": {
         "pattern": re.compile(r" {2,}"),
         "suggestion": "замените несколько пробелов одним",
+        "ref": "§2",
     },
 }
 
@@ -41,9 +44,10 @@ class GrammarRuleChecker:
         for rule_id, data in self.rules.items():
             pattern: re.Pattern[str] = data["pattern"]  # type: ignore[assignment]
             suggestion = str(data.get("suggestion", ""))
+            ref = str(data.get("ref", ""))
             for match in pattern.finditer(text):
                 snippet = match.group(0)
-                issues.append(GrammarIssue(rule_id, snippet, suggestion))
+                issues.append(GrammarIssue(rule_id, snippet, suggestion, ref))
         return issues
 
 
