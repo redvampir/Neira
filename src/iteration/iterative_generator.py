@@ -3,6 +3,9 @@ from __future__ import annotations
 """High-level iterative response generation utilities."""
 
 from typing import Any, List
+import time
+
+from src.monitoring.metrics_monitor import MetricsMonitor
 
 from src.utils.source_manager import SourceManager
 from src.interaction.mode_controller import HiddenSourcesMode, ResponseMode
@@ -41,6 +44,7 @@ class IterativeGenerator:
         source_manager: SourceManager | None = None,
         mode: ResponseMode | None = None,
         resource_manager: ResourceManager | None = None,
+        metrics_monitor: MetricsMonitor | None = None,
     ) -> None:
         self.draft_generator = draft_generator or DraftGenerator()
         self.gap_analyzer = gap_analyzer or GapAnalyzer()
@@ -59,11 +63,13 @@ class IterativeGenerator:
             )
         self.source_manager = source_manager or SourceManager()
         self.mode = mode or HiddenSourcesMode()
+        self.metrics_monitor = metrics_monitor
 
     # ------------------------------------------------------------------
     def generate_response(self, query: str, context: Any) -> str:
         """Return a refined response for ``query`` within ``context``."""
 
+        start_time = time.perf_counter()
         draft = self.draft_generator.generate_draft(query, context)
 
         if hasattr(self.iteration_controller, "reset"):
@@ -102,6 +108,17 @@ class IterativeGenerator:
         sources = self.source_manager.all()
         style = adapt_response_style(context, iterations)
         response = self.mode.format_response(draft, sources, rules_refs)
+
+        if self.metrics_monitor:
+            duration = time.perf_counter() - start_time
+            final_quality = self.iteration_controller.assess_quality(draft)
+            self.metrics_monitor.log_performance_metrics(
+                duration=duration,
+                iterations=iterations,
+                num_sources=len(sources),
+            )
+            self.metrics_monitor.log_quality_metrics(final_quality=final_quality)
+
         return f"[{style}] {response}"
 
 
