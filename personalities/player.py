@@ -10,7 +10,9 @@ from typing import ClassVar, Dict, List
 from src.core.ai_personality import AIPersonality
 
 TRAITS_PATH = Path(__file__).with_name("default_traits.json")
-DEFAULT_TRAITS: Dict[str, float] = json.loads(TRAITS_PATH.read_text())
+DEFAULT_TRAITS: Dict[str, float] = json.loads(
+    TRAITS_PATH.read_text(encoding="utf-8")
+)
 
 
 @dataclass

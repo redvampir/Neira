@@ -1,3 +1,1 @@
-# Developer Requests
-
-Entries in this file indicate failures that exceeded automated adaptation thresholds.
+- Neuron `memory_logical_1` decommissioned after 3 uses (success rate 0.00); redesign recommended

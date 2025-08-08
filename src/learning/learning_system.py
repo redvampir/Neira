@@ -255,7 +255,9 @@ class LearningSystem:
                 }
                 neuron_dir = Path("data/neurons")
                 neuron_dir.mkdir(parents=True, exist_ok=True)
-                (neuron_dir / f"{neuron_type}.json").write_text(json.dumps(data))
+                (neuron_dir / f"{neuron_type}.json").write_text(
+                    json.dumps(data), encoding="utf-8"
+                )
                 self.neuron_metrics[neuron_type] = {
                     "activations": 0,
                     "positive": 0,
@@ -277,14 +279,14 @@ class LearningSystem:
             "neuron_use_limit": self.neuron_use_limit,
             "neuron_success_threshold": self.neuron_success_threshold,
         }
-        Path(path).write_text(json.dumps(data))
+        Path(path).write_text(json.dumps(data), encoding="utf-8")
 
     # ------------------------------------------------------------------
     @classmethod
     def load_state(cls, path: Path | str) -> "LearningSystem":
         """Load learning state from ``path``."""
 
-        data = json.loads(Path(path).read_text())
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
         instance = cls()
         instance.experience_buffer = data.get("experience_buffer", [])
         instance.success_metrics = data.get("success_metrics", {})

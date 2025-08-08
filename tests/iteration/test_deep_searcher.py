@@ -12,7 +12,7 @@ def test_search_aggregates_sources_with_priorities(tmp_path):
     style_mem.add("u1", "Bob", description="whimsical tales about dragons")
 
     cold_file = tmp_path / "cold.txt"
-    cold_file.write_text("Ancient dragons slumber.")
+    cold_file.write_text("Ancient dragons slumber.", encoding="utf-8")
 
     def fake_fetch(query: str, limit: int):
         return [{"url": "https://example.com", "snippet": f"{query} on web"}]

@@ -41,7 +41,7 @@ def test_iteration_logger_writes_files(tmp_path):
     logger.log_iteration(1, "draft", gaps, sources=["src"], enhancements={"x": 1})
     log_file = log_dir / "run_a" / "iteration_1.json"
     assert log_file.exists()
-    data = json.loads(log_file.read_text())
+    data = json.loads(log_file.read_text(encoding="utf-8"))
     assert data["iteration"] == 1
     assert data["draft"] == "draft"
     assert data["gaps"][0]["claim"] == "claim"
@@ -77,5 +77,5 @@ def test_logger_creates_separate_files_for_same_iter_idx(tmp_path):
     file2 = log_dir / "run2" / "iteration_1.json"
     assert file1.exists()
     assert file2.exists()
-    assert json.loads(file1.read_text())["draft"] == "draft1"
-    assert json.loads(file2.read_text())["draft"] == "draft2"
+    assert json.loads(file1.read_text(encoding="utf-8"))["draft"] == "draft1"
+    assert json.loads(file2.read_text(encoding="utf-8"))["draft"] == "draft2"

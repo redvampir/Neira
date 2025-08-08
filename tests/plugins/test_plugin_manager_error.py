@@ -14,14 +14,16 @@ def test_plugin_manager_continues_on_plugin_error(tmp_path, caplog):
         "from src.plugins import Plugin\n"
         "class FailPlugin(Plugin):\n"
         "    def on_draft(self, draft, context):\n"
-        "        raise RuntimeError('boom')\n"
+        "        raise RuntimeError('boom')\n",
+        encoding="utf-8",
     )
 
     (plugin_dir / "b_ok.py").write_text(
         "from src.plugins import Plugin\n"
         "class OkPlugin(Plugin):\n"
         "    def on_draft(self, draft, context):\n"
-        "        context.append('ok')\n"
+        "        context.append('ok')\n",
+        encoding="utf-8",
     )
 
     manager = PluginManager(plugin_dir)
