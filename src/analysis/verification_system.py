@@ -52,6 +52,30 @@ class VerificationSystem:
         self.external_checkers.append(checker)
 
     # ------------------------------------------------------------------
+    def reconcile_draft(
+        self, draft: str, context: Iterable[str]
+    ) -> List[VerificationResult]:
+        """Compare ``draft`` with ``context`` and update memory."""
+
+        context_text = " ".join(context).lower()
+        results: List[VerificationResult] = []
+        for sentence in re.split(r"[\.\!?]+", draft):
+            claim = sentence.strip()
+            if not claim:
+                continue
+            verdict = claim.lower() in context_text
+            self.memory.set(claim, verdict, reliability=1.0 if verdict else 0.0)
+            results.append(
+                VerificationResult(
+                    claim=claim,
+                    verdict=verdict,
+                    confidence=self.memory.source_reliability.get(claim, 0.0),
+                    sources=["context"],
+                )
+            )
+        return results
+
+    # ------------------------------------------------------------------
     def verify_claim(self, claim: str) -> VerificationResult:
         """Verify ``claim`` using memory and external checkers."""
 
