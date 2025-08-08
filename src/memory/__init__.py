@@ -11,6 +11,7 @@ from .embedding_memory import EmbeddingMemory
 from .weighted import WeightedMemory
 from .multi_grid import MultiGridMemory
 from .lazy_loader import LazyMemoryLoader
+from .knowledge_graph import KnowledgeGraph, knowledge_graph
 
 __all__ = [
     "CharacterMemory",
@@ -24,4 +25,6 @@ __all__ = [
     "WeightedMemory",
     "MultiGridMemory",
     "LazyMemoryLoader",
+    "KnowledgeGraph",
+    "knowledge_graph",
 ]

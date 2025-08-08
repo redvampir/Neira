@@ -14,6 +14,7 @@ import json
 from typing import Dict
 
 from src.models import Character
+from .knowledge_graph import knowledge_graph
 
 
 class CharacterMemory:
@@ -55,6 +56,10 @@ class CharacterMemory:
             json.dumps({name: char.to_dict() for name, char in self._data.items()}, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        for char in self._data.values():
+            knowledge_graph.add_character(char)
+        knowledge_graph.export_json()
+        knowledge_graph.export_graphml()
 
     # Convenience methods to behave a bit like a dictionary -----------------
     def __contains__(self, name: str) -> bool:  # pragma: no cover - trivial

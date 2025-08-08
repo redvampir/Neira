@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 import re
 from typing import Callable, Iterable, List, Tuple, Dict
 
-from src.memory import MemoryIndex
+from src.memory import MemoryIndex, KnowledgeGraph, knowledge_graph
 
 
 @dataclass
@@ -34,12 +34,14 @@ class VerificationSystem:
         memory: MemoryIndex | None = None,
         external_checkers: List[Callable[[str], Tuple[bool, float]]] | None = None,
         vector_backend: str | None = None,
+        graph: KnowledgeGraph | None = None,
     ) -> None:
         self.memory = memory or MemoryIndex(vector_backend=vector_backend)
         # External checkers are callables returning a tuple of (verdict, confidence)
         self.external_checkers = (
             external_checkers if external_checkers is not None else [self._stub_check]
         )
+        self.graph = graph or knowledge_graph
 
     # ------------------------------------------------------------------
     def add_external_checker(
@@ -68,6 +70,22 @@ class VerificationSystem:
             verdict = bool(memory_value)
             confidence = self.memory.source_reliability.get(used_key, 0.0)
             sources.append("memory")
+
+        graph_verdict, graph_conf = (None, 0.0)
+        if self.graph is not None:
+            graph_verdict, graph_conf = self.graph.check_claim(claim)
+            if graph_verdict is not None:
+                sources.append("graph")
+                if verdict is None:
+                    verdict = graph_verdict
+                    confidence = graph_conf
+                elif verdict != graph_verdict:
+                    confidence = min(confidence, graph_conf) / 2
+                    verdict = graph_verdict
+                else:
+                    confidence = (
+                        (confidence + graph_conf) / 2 if confidence else graph_conf
+                    )
 
         for checker in self.external_checkers:
             try:
