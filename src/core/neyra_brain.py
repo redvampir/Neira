@@ -2,10 +2,10 @@
 Мозг Нейры - здесь я думаю и учусь.
 """
 import json
-import logging
-from typing import List, Dict, Any, Tuple
 from pathlib import Path
+from typing import List, Dict, Any, Tuple
 
+from src.core.config import get_logger, settings
 from src.tags.enhanced_parser import EnhancedTagParser as TagParser, Tag
 from src.tags.command_executor import CommandExecutor
 from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality, NeyraConfig
@@ -51,7 +51,7 @@ class Neyra:
 
     def __init__(self, config: NeyraConfig | None = None) -> None:
         """Просыпаюсь и готовлю свои модули."""
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.parser = TagParser()
         self.llm_max_tokens = 512
         self.llm = self._load_llm()
@@ -167,7 +167,7 @@ class Neyra:
 
     def _load_llm(self) -> BaseLLM | None:
         """Загружаю локальную LLM при наличии конфига."""
-        config_path = Path("config/llm_config.json")
+        config_path = settings.paths.config_dir / "llm_config.json"
         if not config_path.exists():
             return None
         try:

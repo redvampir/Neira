@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Dict
 
+from src.core.config import get_logger
 from src.memory.lazy_loader import LazyMemoryLoader
 from src.neurons import NeuronNetwork
 from src.analysis.advanced import AdvancedAnalyzer, AnalysisResult
@@ -21,7 +21,7 @@ class EnhancedNeyra:
     """
 
     def __init__(self, memory_dir: str | Path = "data") -> None:
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
         self.memory_loader = LazyMemoryLoader(memory_dir)
         self.network = NeuronNetwork()
         self.analyzer = AdvancedAnalyzer()

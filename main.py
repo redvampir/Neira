@@ -1,29 +1,17 @@
-"""
-Главный файл Нейры - здесь она просыпается и знакомится с пользователем.
-"""
-import logging
+"""Главный файл Нейры - здесь она просыпается и знакомится с пользователем."""
+
 from pathlib import Path
 
+from src.core.config import get_logger
 from src.core.neyra_brain import Neyra
 from src.interaction.chat_session import ChatSession
 from src.models import Character
 from src.utils.source_tracker import SourceTracker
 
-def setup_logging() -> None:
-    """Настраиваю систему для записи того, что думает Нейра"""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - Нейра - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('logs/neyra.log', encoding='utf-8'),
-            logging.StreamHandler()
-        ]
-    )
 
 def main() -> None:
     """Нейра просыпается и начинает работать!"""
-    setup_logging()
-    logger = logging.getLogger(__name__)
+    logger = get_logger(__name__)
     tracker = SourceTracker()
     
     print("🌟 Пробуждение Нейры... 🌟")

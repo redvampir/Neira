@@ -5,12 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 import importlib.util
 import inspect
-import logging
 from typing import List
+
+from src.core.config import get_logger
 
 from .plugin_base import Plugin
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PluginManager:

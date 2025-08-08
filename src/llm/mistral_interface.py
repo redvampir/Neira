@@ -1,9 +1,9 @@
 """Mistral LLM interface using llama-cpp-python."""
 from __future__ import annotations
 
-import logging
 from typing import Iterable, Optional
 
+from src.core.config import get_logger
 from .base_llm import BaseLLM, LLMFactory, get_available_vram
 
 # The real implementation relies on ``llama_cpp`` which may not be available
@@ -17,7 +17,7 @@ except ModuleNotFoundError:  # pragma: no cover
     Llama = None  # type: ignore
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MistralLLM(BaseLLM):

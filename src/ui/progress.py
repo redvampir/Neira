@@ -1,10 +1,11 @@
 """Simple API for notifying UI about progress."""
 from __future__ import annotations
 
-import logging
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from src.core.config import get_logger
+
+logger = get_logger(__name__)
 
 
 def update_progress(stage: str, iteration: Optional[int] = None) -> None:
