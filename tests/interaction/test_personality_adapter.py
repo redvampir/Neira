@@ -52,7 +52,7 @@ def test_iterative_generator_includes_style_and_rules(monkeypatch) -> None:
         personality_adapter=adapter,
     )
 
-    result = generator.generate_response("question", {})
+    result, _ = generator.generate_response("question", {})
     assert "[confident_but_open]" in result
     assert "draft  resolved" in result
     assert "см. §2" in result

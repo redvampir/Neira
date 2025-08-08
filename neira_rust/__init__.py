@@ -6,6 +6,23 @@ from dataclasses import dataclass
 from typing import List, Tuple, Any
 
 
+# Minimal tag structure used by TagProcessor
+@dataclass
+class Tag:
+    type: str = ""
+    subject: str = ""
+    commands: List[str] | None = None
+
+
+def parse(text: str) -> List[Tag]:  # pragma: no cover - stub
+    """Return an empty list representing parsed tags."""
+    return []
+
+
+def suggest_entities(prefix: str) -> List[str]:  # pragma: no cover - stub
+    return []
+
+
 def ping() -> str:  # pragma: no cover - simple stub
     return "pong"
 

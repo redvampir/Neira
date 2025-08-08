@@ -77,5 +77,5 @@ def test_iterative_generator_uses_provided_mode() -> None:
         mode=VisibleSourcesMode(),
     )
 
-    result = generator.generate_response("q", {})
+    result, _ = generator.generate_response("q", {})
     assert result == "[default_helpful] answer\n\nSources:\n[1] a (http://a)"

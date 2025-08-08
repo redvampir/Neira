@@ -124,6 +124,7 @@ class CommandResult:
     text: str = ""
     style: Optional[str] = None
     is_exit: bool = False
+    waves: Optional[list[str]] = None
 
 
 def handle_command(neyra, text: str, processor: TagProcessor) -> CommandResult:
@@ -137,7 +138,12 @@ def handle_command(neyra, text: str, processor: TagProcessor) -> CommandResult:
         if result == "__exit__":
             return CommandResult(is_exit=True)
         return CommandResult(text=result or "", style="cyan")
-    result = neyra.process_command(text)
+    raw = neyra.process_command(text)
+    waves = None
+    if isinstance(raw, tuple):
+        result, waves = raw
+    else:
+        result = raw
     lower = result.lower()
     style = None
     if "@" in result:
@@ -146,7 +152,7 @@ def handle_command(neyra, text: str, processor: TagProcessor) -> CommandResult:
         style = "magenta"
     elif any(word in lower for word in ["опис", "сцена"]):
         style = "green"
-    return CommandResult(text=result, style=style)
+    return CommandResult(text=result, style=style, waves=waves)
 
 
 __all__ = ["TagProcessor", "ProcessedTag", "handle_command", "CommandResult"]
