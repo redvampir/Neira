@@ -82,17 +82,16 @@ class ResponseEnhancer:
         if self_correct:
             text, _ = self.corrector.correct_errors(text)
 
-        text, rules_refs = self.apply_grammar_check(text)
+        text, issues = self.apply_grammar_check(text)
 
-        return {"text": text, "rules_refs": rules_refs}
+        return {"text": text, "rules_refs": issues}
 
     # ------------------------------------------------------------------
-    def apply_grammar_check(self, text: str) -> Tuple[str, List[str]]:
-        """Apply grammar rules and return references to triggered rules."""
+    def apply_grammar_check(self, text: str) -> Tuple[str, List[GrammarIssue]]:
+        """Apply grammar rules and return detected issues."""
 
         issues: List[GrammarIssue] = self.grammar_checker.check(text)
-        refs = [issue.rule_id for issue in issues]
-        return text, refs
+        return text, issues
 
 
 __all__ = ["ResponseEnhancer", "IntegrationType"]
