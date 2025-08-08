@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, List
 
 from src.utils.source_manager import SourceManager
+from src.interaction.mode_controller import HiddenSourcesMode, ResponseMode
 
 from .draft_generator import DraftGenerator
 from .gap_analyzer import GapAnalyzer, KnowledgeGap
@@ -36,6 +37,7 @@ class IterativeGenerator:
         response_enhancer: ResponseEnhancer | None = None,
         iteration_controller: IterationController | None = None,
         source_manager: SourceManager | None = None,
+        mode: ResponseMode | None = None,
     ) -> None:
         self.draft_generator = draft_generator or DraftGenerator()
         self.gap_analyzer = gap_analyzer or GapAnalyzer()
@@ -46,6 +48,7 @@ class IterativeGenerator:
         self.response_enhancer = response_enhancer or ResponseEnhancer()
         self.iteration_controller = iteration_controller or IterationController()
         self.source_manager = source_manager or SourceManager()
+        self.mode = mode or HiddenSourcesMode()
 
     # ------------------------------------------------------------------
     def generate_response(self, query: str, context: Any) -> str:
@@ -77,7 +80,8 @@ class IterativeGenerator:
                 IntegrationType.IMPORTANT_ADDITION,
             )
 
-        return draft
+        sources = self.source_manager.all()
+        return self.mode.format_response(draft, sources)
 
 
 __all__ = ["IterativeGenerator"]
