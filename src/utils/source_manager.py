@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from .source_tracker import SourceTracker
 
@@ -58,6 +58,26 @@ class SourceManager:
     def all(self) -> List[ManagedSource]:
         """Return all registered sources sorted by reliability."""
         return sorted(self._sources.values(), key=lambda s: s.reliability, reverse=True)
+
+    def limit_sources(self, query_context: Dict[str, Any]) -> List[ManagedSource]:
+        """Limit stored sources according to ``query_context``.
+
+        The ``query_context`` may define a ``reliability_level`` key indicating
+        the desired trustworthiness (``"low"``, ``"medium"`` or ``"high"``).
+        Based on that level, :func:`calculate_source_limit` determines how many
+        sources should be retained. Only the most reliable sources are kept.
+        """
+
+        level = "medium"
+        if isinstance(query_context, dict):
+            level = query_context.get("reliability_level", level)
+        else:  # pragma: no cover - fallback for attr-style contexts
+            level = getattr(query_context, "reliability_level", level)
+
+        limit = calculate_source_limit(level)
+        sources = self.all()[:limit]
+        self._sources = {s.path: s for s in sources}
+        return sources
 
 
 __all__ = [
