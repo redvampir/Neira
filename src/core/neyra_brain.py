@@ -9,6 +9,7 @@ from pathlib import Path
 from src.tags.enhanced_parser import EnhancedTagParser as TagParser, Tag
 from src.tags.command_executor import CommandExecutor
 from src.core.neyra_config import NEYRA_GREETING, NeyraPersonality, NeyraConfig
+from src.core.event_bus import EventBus, Event
 from src.utils.encoding_detector import detect_encoding
 from src.utils.language_adapter import adapt_request, adapt_response
 from src.llm import BaseLLM, LLMFactory
@@ -101,6 +102,7 @@ class Neyra:
         self.history = RequestHistory(load_existing=False)
         self.cache = CacheManager()
         self.profiler = PerformanceProfiler()
+        self.event_bus = EventBus()
         self.optimization_history: List[str] = []
         self.time_threshold = 0.5
         self.memory_threshold = 10_000_000.0
@@ -246,6 +248,7 @@ class Neyra:
             print(f"   Встретила персонажей: {len(self.characters_memory)}")
 
         self.cache.set(cache_key, {"mtime": mtime})
+        self.event_bus.publish(Event("book_loaded", {"path": path}))
 
     def _extract_characters(self, content: str) -> None:
         """Ищу персонажей в тексте - моя любимая задача!"""
@@ -337,7 +340,9 @@ class Neyra:
             self.style_memory.save()
 
         final = "\n\n".join(response_parts) if response_parts else "💭 Хм, интересная команда! Обдумываю..."
-        return adapt_response(final, language)
+        response = adapt_response(final, language)
+        self.event_bus.publish(Event("command_processed", {"query": text, "response": response}))
+        return response
 
     def iterative_response(
         self, query: str, strategy: IterationStrategy | None = None
