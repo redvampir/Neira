@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 
 def ping() -> str:  # pragma: no cover - simple stub
@@ -39,6 +39,24 @@ class MemoryIndex:
         pass
 
 
+class KnowledgeGraph:
+    """Lightweight stand-in for the Rust ``KnowledgeGraph``.
+
+    It stores simple triples in memory and exposes the minimal API used by the
+    Python codebase.  The real project offers a much richer implementation but
+    for tests we only need to ensure imports succeed and method calls do not
+    fail."""
+
+    def __init__(self) -> None:
+        self.facts: List[Tuple[str, str, str]] = []
+
+    def add_fact(self, subject: str, relation: str, obj: str) -> None:
+        self.facts.append((subject, relation, obj))
+
+    def check_claim(self, claim: str) -> bool:  # pragma: no cover - trivial
+        return True
+
+
 @dataclass
 class VerificationResult:
     claim: str
@@ -49,4 +67,4 @@ def verify_claim(claim: str) -> VerificationResult:  # pragma: no cover - stub
     return VerificationResult(claim=claim, verified=True)
 
 
-__all__ = ["ping", "MemoryIndex"]
+__all__ = ["ping", "MemoryIndex", "KnowledgeGraph"]
