@@ -3,6 +3,8 @@
 from importlib import import_module
 from typing import Any
 
+from src.core.state_manager import StateManager
+
 __all__ = [
     "CharacterMemory",
     "EmotionalMemory",
@@ -17,6 +19,10 @@ __all__ = [
     "LazyMemoryLoader",
     "KnowledgeGraph",
     "knowledge_graph",
+    "memory_state",
+    "begin",
+    "commit",
+    "rollback",
 ]
 
 _MODULES = {
@@ -34,6 +40,28 @@ _MODULES = {
     "KnowledgeGraph": "knowledge_graph",
     "knowledge_graph": "knowledge_graph",
 }
+
+# Global state manager for the memory subsystem.  Components that mutate
+# memory can register their state here to support transactional rollbacks.
+memory_state = StateManager()
+
+
+def begin() -> None:
+    """Create a memory state snapshot."""
+
+    memory_state.begin()
+
+
+def commit() -> None:
+    """Commit changes made since the last :func:`begin`."""
+
+    memory_state.commit()
+
+
+def rollback() -> None:
+    """Restore memory state from the last snapshot."""
+
+    memory_state.rollback()
 
 
 def __getattr__(name: str) -> Any:  # pragma: no cover - simple proxy
