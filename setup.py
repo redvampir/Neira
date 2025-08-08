@@ -12,7 +12,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(),
     python_requires=">=3.8",
-    install_requires=open("requirements.txt").read().splitlines(),
+    install_requires=open("requirements.txt", encoding="utf-8").read().splitlines(),
     entry_points={
         "console_scripts": [
             "neyra=main:main",

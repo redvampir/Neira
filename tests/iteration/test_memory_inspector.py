@@ -24,7 +24,7 @@ def test_linked_sources_and_report(tmp_path):
     memory = ReferenceMemory(manager=manager, searcher=searcher)
 
     file = tmp_path / "file.txt"
-    file.write_text("hello")
+    file.write_text("hello", encoding="utf-8")
 
     memory.create_reference_link("internal", str(file), 0.9)
     url = "https://example.com"
@@ -49,7 +49,7 @@ def test_reference_memory_report(tmp_path):
     memory = ReferenceMemory(manager=manager, searcher=searcher)
 
     file = tmp_path / "note.txt"
-    file.write_text("hi")
+    file.write_text("hi", encoding="utf-8")
 
     memory.create_reference_link("note", str(file), 0.7)
 

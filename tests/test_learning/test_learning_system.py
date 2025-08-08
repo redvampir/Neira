@@ -78,7 +78,7 @@ def test_neuron_decommission_logs_and_removes() -> None:
     with pytest.raises(ValueError):
         NeuronFactory.create(neuron_type, id="n1", type=neuron_type)
     assert log_path.exists()
-    assert neuron_type in log_path.read_text()
+    assert neuron_type in log_path.read_text(encoding="utf-8")
 
 
 def test_positive_feedback_saves_user_style(tmp_path) -> None:

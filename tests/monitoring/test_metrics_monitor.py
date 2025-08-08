@@ -48,7 +48,7 @@ def test_metrics_monitor_logs(tmp_path, capsys):
     assert "performance" in captured
     assert "quality" in captured
 
-    lines = log_file.read_text().strip().splitlines()
+    lines = log_file.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) == 2
     perf = json.loads(lines[0])
     qual = json.loads(lines[1])
@@ -73,7 +73,7 @@ def test_iterative_generator_logs_metrics(tmp_path):
 
     generator.generate_response("question", {})
 
-    lines = log_file.read_text().strip().splitlines()
+    lines = log_file.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) == 2
     perf = json.loads(lines[0])
     qual = json.loads(lines[1])

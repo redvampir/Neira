@@ -23,7 +23,7 @@ def test_create_reference_link_internal(tmp_path):
     memory = ReferenceMemory(manager=manager, searcher=searcher)
 
     file = tmp_path / "file.txt"
-    file.write_text("hello")
+    file.write_text("hello", encoding="utf-8")
 
     link = memory.create_reference_link("test summary", str(file), 0.9)
 

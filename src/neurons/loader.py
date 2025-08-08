@@ -15,7 +15,7 @@ def load_neurons(path: Path | str = Path("data/neurons")) -> None:
         return
 
     for file in neuron_dir.glob("*.json"):
-        data = json.loads(file.read_text())
+        data = json.loads(file.read_text(encoding="utf-8"))
         neuron_type = data.get("neuron_type") or file.stem
         base_path = data.get("base_class")
         if not base_path:

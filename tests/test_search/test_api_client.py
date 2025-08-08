@@ -33,7 +33,8 @@ def test_domain_filtering(tmp_path):
                 "allowed_domains": ["good.com"],
                 "blocked_domains": ["bad.com"],
             }
-        )
+        ),
+        encoding="utf-8",
     )
 
     def fake_fetch(query: str, limit: int):

@@ -13,7 +13,9 @@ class KnowledgeBase:
         self._entries: List[Dict[str, Any]] = []
         if self.path and self.path.exists():
             try:
-                self._entries = json.loads(self.path.read_text())
+                self._entries = json.loads(
+                    self.path.read_text(encoding="utf-8")
+                )
             except json.JSONDecodeError:
                 self._entries = []
 
@@ -35,7 +37,9 @@ class KnowledgeBase:
         """Persist entries to disk when a path is configured."""
         if not self.path:
             return
-        self.path.write_text(json.dumps(self._entries))
+        self.path.write_text(
+            json.dumps(self._entries), encoding="utf-8"
+        )
 
 
 __all__ = ["KnowledgeBase"]

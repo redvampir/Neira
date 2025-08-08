@@ -9,7 +9,7 @@ class DummyResponse:
 
 def test_check_license_header(monkeypatch, tmp_path):
     cfg = tmp_path / "licenses.yml"
-    cfg.write_text("allowed_licenses:\n  - CC-BY\n")
+    cfg.write_text("allowed_licenses:\n  - CC-BY\n", encoding="utf-8")
     client = SearchAPIClient(license_config_path=cfg)
     monkeypatch.setattr(
         client.session,
@@ -21,7 +21,7 @@ def test_check_license_header(monkeypatch, tmp_path):
 
 def test_check_license_meta(monkeypatch, tmp_path):
     cfg = tmp_path / "licenses.yml"
-    cfg.write_text("allowed_licenses:\n  - CC-BY\n")
+    cfg.write_text("allowed_licenses:\n  - CC-BY\n", encoding="utf-8")
     client = SearchAPIClient(license_config_path=cfg)
     html = '<html><head><meta name="license" content="CC-BY"></head></html>'
     monkeypatch.setattr(
@@ -34,7 +34,7 @@ def test_check_license_meta(monkeypatch, tmp_path):
 
 def test_search_and_update_skips_unlicensed(monkeypatch, tmp_path):
     cfg = tmp_path / "licenses.yml"
-    cfg.write_text("allowed_licenses:\n  - CC-BY\n")
+    cfg.write_text("allowed_licenses:\n  - CC-BY\n", encoding="utf-8")
 
     def fake_fetch(query: str, limit: int):
         return [{"url": "https://example.com", "snippet": "Fact"}]
