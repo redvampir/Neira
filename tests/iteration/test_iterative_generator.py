@@ -41,5 +41,5 @@ def test_iterative_generator_resolves_gap_and_stops():
 
     result = generator.generate_response("question", {})
 
-    assert result == "draft resolved"
+    assert result == "[confident_but_open] draft resolved"
     assert generator.deep_searcher.queries == ["info"]

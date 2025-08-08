@@ -71,4 +71,4 @@ def test_iterative_generator_uses_provided_mode() -> None:
     )
 
     result = generator.generate_response("q", {})
-    assert result == "answer\n\nSources:\n[1] a (http://a)"
+    assert result == "[default_helpful] answer\n\nSources:\n[1] a (http://a)"
