@@ -115,6 +115,8 @@ class IterativeGenerator:
                     result["priority"],
                 )
 
+            self.source_manager.limit_sources(context)
+
             result = self.response_enhancer.enhance(
                 draft,
                 search_results,

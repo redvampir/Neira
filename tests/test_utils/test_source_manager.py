@@ -17,3 +17,17 @@ def test_calculate_source_limit_scales_with_reliability() -> None:
     assert calculate_source_limit("high", base_limit=10) > calculate_source_limit(
         "low", base_limit=10
     )
+
+
+def test_limit_sources_restricts_total() -> None:
+    manager = SourceManager()
+    # Register multiple sources with decreasing reliability
+    for idx in range(5):
+        manager.register(f"s{idx}", f"u{idx}", 1 - idx * 0.1)
+
+    limit = calculate_source_limit("low")
+    manager.limit_sources({"reliability_level": "low"})
+    sources = manager.all()
+    assert len(sources) == limit
+    # Ensure the most reliable source remains
+    assert sources[0].summary == "s0"
