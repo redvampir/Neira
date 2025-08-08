@@ -33,6 +33,13 @@ def test_visible_mode_appends_summaries_and_paths() -> None:
     assert content == expected
 
 
+def test_visible_mode_can_show_rules() -> None:
+    mode = VisibleSourcesMode()
+    content = mode.format_response("answer", SOURCES, ["double_space"])
+    assert "Rules:" in content
+    assert "double_space" in content
+
+
 def test_lightweight_mode_appends_only_paths() -> None:
     mode = LightweightMode()
     content = mode.format_response("answer", SOURCES)

@@ -70,6 +70,7 @@ class IterativeGenerator:
             self.iteration_controller.reset()
 
         iterations = 0
+        rules_refs: List[str] = []
         while self.iteration_controller.should_iterate(draft):
             gaps: List[KnowledgeGap] = self.gap_analyzer.analyze(draft)
 
@@ -85,16 +86,22 @@ class IterativeGenerator:
                     except Exception:
                         continue
 
-            draft = self.response_enhancer.enhance(
+            result = self.response_enhancer.enhance(
                 draft,
                 search_results,
                 IntegrationType.IMPORTANT_ADDITION,
             )
+            if isinstance(result, dict):
+                draft = result.get("text", "")
+                rules_refs = result.get("rules_refs", [])
+            else:
+                draft = result
+                rules_refs = []
             iterations += 1
 
         sources = self.source_manager.all()
         style = adapt_response_style(context, iterations)
-        response = self.mode.format_response(draft, sources)
+        response = self.mode.format_response(draft, sources, rules_refs)
         return f"[{style}] {response}"
 
 
