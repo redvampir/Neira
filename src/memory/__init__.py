@@ -1,17 +1,7 @@
-"""Memory subsystem classes and utilities."""
+"""Memory subsystem classes and utilities with lazy loading."""
 
-from .character_memory import CharacterMemory
-from .emotional_memory import EmotionalMemory
-from .story_timeline import StoryTimeline
-from .world_atlas import WorldAtlas
-from .world_memory import WorldMemory
-from .style_memory import StyleMemory
-from .index import MemoryIndex
-from .embedding_memory import EmbeddingMemory
-from .weighted import WeightedMemory
-from .multi_grid import MultiGridMemory
-from .lazy_loader import LazyMemoryLoader
-from .knowledge_graph import KnowledgeGraph, knowledge_graph
+from importlib import import_module
+from typing import Any
 
 __all__ = [
     "CharacterMemory",
@@ -28,3 +18,28 @@ __all__ = [
     "KnowledgeGraph",
     "knowledge_graph",
 ]
+
+_MODULES = {
+    "CharacterMemory": "character_memory",
+    "EmotionalMemory": "emotional_memory",
+    "StoryTimeline": "story_timeline",
+    "WorldAtlas": "world_atlas",
+    "WorldMemory": "world_memory",
+    "StyleMemory": "style_memory",
+    "MemoryIndex": "index",
+    "EmbeddingMemory": "embedding_memory",
+    "WeightedMemory": "weighted",
+    "MultiGridMemory": "multi_grid",
+    "LazyMemoryLoader": "lazy_loader",
+    "KnowledgeGraph": "knowledge_graph",
+    "knowledge_graph": "knowledge_graph",
+}
+
+
+def __getattr__(name: str) -> Any:  # pragma: no cover - simple proxy
+    module_name = _MODULES.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__} has no attribute {name}")
+    module = import_module(f".{module_name}", __name__)
+    return getattr(module, name)
+
