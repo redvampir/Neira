@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .knowledge_graph import knowledge_graph
 
 @dataclass
 class WorldRule:
@@ -122,6 +123,10 @@ class WorldMemory:
             json.dumps(serialised, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        for world in serialised.keys():
+            knowledge_graph.add_world(world)
+        knowledge_graph.export_json()
+        knowledge_graph.export_graphml()
 
     def load(self) -> None:
         """Load memory from disk."""
