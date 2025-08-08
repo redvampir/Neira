@@ -77,5 +77,14 @@ class DialogController:
         else:
             self.console.print(message)
 
+    #: маркеры, указывающие на противоречие между вводом и ответом
+    CONTRADICTION_MARKERS = ("[contradiction]", "[противоречие]", "<!>")
+
+    def detect_contradiction(self, user_input: str, response: str) -> bool:
+        """Проверяет текст на наличие маркеров противоречия."""
+
+        text = f"{user_input} {response}".lower()
+        return any(marker in text for marker in self.CONTRADICTION_MARKERS)
+
 
 __all__ = ["DialogController"]
