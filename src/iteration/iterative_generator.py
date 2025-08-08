@@ -10,6 +10,7 @@ from src.monitoring.metrics_monitor import MetricsMonitor
 from src.utils.source_manager import SourceManager
 from src.interaction.mode_controller import HiddenSourcesMode, ResponseMode
 from src.interaction.personality_adapter import adapt_response_style
+from src.plugins import PluginManager
 
 from .draft_generator import DraftGenerator
 from .gap_analyzer import GapAnalyzer, KnowledgeGap
@@ -45,6 +46,7 @@ class IterativeGenerator:
         mode: ResponseMode | None = None,
         resource_manager: ResourceManager | None = None,
         metrics_monitor: MetricsMonitor | None = None,
+        plugin_manager: PluginManager | None = None,
     ) -> None:
         self.draft_generator = draft_generator or DraftGenerator()
         self.gap_analyzer = gap_analyzer or GapAnalyzer()
@@ -64,6 +66,7 @@ class IterativeGenerator:
         self.source_manager = source_manager or SourceManager()
         self.mode = mode or HiddenSourcesMode()
         self.metrics_monitor = metrics_monitor
+        self.plugin_manager = plugin_manager or PluginManager()
 
     # ------------------------------------------------------------------
     def generate_response(self, query: str, context: Any) -> str:
@@ -71,6 +74,8 @@ class IterativeGenerator:
 
         start_time = time.perf_counter()
         draft = self.draft_generator.generate_draft(query, context)
+        if self.plugin_manager:
+            self.plugin_manager.on_draft(draft, context)
 
         if hasattr(self.iteration_controller, "reset"):
             self.iteration_controller.reset()
@@ -79,6 +84,8 @@ class IterativeGenerator:
         rules_refs: List[str] = []
         while self.iteration_controller.should_iterate(draft):
             gaps: List[KnowledgeGap] = self.gap_analyzer.analyze(draft)
+            if self.plugin_manager:
+                self.plugin_manager.on_gap_analysis(draft, gaps)
 
             search_results = []
             if self.deep_searcher is not None:
@@ -108,6 +115,8 @@ class IterativeGenerator:
         sources = self.source_manager.all()
         style = adapt_response_style(context, iterations)
         response = self.mode.format_response(draft, sources, rules_refs)
+        if self.plugin_manager:
+            self.plugin_manager.on_finalize(response)
 
         if self.metrics_monitor:
             duration = time.perf_counter() - start_time
