@@ -37,6 +37,7 @@ data/*
 !data/books/
 !data/cache/
 !data/models/
+!data/inspiration_cards.json
 data/books/*
 !data/books/.gitkeep
 data/cache/*
