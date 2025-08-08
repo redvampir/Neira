@@ -20,6 +20,7 @@ class MasterPersonality(AIPersonality):
     """AI personality for game masters with narrative abilities."""
 
     traits: Dict[str, float] = field(default_factory=lambda: DEFAULT_TRAITS.copy())
+    lora_adapters: List[str] = field(default_factory=list)
 
     specializations: ClassVar[Dict[str, Dict[str, List[str]]]] = {
         "lorekeeper": {
@@ -34,7 +35,24 @@ class MasterPersonality(AIPersonality):
         },
     }
 
-    def __init__(self, name: str, specialization: str = "lorekeeper") -> None:
+    def __init__(
+        self,
+        name: str,
+        specialization: str = "lorekeeper",
+        lora_adapters: List[str] | None = None,
+    ) -> None:
+        """Initialize a master personality.
+
+        Parameters
+        ----------
+        name:
+            Display name of the personality.
+        specialization:
+            Optional specialization preset such as ``lorekeeper``.
+        lora_adapters:
+            Identifiers for LoRA adapters associated with this personality.
+        """
+
         preset = self.specializations.get(specialization, {})
         super().__init__(
             name=name,
@@ -46,6 +64,7 @@ class MasterPersonality(AIPersonality):
             communication_style=preset.get("communication_style", "narrative"),
         )
         self.traits = DEFAULT_TRAITS.copy()
+        self.lora_adapters = lora_adapters or []
 
     def describe_scene(self, elements: List[str]) -> str:
         """Return a narrative description of the given ``elements``."""
