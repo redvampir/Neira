@@ -22,10 +22,17 @@ from tqdm import tqdm
 # ---------------------------------------------------------------------------
 # Paths and constants
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_URL = (
-    "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/"
-    "Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf"
-)
+# Primary and mirror locations for the model
+MODEL_URLS = [
+    (
+        "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/"
+        "Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf"
+    ),
+    (
+        "https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/"
+        "Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf"
+    ),
+]
 MODEL_DIR = ROOT / "models" / "qwen"
 MODEL_PATH = MODEL_DIR / "Qwen2.5-Coder-1.5B-Instruct-Q4_K_M.gguf"
 CONFIG_PATH = ROOT / "config" / "llm_config.json"
@@ -41,18 +48,26 @@ def download() -> None:
         print(f"Model already exists at {MODEL_PATH}")
         return
 
-    with requests.get(MODEL_URL, stream=True) as r:
-        r.raise_for_status()
-        total = int(r.headers.get("content-length", 0))
-        with open(MODEL_PATH, "wb") as f, tqdm(
-            total=total, unit="B", unit_scale=True, desc="Downloading"
-        ) as pbar:
-            for chunk in r.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    f.write(chunk)
-                    pbar.update(len(chunk))
-
-    print("Download complete.")
+    for url in MODEL_URLS:
+        try:
+            with requests.get(url, stream=True) as r:
+                r.raise_for_status()
+                total = int(r.headers.get("content-length", 0))
+                with open(MODEL_PATH, "wb") as f, tqdm(
+                    total=total, unit="B", unit_scale=True, desc="Downloading"
+                ) as pbar:
+                    for chunk in r.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
+            print("Download complete.")
+            break
+        except requests.HTTPError as exc:
+            print(f"HTTP error for {url}: {exc}")
+        except requests.RequestException as exc:
+            print(f"Network error for {url}: {exc}")
+    else:
+        print("Error: could not download the model from any provided URL.")
 
 
 def update_config() -> None:
