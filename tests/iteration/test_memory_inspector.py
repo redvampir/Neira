@@ -2,6 +2,7 @@
 
 from src.iteration.reference_memory import ReferenceMemory
 from src.iteration.memory_inspector import MemoryInspector
+from src.utils.source_manager import SourceManager
 from src.utils.source_tracker import SourceTracker
 
 
@@ -18,8 +19,9 @@ class DummySearcher:
 
 def test_linked_sources_and_report(tmp_path):
     tracker = SourceTracker()
+    manager = SourceManager(tracker=tracker)
     searcher = DummySearcher()
-    memory = ReferenceMemory(tracker=tracker, searcher=searcher)
+    memory = ReferenceMemory(manager=manager, searcher=searcher)
 
     file = tmp_path / "file.txt"
     file.write_text("hello")
@@ -42,8 +44,9 @@ def test_linked_sources_and_report(tmp_path):
 
 def test_reference_memory_report(tmp_path):
     tracker = SourceTracker()
+    manager = SourceManager(tracker=tracker)
     searcher = DummySearcher()
-    memory = ReferenceMemory(tracker=tracker, searcher=searcher)
+    memory = ReferenceMemory(manager=manager, searcher=searcher)
 
     file = tmp_path / "note.txt"
     file.write_text("hi")
