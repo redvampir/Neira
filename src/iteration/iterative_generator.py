@@ -10,7 +10,11 @@ from src.monitoring.iteration_logger import IterationLogger
 
 from src.utils.source_manager import SourceManager
 from src.interaction.mode_controller import HiddenSourcesMode, ResponseMode
-from src.interaction.personality_adapter import adapt_response_style
+from src.interaction.personality_adapter import (
+    PersonalityAdapter,
+    adapt_response_style,
+)
+from src.quality import GrammarIssue
 from src.plugins import PluginManager
 
 from .draft_generator import DraftGenerator
@@ -49,6 +53,7 @@ class IterativeGenerator:
         metrics_monitor: MetricsMonitor | None = None,
         iteration_logger: IterationLogger | None = None,
         plugin_manager: PluginManager | None = None,
+        personality_adapter: PersonalityAdapter | None = None,
     ) -> None:
         self.draft_generator = draft_generator or DraftGenerator()
         self.gap_analyzer = gap_analyzer or GapAnalyzer()
@@ -70,6 +75,7 @@ class IterativeGenerator:
         self.metrics_monitor = metrics_monitor
         self.iteration_logger = iteration_logger
         self.plugin_manager = plugin_manager or PluginManager()
+        self.personality_adapter = personality_adapter or PersonalityAdapter()
 
     # ------------------------------------------------------------------
     def generate_response(self, query: str, context: Any) -> str:
@@ -84,7 +90,7 @@ class IterativeGenerator:
             self.iteration_controller.reset()
 
         iterations = 0
-        rules_refs: List[str] = []
+        rules_refs: List[GrammarIssue] = []
         while self.iteration_controller.should_iterate(draft):
             gaps: List[KnowledgeGap] = self.gap_analyzer.analyze(draft)
             if self.plugin_manager:
@@ -126,7 +132,8 @@ class IterativeGenerator:
 
         sources = self.source_manager.all()
         style = adapt_response_style(context, iterations)
-        response = self.mode.format_response(draft, sources, rules_refs)
+        formatted_rules = self.personality_adapter.format_rules(rules_refs)
+        response = self.mode.format_response(draft, sources, formatted_rules)
         if self.plugin_manager:
             self.plugin_manager.on_finalize(response)
 

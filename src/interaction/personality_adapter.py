@@ -2,7 +2,9 @@ from __future__ import annotations
 
 """Adapt response tone based on context and iteration count."""
 
-from typing import Any
+from typing import Any, Iterable, List
+
+from src.quality import GrammarIssue
 
 # Predefined response styles.
 STYLES: dict[str, str] = {
@@ -35,4 +37,35 @@ def adapt_response_style(context: Any, iteration_count: int) -> str:
     return "default_helpful"
 
 
-__all__ = ["adapt_response_style", "STYLES"]
+class PersonalityAdapter:
+    """Format grammar rule references for responses.
+
+    Parameters
+    ----------
+    explain_rules:
+        When ``True``, include rule suggestions from
+        :class:`~src.quality.grammar_rule_checker.GrammarRuleChecker` in the
+        formatted references.
+    """
+
+    def __init__(self, *, explain_rules: bool = False) -> None:
+        self.explain_rules = explain_rules
+
+    def format_rules(self, issues: Iterable[GrammarIssue]) -> List[str]:
+        """Return formatted references for ``issues``.
+
+        Each rule is rendered as ``"см. правило §<rule_id>"``. If
+        :attr:`explain_rules` is ``True`` and a suggestion is available, it is
+        appended after the rule identifier.
+        """
+
+        refs: List[str] = []
+        for issue in issues:
+            ref = f"см. правило §{issue.rule_id}"
+            if self.explain_rules and issue.suggestion:
+                ref = f"{ref}: {issue.suggestion}"
+            refs.append(ref)
+        return refs
+
+
+__all__ = ["adapt_response_style", "STYLES", "PersonalityAdapter"]
