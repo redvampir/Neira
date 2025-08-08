@@ -92,12 +92,27 @@ def run_cli(neyra, *, use_color: bool = True) -> None:
         result = handle_command(neyra, text, processor)
         if result.is_exit:
             break
-        if not result.text:
+        if not result.text and not result.waves:
             continue
+
+        output_text = result.text
+        if result.waves:
+            console.print("Доступные волны:")
+            for idx, wave in enumerate(result.waves, 1):
+                console.print(f"{idx}. {wave}")
+            try:
+                choice = int(session.prompt("Выберите волну (1..n): ")) - 1
+            except Exception:  # pragma: no cover - user input
+                choice = 0
+            if 0 <= choice < len(result.waves):
+                output_text = result.waves[choice]
+            else:  # pragma: no cover - defensive
+                output_text = result.waves[0]
+
         if result.style:
-            console.print(Panel(result.text, style=result.style))
+            console.print(Panel(output_text, style=result.style))
         else:
-            console.print(result.text)
+            console.print(output_text)
 
 
 __all__ = ["run_cli"]

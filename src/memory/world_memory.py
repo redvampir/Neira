@@ -138,18 +138,18 @@ class WorldMemory:
         try:
             raw = json.loads(self.storage_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-              logger.warning(
-                  "Failed to decode world memory file %s: %s", self.storage_path, exc
-              )
+            logger.warning(
+                "Failed to decode world memory file %s: %s", self.storage_path, exc
+            )
             try:
                 backup_path = self.storage_path.with_suffix(self.storage_path.suffix + ".bak")
                 self.storage_path.replace(backup_path)
             except Exception as backup_exc:  # pragma: no cover - best effort
-                  logger.warning(
-                      "Failed to back up corrupted world memory file %s: %s",
-                      self.storage_path,
-                      backup_exc,
-                  )
+                logger.warning(
+                    "Failed to back up corrupted world memory file %s: %s",
+                    self.storage_path,
+                    backup_exc,
+                )
             raw = {}
         self._data = {}
         for world, info in raw.items():

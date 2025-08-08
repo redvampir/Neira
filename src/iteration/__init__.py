@@ -10,6 +10,7 @@ from .response_enhancer import ResponseEnhancer, IntegrationType
 from .feedback_learner import FeedbackLearner
 from .iteration_controller import IterationController
 from .iterative_generator import IterativeGenerator
+from .story_wave_generator import generate_waves
 from .strategy_manager import AdaptiveIterationManager, IterationStrategy
 from .resource_iterator import ResourceAwareIterator
 from .low_resource_optimizer import LowResourceOptimizer
@@ -29,6 +30,7 @@ __all__ = [
     "IntegrationType",
     "IterationController",
     "IterativeGenerator",
+    "generate_waves",
     "AdaptiveIterationManager",
     "IterationStrategy",
     "ResourceAwareIterator",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """High-level iterative response generation utilities."""
 
-from typing import Any, List
+from typing import Any, List, Tuple
 import time
 
 from src.monitoring.metrics_monitor import MetricsMonitor
@@ -16,6 +16,8 @@ from src.interaction.personality_adapter import (
 )
 from src.quality import GrammarIssue
 from src.plugins import PluginManager
+
+from .story_wave_generator import generate_waves
 
 from .draft_generator import DraftGenerator
 from .gap_analyzer import GapAnalyzer, KnowledgeGap
@@ -78,13 +80,32 @@ class IterativeGenerator:
         self.personality_adapter = personality_adapter or PersonalityAdapter()
 
     # ------------------------------------------------------------------
-    def generate_response(self, query: str, context: Any) -> str:
-        """Return a refined response for ``query`` within ``context``."""
+    def generate_response(
+        self,
+        query: str,
+        context: Any,
+        *,
+        wave_index: int = 0,
+        num_waves: int = 3,
+    ) -> Tuple[str, List[str]]:
+        """Return a refined response and available waves.
+
+        ``wave_index`` selects which wave to iterate on.  All generated waves
+        are returned alongside the final response so callers can present
+        alternatives to users.
+        """
 
         start_time = time.perf_counter()
         draft = self.draft_generator.generate_draft(query, context)
+        waves = generate_waves(draft, num_waves)
         if self.plugin_manager:
             self.plugin_manager.on_draft(draft, context)
+
+        # Use selected wave as starting draft
+        if 0 <= wave_index < len(waves):
+            draft = waves[wave_index]
+        else:  # pragma: no cover - defensive
+            draft = waves[0]
 
         if hasattr(self.iteration_controller, "reset"):
             self.iteration_controller.reset()
@@ -165,7 +186,8 @@ class IterativeGenerator:
             )
             self.metrics_monitor.log_quality_metrics(final_quality=final_quality)
 
-        return f"[{style}] {response}"
+        final_response = f"[{style}] {response}"
+        return final_response, waves
 
 
 __all__ = ["IterativeGenerator"]

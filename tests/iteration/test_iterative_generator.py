@@ -42,9 +42,10 @@ def test_iterative_generator_resolves_gap_and_stops():
         iteration_controller=controller,
     )
 
-    result = generator.generate_response("question", {})
+    result, waves = generator.generate_response("question", {})
 
     assert result == "[confident_but_open] draft resolved"
+    assert waves[0].startswith("draft")
     assert generator.deep_searcher.queries == ["info"]
 
 
