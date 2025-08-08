@@ -6,6 +6,7 @@ from typing import Any, List
 import time
 
 from src.monitoring.metrics_monitor import MetricsMonitor
+from src.monitoring.iteration_logger import IterationLogger
 
 from src.utils.source_manager import SourceManager
 from src.interaction.mode_controller import HiddenSourcesMode, ResponseMode
@@ -46,6 +47,7 @@ class IterativeGenerator:
         mode: ResponseMode | None = None,
         resource_manager: ResourceManager | None = None,
         metrics_monitor: MetricsMonitor | None = None,
+        iteration_logger: IterationLogger | None = None,
         plugin_manager: PluginManager | None = None,
     ) -> None:
         self.draft_generator = draft_generator or DraftGenerator()
@@ -66,6 +68,7 @@ class IterativeGenerator:
         self.source_manager = source_manager or SourceManager()
         self.mode = mode or HiddenSourcesMode()
         self.metrics_monitor = metrics_monitor
+        self.iteration_logger = iteration_logger
         self.plugin_manager = plugin_manager or PluginManager()
 
     # ------------------------------------------------------------------
@@ -111,6 +114,15 @@ class IterativeGenerator:
                 draft = result
                 rules_refs = []
             iterations += 1
+
+            if self.iteration_logger:
+                self.iteration_logger.log_iteration(
+                    iterations,
+                    draft,
+                    gaps,
+                    search_results,
+                    result,
+                )
 
         sources = self.source_manager.all()
         style = adapt_response_style(context, iterations)
