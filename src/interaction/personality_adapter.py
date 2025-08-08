@@ -54,17 +54,18 @@ class PersonalityAdapter:
     def format_rules(self, issues: Iterable[GrammarIssue]) -> List[str]:
         """Return formatted references for ``issues``.
 
-        Each rule is rendered as ``"см. правило §<rule_id>"``. If
+        ``issue.ref`` is used for the visible rule reference while
+        ``issue.rule_id`` is kept for internal identification. If
         :attr:`explain_rules` is ``True`` and a suggestion is available, it is
-        appended after the rule identifier.
+        appended after the reference.
         """
 
         refs: List[str] = []
         for issue in issues:
-            ref = f"см. правило §{issue.rule_id}"
+            ref_text = f"см. {issue.ref}" if issue.ref else f"см. правило §{issue.rule_id}"
             if self.explain_rules and issue.suggestion:
-                ref = f"{ref}: {issue.suggestion}"
-            refs.append(ref)
+                ref_text = f"{ref_text}: {issue.suggestion}"
+            refs.append(ref_text)
         return refs
 
 
