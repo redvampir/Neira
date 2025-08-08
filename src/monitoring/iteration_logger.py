@@ -35,6 +35,7 @@ class IterationLogger:
         gaps: Any,
         sources: Any,
         enhancements: Any,
+        resource_metrics: Any | None = None,
     ) -> None:
         """Record details for a single iteration.
 
@@ -50,6 +51,8 @@ class IterationLogger:
             Sources retrieved to address the gaps.
         enhancements:
             Result returned by the response enhancer.
+        resource_metrics:
+            Optional resource usage metrics for this iteration.
         """
 
         run_dir = self.log_dir / self.run_id
@@ -61,6 +64,8 @@ class IterationLogger:
             "sources": _serialize(sources),
             "enhancements": _serialize(enhancements),
         }
+        if resource_metrics is not None:
+            entry["resource_metrics"] = _serialize(resource_metrics)
         file_path = run_dir / f"iteration_{iter_idx}.json"
         with file_path.open("w", encoding="utf-8") as fh:
             json.dump(entry, fh, ensure_ascii=False, indent=2)

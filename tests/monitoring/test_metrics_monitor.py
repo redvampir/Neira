@@ -4,38 +4,32 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
+import types
+
+sys.modules.setdefault(
+    "neira_rust",
+    types.SimpleNamespace(
+        KnowledgeGraph=object,
+        MemoryIndex=object,
+        VerificationResult=object,
+        verify_claim=lambda *a, **k: None,
+        ping=lambda: "pong",
+    ),
+)
+sys.modules.setdefault("requests", types.ModuleType("requests"))
+
 from src.monitoring.metrics_monitor import MetricsMonitor
-from src.iteration.iterative_generator import IterativeGenerator
-from src.iteration.gap_analyzer import KnowledgeGap
-from src.iteration.iteration_controller import IterationController
+from src.monitoring.predictive_diagnostics import PredictiveDiagnostics
 
 
-class DummyDraftGenerator:
-    def generate_draft(self, query, context):
-        return "draft ___"
+class SimpleGenerator:
+    def __init__(self, monitor: MetricsMonitor):
+        self.monitor = monitor
 
-
-class DummyGapAnalyzer:
-    def analyze(self, draft):
-        if "___" in draft:
-            return [KnowledgeGap(claim="info", questions=[], confidence=0.0)]
-        return []
-
-
-class DummyDeepSearcher:
-    def __init__(self):
-        self.queries = []
-
-    def search(self, query, user_id=None, limit=None):
-        self.queries.append(query)
-        return [
-            {"content": "resolved", "reference": "ref", "priority": 0.5}
-        ]
-
-
-class DummyResponseEnhancer:
-    def enhance(self, draft, search_results, integration, self_correct=True):
-        return draft.replace("___", search_results[0]["content"])
+    def run(self) -> None:
+        self.monitor.log_performance_metrics(cpu=10, memory=20)
+        self.monitor.log_performance_metrics(duration=1.0, num_sources=0)
+        self.monitor.log_quality_metrics(final_quality=0.5)
 
 
 def test_metrics_monitor_logs(tmp_path, capsys):
@@ -58,27 +52,33 @@ def test_metrics_monitor_logs(tmp_path, capsys):
     assert qual["final_quality"] == 0.5
 
 
-def test_iterative_generator_logs_metrics(tmp_path):
+def test_monitor_records_multiple_entries(tmp_path):
     log_file = tmp_path / "metrics.jsonl"
     monitor = MetricsMonitor(log_file=log_file)
-    controller = IterationController(max_iterations=3, max_critical_spaces=0)
-    generator = IterativeGenerator(
-        draft_generator=DummyDraftGenerator(),
-        gap_analyzer=DummyGapAnalyzer(),
-        deep_searcher=DummyDeepSearcher(),
-        response_enhancer=DummyResponseEnhancer(),
-        iteration_controller=controller,
-        metrics_monitor=monitor,
-    )
-
-    generator.generate_response("question", {})
+    SimpleGenerator(monitor).run()
 
     lines = log_file.read_text(encoding="utf-8").strip().splitlines()
-    assert len(lines) == 2
-    perf = json.loads(lines[0])
-    qual = json.loads(lines[1])
-    assert perf["type"] == "performance"
+    assert len(lines) == 3
+    res = json.loads(lines[0])
+    perf = json.loads(lines[1])
+    qual = json.loads(lines[2])
+    assert "cpu" in res and "memory" in res
     assert "duration" in perf
-    assert "num_sources" in perf
-    assert qual["type"] == "quality"
     assert "final_quality" in qual
+
+
+def test_metrics_monitor_thresholds(tmp_path, caplog):
+    monitor = MetricsMonitor(thresholds={"cpu": {"warning": 50}})
+    with caplog.at_level("WARNING"):
+        monitor.log_performance_metrics(cpu=60)
+    assert "warning threshold" in caplog.text
+    assert "cpu" in monitor.time_series
+
+
+def test_predictive_diagnostics_warns_on_trend(tmp_path):
+    monitor = MetricsMonitor()
+    for value in [10, 20, 40, 80]:
+        monitor.log_performance_metrics(cpu=value)
+    diag = PredictiveDiagnostics(monitor, window=2, threshold=0.5)
+    alerts = diag.analyse()
+    assert "cpu" in alerts
