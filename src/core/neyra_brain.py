@@ -21,6 +21,9 @@ from src.analysis import (
     UncertaintyManager,
     PostProcessor,
     POST_PROCESSOR_REGISTRY,
+    CandidateGenerator,
+    CandidateSelector,
+    run_post_processors,
 )
 from types import SimpleNamespace
 
@@ -71,6 +74,10 @@ class Neyra:
         self.last_draft: str = ""
         self.verification_system = VerificationSystem()
         self.uncertainty_manager = UncertaintyManager()
+        self.candidate_generator = CandidateGenerator(
+            self.llm, "Переформулируй ответ: {prompt}", num_candidates=3
+        )
+        self.candidate_selector = CandidateSelector(self.verification_system)
         self.gap_analyzer = GapAnalyzer(self.verification_system, self.uncertainty_manager)
         if DeepSearcher:
             self.deep_searcher = DeepSearcher(
@@ -378,10 +385,14 @@ class Neyra:
                 break
             iteration += 1
         if not skip_check:
-            for processor in self.post_processors:
-                response, corrections = processor.process(response)
-                if corrections:
-                    all_corrections.extend(corrections)
+            response, corrections = run_post_processors(
+                response,
+                self.post_processors,
+                candidate_generator=self.candidate_generator,
+                candidate_selector=self.candidate_selector,
+            )
+            if corrections:
+                all_corrections.extend(corrections)
         update_progress("finished", iteration)
         self.logger.info("Iterative response finished at iteration %s", iteration)
         self.iteration_controller._iterations = iteration
