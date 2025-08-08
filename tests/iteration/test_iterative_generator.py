@@ -1,6 +1,7 @@
 from src.iteration.iterative_generator import IterativeGenerator
 from src.iteration.gap_analyzer import KnowledgeGap
 from src.iteration.iteration_controller import IterationController
+from src.utils.source_manager import SourceManager
 
 
 class DummyDraftGenerator:
@@ -21,7 +22,9 @@ class DummyDeepSearcher:
 
     def search(self, query, user_id=None, limit=None):
         self.queries.append(query)
-        return [{"content": "resolved"}]
+        return [
+            {"content": "resolved", "reference": "ref", "priority": 0.5}
+        ]
 
 
 class DummyResponseEnhancer:
@@ -43,3 +46,23 @@ def test_iterative_generator_resolves_gap_and_stops():
 
     assert result == "[confident_but_open] draft resolved"
     assert generator.deep_searcher.queries == ["info"]
+
+
+def test_sources_are_registered() -> None:
+    controller = IterationController(max_iterations=3, max_critical_spaces=0)
+    source_manager = SourceManager()
+    generator = IterativeGenerator(
+        draft_generator=DummyDraftGenerator(),
+        gap_analyzer=DummyGapAnalyzer(),
+        deep_searcher=DummyDeepSearcher(),
+        response_enhancer=DummyResponseEnhancer(),
+        iteration_controller=controller,
+        source_manager=source_manager,
+    )
+
+    generator.generate_response("question", {})
+    sources = source_manager.all()
+    assert len(sources) == 1
+    assert sources[0].summary == "resolved"
+    assert sources[0].path == "ref"
+    assert sources[0].reliability == 0.5

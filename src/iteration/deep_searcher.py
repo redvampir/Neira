@@ -172,6 +172,7 @@ class DeepSearcher:
                     try:
                         for item in future.result():
                             item.setdefault("source", plugin.__class__.__name__)
+                            item.setdefault("reference", plugin.__class__.__name__)
                             item.setdefault("priority", 0.0)
                             results.append(item)
                     except Exception:
@@ -181,6 +182,7 @@ class DeepSearcher:
                 try:
                     for item in plugin.search(query, limit):
                         item.setdefault("source", plugin.__class__.__name__)
+                        item.setdefault("reference", plugin.__class__.__name__)
                         item.setdefault("priority", 0.0)
                         results.append(item)
                 except Exception:

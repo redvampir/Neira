@@ -26,7 +26,9 @@ def test_iteration_pipeline_order(monkeypatch):
 
     def fake_search(query, user_id=None, limit=5):
         calls.append("search")
-        return [{"content": "info"}]
+        return [
+            {"content": "info", "reference": "ref", "priority": 0.5}
+        ]
 
     monkeypatch.setattr(neyra.deep_searcher, "search", fake_search)
 
