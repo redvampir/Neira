@@ -1,0 +1,5 @@
+{
+  "type": "scoreboard",
+  "columns": ["player", "score"],
+  "entries": []
+}

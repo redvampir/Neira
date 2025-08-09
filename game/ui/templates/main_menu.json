@@ -1,0 +1,9 @@
+{
+  "type": "menu",
+  "title": "Main Menu",
+  "buttons": [
+    {"label": "Start", "action": "start_game"},
+    {"label": "Options", "action": "open_options"},
+    {"label": "Quit", "action": "quit_game"}
+  ]
+}
