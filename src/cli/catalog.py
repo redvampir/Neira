@@ -1,4 +1,8 @@
-"""Command line helper for interacting with :class:`IdeaCatalog`."""
+"""Command line helper for interacting with :class:`IdeaCatalog`.
+
+The catalog persists changes automatically, so commands like ``add`` and
+``delete`` save their results immediately.
+"""
 
 from __future__ import annotations
 
@@ -33,14 +37,12 @@ def main(argv: Sequence[str] | None = None) -> None:
             print(f"{key}: {val}")
     elif args.cmd == "add":
         catalog.add(args.key, args.text)
-        catalog.save()
     elif args.cmd == "show":
         value = catalog.get(args.key)
         if value is not None:
             print(value)
     elif args.cmd == "delete":
         catalog.delete(args.key)
-        catalog.save()
     else:  # pragma: no cover - argparse already prints help
         parser.print_help()
 

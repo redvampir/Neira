@@ -3,9 +3,9 @@ from __future__ import annotations
 """Simple persistent catalog for storing reusable ideas or snippets.
 
 The catalog acts as a key/value store backed by ``data/idea_catalog.json``.
-Entries are stored as ``{"id": "text"}`` mappings and can be
-created, retrieved, updated and deleted.  All operations modify the in-memory
-representation; :meth:`save` persists the catalog to disk.
+Entries are stored as ``{"id": "text"}`` mappings and can be created,
+retrieved, updated and deleted.  Mutating operations persist the catalog
+to disk immediately so the JSON file always reflects the current state.
 """
 
 from pathlib import Path
@@ -33,8 +33,9 @@ class IdeaCatalog:
 
     # CRUD operations ---------------------------------------------------
     def add(self, key: str, value: Any) -> None:
-        """Store ``value`` under ``key``."""
+        """Store ``value`` under ``key`` and save to disk."""
         self._data[key] = value
+        self.save()
 
     def get(self, key: str | None = None) -> Any:
         """Retrieve an entry by ``key`` or return the whole catalog."""
@@ -43,12 +44,14 @@ class IdeaCatalog:
         return self._data.get(key)
 
     def update(self, key: str, value: Any) -> None:
-        """Update ``key`` with ``value``.  Missing keys create new entries."""
+        """Update ``key`` with ``value`` and persist the change."""
         self._data[key] = value
+        self.save()
 
     def delete(self, key: str) -> None:
-        """Remove ``key`` from the catalog if present."""
+        """Remove ``key`` from the catalog if present and save."""
         self._data.pop(key, None)
+        self.save()
 
     # ------------------------------------------------------------------
     def save(self) -> None:
