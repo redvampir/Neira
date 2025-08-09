@@ -38,3 +38,4 @@ whoosh>=2.7.4
 # Notifications
 plyer>=2.1.0
 networkx>=3.0
+javalang>=0.13.0
