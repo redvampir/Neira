@@ -19,4 +19,16 @@ except Exception:  # pragma: no cover - gracefully degrade when deps missing
 
 from .translation_panel import TranslationPanel
 
-__all__ = ["LSPClient", "ProfilerPanel", "TranslationPanel"]
+try:  # pragma: no cover - optional dependency
+    from .git_ui import GitUI, ConflictWindow
+except Exception:  # pragma: no cover - gracefully degrade when deps missing
+    GitUI = None  # type: ignore[assignment]
+    ConflictWindow = None  # type: ignore[assignment]
+
+__all__ = [
+    "LSPClient",
+    "ProfilerPanel",
+    "TranslationPanel",
+    "GitUI",
+    "ConflictWindow",
+]
