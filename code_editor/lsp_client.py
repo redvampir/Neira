@@ -19,17 +19,37 @@ from queue import Empty, Queue
 from typing import Any, Dict, List, Optional
 
 
+# Built-in defaults for a few common language servers.  The mapping is small on
+# purpose – the real project uses a much richer configuration system, but the
+# tests only exercise these entries.
+DEFAULT_SERVERS: Dict[str, List[str]] = {
+    "python": ["pylsp"],
+    # The JavaScript "vscode-*-languageserver" packages expose a ``--stdio``
+    # flag which makes them compatible with the tiny client implemented here.
+    "html": ["vscode-html-language-server", "--stdio"],
+    "css": ["vscode-css-language-server", "--stdio"],
+}
+
+
 @dataclass
 class LSPClient:
     """Basic LSP client speaking the ``stdio`` transport."""
 
-    server_command: List[str] = field(default_factory=lambda: ["pylsp"])
+    language: str = "python"
+    server_command: List[str] = field(default_factory=list)
     root_uri: str = field(default_factory=lambda: Path.cwd().as_uri())
 
     _process: Optional[subprocess.Popen] = field(init=False, default=None)
     _recv_queue: "Queue[str]" = field(init=False, default_factory=Queue)
     _reader_thread: Optional[threading.Thread] = field(init=False, default=None)
     _id: int = field(init=False, default=0)
+
+    # ------------------------------------------------------------------
+    def __post_init__(self) -> None:
+        """Populate :attr:`server_command` when not provided explicitly."""
+
+        if not self.server_command:
+            self.server_command = DEFAULT_SERVERS.get(self.language, ["pylsp"])
 
     # ------------------------------------------------------------------
     def start(self) -> None:
