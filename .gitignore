@@ -19,6 +19,7 @@ logs/*
 !logs/.gitkeep
 !logs/developer_requests.md
 *.log
+!userdata/notifications.log
 
 # Test and coverage outputs
 .pytest_cache/
