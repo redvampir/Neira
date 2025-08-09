@@ -21,7 +21,10 @@ import subprocess
 import sys
 from typing import Any, Optional, Tuple
 
-from src.llm.manager import LLMManager, Task
+try:  # pragma: no cover - optional dependency
+    from src.llm.manager import LLMManager, Task
+except Exception:  # pragma: no cover - allow running without full LLM stack
+    LLMManager = Task = None  # type: ignore[assignment]
 
 
 class NeyraTextEditor:  # pragma: no cover - GUI stub
@@ -78,14 +81,33 @@ class NeyraTextEditor:  # pragma: no cover - GUI stub
         return None
 
     # ------------------------------------------------------------------
-    def highlight_syntax(self, code: str) -> str:
-        """Return ``code`` with Python keywords wrapped in ``<kw>`` tags.
+    def highlight_syntax(self, code: str, language: str | None = None) -> str:
+        """Return ``code`` with simple ``<kw>`` based highlighting.
 
-        The implementation is intentionally tiny – it is not a full syntax
-        highlighter but suffices for tests and showcases how the real editor
-        would provide highlighted output for display in the GUI.
+        The real application uses a fully fledged syntax highlighter.  For the
+        purposes of the tests we provide a tiny implementation that recognises
+        a handful of constructs for a couple of languages.  ``language`` can be
+        passed explicitly; when omitted the function performs a very small
+        heuristic to guess between Python, HTML and CSS snippets.
         """
 
+        if language is None:
+            # extremely small language guesser – good enough for the unit tests
+            if "<" in code and ">" in code:
+                language = "html"
+            elif "{" in code and "}" in code and ":" in code and "def " not in code:
+                language = "css"
+            else:
+                language = "python"
+
+        if language == "html":
+            # Wrap HTML tags, e.g. ``<div>`` -> ``<kw><div></kw>``
+            return re.sub(r"(<[^>]+>)", r"<kw>\1</kw>", code)
+        if language == "css":
+            # Highlight CSS property names before ``:``
+            return re.sub(r"([a-zA-Z-]+)(?=\s*:)", r"<kw>\1</kw>", code)
+
+        # Default Python highlighting
         keywords = "|".join(sorted(__import__("keyword").kwlist))
         pattern = re.compile(rf"\b({keywords})\b")
         return pattern.sub(r"<kw>\1</kw>", code)
