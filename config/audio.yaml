@@ -1,0 +1,14 @@
+# Configuration for the SoundEngine.
+#
+# mode: assets | generation | hybrid
+mode: assets
+
+# Optional path to audio assets. Defaults to assets/audio relative to the
+# project base directory.
+# asset_dir: assets/audio
+
+# Settings for an external generative service. These values are not used by
+# default but can be consumed by a custom ``generative_service`` callback.
+generation:
+  endpoint: http://localhost:8000/generate
+  timeout: 10
