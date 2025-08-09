@@ -67,10 +67,26 @@ def main() -> None:
             print("Добавьте .txt файлы в папку data/books/ и я их изучу!")
             
         print("\n💫 Нейра готова к работе! Используйте теги для общения.")
-        # По умолчанию запускаем интерактивный режим с поддержкой чата.
-        # Диалоговый контроллер оставляем для обратной совместимости.
-        chat = ChatSession(neyra)
-        chat.chat_loop()
+
+        # Простое меню для запуска чата или режима обучения
+        while True:
+            print("\nГлавное меню:")
+            print("1. Чат")
+            print("2. Обучение")
+            print("0. Выход")
+            choice = input("Выберите пункт: ").strip()
+
+            if choice == "1":
+                chat = ChatSession(neyra)
+                chat.chat_loop()
+            elif choice == "2":
+                from modes.tutorial import Tutorial
+
+                Tutorial().run()
+            elif choice == "0":
+                break
+            else:
+                print("Неизвестный пункт меню")
         
     except Exception as e:  # pylint: disable=broad-except
         logger.error(f"Ошибка при пробуждении Нейры: {e}")
