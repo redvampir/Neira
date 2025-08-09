@@ -90,6 +90,11 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover - dependency missing
     ScalaParser = None  # type: ignore
 
+try:  # pragma: no cover - optional dependency
+    from .matlab_parser import MatlabParser  # type: ignore
+except Exception:  # pragma: no cover - dependency missing
+    MatlabParser = None  # type: ignore
+
 __all__ = ["LanguageParser", "utils"]
 if PythonParser is not None:
     __all__.append("PythonParser")
@@ -125,3 +130,5 @@ if ScalaParser is not None:
     __all__.append("ScalaParser")
 if RParser is not None:
     __all__.append("RParser")
+if MatlabParser is not None:
+    __all__.append("MatlabParser")
