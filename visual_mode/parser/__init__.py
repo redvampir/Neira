@@ -40,6 +40,11 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover - dependency missing
     TypeScriptParser = None  # type: ignore
 
+try:  # pragma: no cover - optional dependency
+    from .go_parser import GoParser  # type: ignore
+except Exception:  # pragma: no cover - dependency missing
+    GoParser = None  # type: ignore
+
 __all__ = ["LanguageParser", "utils"]
 if PythonParser is not None:
     __all__.append("PythonParser")
@@ -55,3 +60,5 @@ if JavaScriptParser is not None:
     __all__.append("JavaScriptParser")
 if TypeScriptParser is not None:
     __all__.append("TypeScriptParser")
+if GoParser is not None:
+    __all__.append("GoParser")
