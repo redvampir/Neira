@@ -30,6 +30,11 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover - dependency missing
     CSharpParser = None  # type: ignore
 
+try:  # pragma: no cover - optional dependency
+    from .javascript_parser import JavaScriptParser  # type: ignore
+except Exception:  # pragma: no cover - dependency missing
+    JavaScriptParser = None  # type: ignore
+
 __all__ = ["LanguageParser", "utils"]
 if PythonParser is not None:
     __all__.append("PythonParser")
@@ -41,3 +46,5 @@ if CppParser is not None:
     __all__.append("CppParser")
 if CSharpParser is not None:
     __all__.append("CSharpParser")
+if JavaScriptParser is not None:
+    __all__.append("JavaScriptParser")
