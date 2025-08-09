@@ -76,6 +76,11 @@ except Exception:  # pragma: no cover - dependency missing
     SwiftParser = None  # type: ignore
 
 try:  # pragma: no cover - optional dependency
+    from .r_parser import RParser  # type: ignore
+except Exception:  # pragma: no cover - dependency missing
+    RParser = None  # type: ignore
+
+try:  # pragma: no cover - optional dependency
     from .scala_parser import ScalaParser  # type: ignore
 except Exception:  # pragma: no cover - dependency missing
     ScalaParser = None  # type: ignore
@@ -111,3 +116,5 @@ if SwiftParser is not None:
     __all__.append("SwiftParser")
 if ScalaParser is not None:
     __all__.append("ScalaParser")
+if RParser is not None:
+    __all__.append("RParser")
