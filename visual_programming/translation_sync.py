@@ -21,6 +21,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from src.translation.manager import TranslationManager
+from src.translation.profiles import (
+    get_active_profile,
+    set_active_profile,
+)
 
 
 NEYRA_RE = re.compile(r"@neyra:(?:visual_block|var) id=\"(?P<id>[^\"]+)\" display=\"(?P<display>[^\"]+)\"")
@@ -41,6 +45,24 @@ class TranslationSync:
 
     lang: str = "en"
     manager: TranslationManager = field(default_factory=TranslationManager)
+    profile_name: str = ""
+
+    def __post_init__(self) -> None:  # pragma: no cover - simple delegation
+        self.load_profile()
+
+    # ------------------------------------------------------------------ Profile management
+    def load_profile(self) -> None:
+        """Refresh the manager dictionary from the active profile."""
+
+        profile = get_active_profile()
+        self.profile_name = profile.name
+        self.manager.dictionary = dict(profile.dictionary)
+
+    def select_profile(self, name: str) -> None:
+        """Set ``name`` as the active profile."""
+
+        set_active_profile(name)
+        self.load_profile()
 
     # ------------------------------------------------------------------ Graph ↔ Code
     def sync(self, code: str, graph: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
@@ -57,11 +79,11 @@ class TranslationSync:
         """
 
         # Update code comments from graph nodes ------------------------- Graph → Code
-        dictionary = {
-            node["id"]: node.get("display", "")
-            for node in graph.get("nodes", [])
-            if node.get("id") and node.get("display")
-        }
+        profile = get_active_profile()
+        dictionary = dict(profile.dictionary) if profile else {}
+        for node in graph.get("nodes", []):
+            if node.get("id") and node.get("display"):
+                dictionary[node["id"]] = node.get("display", "")
         self.manager.dictionary = dictionary
         code = self.manager.annotate_source(code, self.lang)
 
