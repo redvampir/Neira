@@ -19,6 +19,7 @@ import inspect
 from typing import Callable, Dict, Iterable, List, Tuple
 
 from help.context_helper import helper
+from ui import hotkey_manager
 
 try:  # pragma: no cover - optional dependency
     from prompt_toolkit import PromptSession
@@ -58,21 +59,36 @@ CommandFunc = Callable[..., object]
 # Global command registry -------------------------------------------------------
 _registry: Dict[str, CommandFunc] = {}
 
-# Hint explaining the purpose of this UI element
+# Hint explaining the purpose of this UI element including its shortcut
 helper.register_hint(
     "command_palette",
-    "Палитра команд: ищите и запускайте действия. Нажмите F1 для подсказок.",
+    "Палитра команд (Ctrl+Shift+P): ищите и запускайте действия. Нажмите F1 для подсказок.",
 )
+hotkey_manager.register_hotkey("command_palette", "c-S-p")
 
 
-def register_command(name: str, func: CommandFunc) -> None:
+def register_command(name: str, func: CommandFunc, hotkey: str | None = None) -> None:
     """Register a callable under ``name``.
+
+    Parameters
+    ----------
+    name:
+        Identifier for the command.
+    func:
+        Callable to execute.
+    hotkey:
+        Optional keyboard shortcut hint which will be forwarded to
+        :mod:`ui.hotkey_manager` for inclusion in exported schemes and
+        displayed in F1 help.
 
     Plugins can call this during import to expose new commands in the
     palette.
     """
 
     _registry[name] = func
+    if hotkey:
+        hotkey_manager.register_hotkey(name, hotkey)
+        helper.register_hint(f"command:{name}", f"{name} — {hotkey}")
 
 
 # Command palette implementation ----------------------------------------------
