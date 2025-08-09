@@ -42,6 +42,11 @@ try:  # pragma: no cover - optional dependency
 except Exception:  # pragma: no cover
     SettingsWindow = None  # type: ignore[assignment]
 
+try:  # pragma: no cover - optional dependency
+    from .layout_editor import LayoutEditor
+except Exception:  # pragma: no cover
+    LayoutEditor = None  # type: ignore[assignment]
+
 __all__ = [
     "NeyraMainWindow",
     "BookManager",
@@ -50,4 +55,5 @@ __all__ = [
     "MemoryViewer",
     "TagAssistant",
     "SettingsWindow",
+    "LayoutEditor",
 ]
