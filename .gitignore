@@ -45,3 +45,7 @@ data/cache/*
 !data/cache/.gitkeep
 data/models/*
 !data/models/.gitkeep
+
+# Kotlin parser artifacts
+visual_mode/parser/_kotlin_parser_helper.jar
+visual_mode/parser/kotlinc/
