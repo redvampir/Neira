@@ -56,6 +56,11 @@ except Exception:  # pragma: no cover - dependency missing
     GoParser = None  # type: ignore
 
 try:  # pragma: no cover - optional dependency
+    from .haskell_parser import HaskellParser  # type: ignore
+except Exception:  # pragma: no cover - dependency missing
+    HaskellParser = None  # type: ignore
+
+try:  # pragma: no cover - optional dependency
     from .rust_parser import RustParser  # type: ignore
 except Exception:  # pragma: no cover - dependency missing
     RustParser = None  # type: ignore
@@ -96,6 +101,8 @@ if TypeScriptParser is not None:
     __all__.append("TypeScriptParser")
 if GoParser is not None:
     __all__.append("GoParser")
+if HaskellParser is not None:
+    __all__.append("HaskellParser")
 if RustParser is not None:
     __all__.append("RustParser")
 if RubyParser is not None:
