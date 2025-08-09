@@ -1,0 +1,8 @@
+{
+  "type": "hud",
+  "elements": [
+    {"id": "health", "type": "bar", "max": 100},
+    {"id": "mana", "type": "bar", "max": 100},
+    {"id": "inventory", "type": "list"}
+  ]
+}
