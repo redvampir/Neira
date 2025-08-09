@@ -1,0 +1,4 @@
+# Configuration for the lightweight code editor
+# Set ``auto_update`` to true to automatically insert placeholder comments
+# when using localization tools.
+auto_update: true
