@@ -17,6 +17,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
 
+from src.translation.profiles import (
+    get_active_profile,
+    set_active_profile,
+)
+
 try:  # pragma: no cover - optional dependency
     import yaml
 except Exception:  # pragma: no cover - fallback when PyYAML is missing
@@ -65,7 +70,15 @@ class TranslationPanel:
     templates: List[str] = field(
         default_factory=lambda: ["@neyra:todo", "@neyra:fix", "@neyra:note"]
     )
-    auto_update: bool = field(default_factory=lambda: _load_config().get("auto_update", False))
+    auto_update: bool = field(
+        default_factory=lambda: _load_config().get("auto_update", False)
+    )
+    dictionary: Dict[str, str] = field(
+        default_factory=lambda: dict(get_active_profile().dictionary)
+    )
+    profile_name: str = field(
+        default_factory=lambda: get_active_profile().name
+    )
 
     # ------------------------------------------------------------------
     def highlight_uncommented(self, text: str) -> List[int]:
@@ -103,10 +116,12 @@ class TranslationPanel:
         if trigger != "ctrl_enter":
             return {}
 
-        # The "translation" is intentionally naive – it simply reverses the
-        # string.  The goal is to have deterministic behaviour for tests
-        # without pulling in heavy NLP dependencies.
-        translation = text[::-1]
+        translation = self.dictionary.get(text)
+        if translation is None:
+            # The fallback "translation" is intentionally naive – it simply
+            # reverses the string.  The goal is to have deterministic behaviour
+            # for tests without pulling in heavy NLP dependencies.
+            translation = text[::-1]
         return {"translation": translation, "templates": list(self.templates)}
 
     # ------------------------------------------------------------------
@@ -140,6 +155,15 @@ class TranslationPanel:
                     new_lines.append(line)
             updated[name] = "\n".join(new_lines)
         return updated
+
+    # ------------------------------------------------------------------ Profile management
+    def select_profile(self, name: str) -> None:
+        """Switch to another translation profile."""
+
+        set_active_profile(name)
+        profile = get_active_profile()
+        self.dictionary = dict(profile.dictionary)
+        self.profile_name = profile.name
 
 
 # ---------------------------------------------------------------------------
