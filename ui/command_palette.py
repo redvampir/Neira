@@ -18,6 +18,8 @@ from dataclasses import dataclass
 import inspect
 from typing import Callable, Dict, Iterable, List, Tuple
 
+from help.context_helper import helper
+
 try:  # pragma: no cover - optional dependency
     from prompt_toolkit import PromptSession
     from prompt_toolkit.completion import FuzzyWordCompleter
@@ -56,6 +58,12 @@ CommandFunc = Callable[..., object]
 # Global command registry -------------------------------------------------------
 _registry: Dict[str, CommandFunc] = {}
 
+# Hint explaining the purpose of this UI element
+helper.register_hint(
+    "command_palette",
+    "Палитра команд: ищите и запускайте действия. Нажмите F1 для подсказок.",
+)
+
 
 def register_command(name: str, func: CommandFunc) -> None:
     """Register a callable under ``name``.
@@ -82,6 +90,9 @@ class CommandPalette:
         @self.key_bindings.add("c-S-p")
         def _activate(event) -> None:  # pragma: no cover - interactive
             self.activate()
+
+        # Provide F1 help for the palette itself
+        helper.install_f1(self.key_bindings, lambda: "command_palette")
 
     # ------------------------------------------------------------------
     def search(self, query: str) -> List[Tuple[str, CommandFunc]]:
