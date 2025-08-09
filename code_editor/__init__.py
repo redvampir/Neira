@@ -29,6 +29,11 @@ except Exception:  # pragma: no cover - gracefully degrade when deps missing
     GitUI = None  # type: ignore[assignment]
     ConflictWindow = None  # type: ignore[assignment]
 
+try:  # pragma: no cover - optional dependency
+    from .collab_client import CodeEditorCollabClient
+except Exception:  # pragma: no cover - gracefully degrade when deps missing
+    CodeEditorCollabClient = None  # type: ignore[assignment]
+
 
 def context_menu_autocomplete(prefix: str, file_type: str = "python") -> List[str]:
     """Return autocomplete entries for the editor's context menu."""
@@ -47,6 +52,7 @@ __all__ = [
     "TranslationPanel",
     "GitUI",
     "ConflictWindow",
+    "CodeEditorCollabClient",
     "context_menu_autocomplete",
     "panel_autocomplete",
 ]

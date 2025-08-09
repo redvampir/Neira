@@ -10,6 +10,11 @@ from .history import History
 from .error_highlight import highlight_errors
 from .nodes.html_css import HTMLElement, CSSRule, export_html_css
 
+try:  # pragma: no cover - optional dependency
+    from .collab_client import VisualCollabClient
+except Exception:  # pragma: no cover - gracefully degrade when deps missing
+    VisualCollabClient = None  # type: ignore[assignment]
+
 
 def context_menu_autocomplete(prefix: str, file_type: str = "python") -> List[str]:
     """Return autocomplete suggestions for visual programming context menus."""
@@ -31,6 +36,7 @@ __all__ = [
     "HTMLElement",
     "CSSRule",
     "export_html_css",
+    "VisualCollabClient",
     "context_menu_autocomplete",
     "panel_autocomplete",
 ]
