@@ -3,6 +3,7 @@
 from .base import LanguageParser  # re-export for convenience
 from .python_parser import PythonParser
 from .java_parser import JavaParser
+from .c_parser import CParser
 from . import utils
 
-__all__ = ["LanguageParser", "PythonParser", "JavaParser", "utils"]
+__all__ = ["LanguageParser", "PythonParser", "JavaParser", "CParser", "utils"]
