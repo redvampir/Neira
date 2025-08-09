@@ -2,8 +2,8 @@
   "type": "menu",
   "title": "Main Menu",
   "buttons": [
-    {"label": "Start", "action": "start_game"},
-    {"label": "Options", "action": "open_options"},
-    {"label": "Quit", "action": "quit_game"}
+    {"label": "Start", "action": "start_game", "tooltip": "Ctrl+N"},
+    {"label": "Options", "action": "open_options", "tooltip": "Ctrl+O"},
+    {"label": "Quit", "action": "quit_game", "tooltip": "Ctrl+Q"}
   ]
 }
