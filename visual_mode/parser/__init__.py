@@ -31,6 +31,11 @@ except Exception:  # pragma: no cover - dependency missing
     CSharpParser = None  # type: ignore
 
 try:  # pragma: no cover - optional dependency
+    from .dart_parser import DartParser  # type: ignore
+except Exception:  # pragma: no cover - dependency missing
+    DartParser = None  # type: ignore
+
+try:  # pragma: no cover - optional dependency
     from .javascript_parser import JavaScriptParser  # type: ignore
 except Exception:  # pragma: no cover - dependency missing
     JavaScriptParser = None  # type: ignore
@@ -76,6 +81,8 @@ if CppParser is not None:
     __all__.append("CppParser")
 if CSharpParser is not None:
     __all__.append("CSharpParser")
+if DartParser is not None:
+    __all__.append("DartParser")
 if JavaScriptParser is not None:
     __all__.append("JavaScriptParser")
 if PHPParser is not None:
