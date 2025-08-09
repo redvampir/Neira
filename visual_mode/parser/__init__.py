@@ -26,6 +26,11 @@ except Exception:  # pragma: no cover - dependency missing
     CppParser = None  # type: ignore
 
 try:  # pragma: no cover - optional dependency
+    from .objc_parser import ObjCParser  # type: ignore
+except Exception:  # pragma: no cover - dependency missing
+    ObjCParser = None  # type: ignore
+
+try:  # pragma: no cover - optional dependency
     from .csharp_parser import CSharpParser  # type: ignore
 except Exception:  # pragma: no cover - dependency missing
     CSharpParser = None  # type: ignore
@@ -94,6 +99,8 @@ if CParser is not None:
     __all__.append("CParser")
 if CppParser is not None:
     __all__.append("CppParser")
+if ObjCParser is not None:
+    __all__.append("ObjCParser")
 if CSharpParser is not None:
     __all__.append("CSharpParser")
 if DartParser is not None:
