@@ -52,6 +52,21 @@ class SearchAPIClient:
             ``min_quality`` threshold for extracted facts.
         """
         self.memory = memory or MemoryIndex()
+        # Ensure ``memory`` exposes the minimal attributes used in tests.  Some
+        # lightweight implementations may not provide these, so we create them on
+        # the fly when missing.
+        if not hasattr(self.memory, "cold_storage"):
+            self.memory.cold_storage = {}
+        if not hasattr(self.memory, "source_reliability"):
+            self.memory.source_reliability = {}
+
+        if not hasattr(self.memory, "set"):
+            def _set(key: str, value: str, reliability: float = 0.5) -> None:
+                self.memory.cold_storage[key] = value
+                self.memory.source_reliability[key] = reliability
+
+            self.memory.set = _set  # type: ignore[attr-defined]
+
         self.fetcher = fetcher or self._duckduckgo_fetch
         self.session = requests.Session()
         self.allowed_domains, self.blocked_domains = self._load_domain_config(
