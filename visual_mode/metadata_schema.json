@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Neira Visual Mode Metadata",
+  "type": "object",
+  "properties": {
+    "blocks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/block" }
+    },
+    "variables": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/variable" }
+    },
+    "connections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/connection" }
+    }
+  },
+  "required": ["blocks", "variables", "connections"],
+  "$defs": {
+    "position": {
+      "type": "object",
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["line", "column"]
+    },
+    "range": {
+      "type": "object",
+      "properties": {
+        "start": { "$ref": "#/$defs/position" },
+        "end": { "$ref": "#/$defs/position" }
+      },
+      "required": ["start", "end"]
+    },
+    "i18n": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z]{2}(?:-[A-Z]{2})?$": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "block": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "display": { "type": "string" },
+        "i18n": { "$ref": "#/$defs/i18n" },
+        "category": { "type": "string" },
+        "range": { "$ref": "#/$defs/range" }
+      },
+      "required": ["id"]
+    },
+    "variable": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "display": { "type": "string" },
+        "i18n": { "$ref": "#/$defs/i18n" },
+        "category": { "type": "string" },
+        "range": { "$ref": "#/$defs/range" }
+      },
+      "required": ["id"]
+    },
+    "connection": {
+      "type": "object",
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "display": { "type": "string" },
+        "i18n": { "$ref": "#/$defs/i18n" },
+        "category": { "type": "string" }
+      },
+      "required": ["from", "to"]
+    }
+  }
+}
