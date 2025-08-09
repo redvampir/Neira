@@ -2,6 +2,7 @@
 
 from .base import LanguageParser  # re-export for convenience
 from .python_parser import PythonParser
+from .java_parser import JavaParser
 from . import utils
 
-__all__ = ["LanguageParser", "PythonParser", "utils"]
+__all__ = ["LanguageParser", "PythonParser", "JavaParser", "utils"]
