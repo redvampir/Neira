@@ -3,7 +3,7 @@
 """
 import json
 from pathlib import Path
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 from src.core.config import get_logger, settings
 from src.tags.enhanced_parser import EnhancedTagParser as TagParser, Tag
@@ -49,7 +49,7 @@ from src.monitoring import PerformanceProfiler
 class Neyra:
     """Я Нейра, и здесь моя основная логика."""
 
-    def __init__(self, config: NeyraConfig | None = None) -> None:
+    def __init__(self, config: Optional[NeyraConfig] = None) -> None:
         """Просыпаюсь и готовлю свои модули."""
         self.logger = get_logger(__name__)
         self.parser = TagParser()
@@ -165,7 +165,7 @@ class Neyra:
         self._current_user_id = value
         self._apply_memory_set(value)
 
-    def _load_llm(self) -> BaseLLM | None:
+    def _load_llm(self) -> Optional[BaseLLM]:
         """Загружаю локальную LLM при наличии конфига."""
         config_path = settings.paths.config_dir / "llm_config.json"
         if not config_path.exists():
@@ -345,7 +345,7 @@ class Neyra:
         return response
 
     def iterative_response(
-        self, query: str, strategy: IterationStrategy | None = None
+        self, query: str, strategy: Optional[IterationStrategy] = None
     ) -> Tuple[str, List[Dict[str, Any]]]:
         """Return a refined response and a list of applied corrections."""
         skip_check = "@Проверка:нет@" in query
@@ -513,22 +513,22 @@ class Neyra:
         self.world_memory.add(name, info)
         self.world_memory.save()
 
-    def get_world(self, name: str | None = None) -> Any:
+    def get_world(self, name: Optional[str] = None) -> Any:
         """Возвращаю сведения о мире."""
         return self.world_memory.get(name)
 
     def remember_style(
         self,
         style: str,
-        example: str | None = None,
-        description: str | None = None,
+        example: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> None:
         """Запоминаю стиль письма и его примеры."""
         user_id = getattr(self, "current_user_id", "default")
         self.style_memory.add(user_id, style, example=example, description=description)
         self.style_memory.save()
 
-    def get_style(self, style: str | None = None) -> Any:
+    def get_style(self, style: Optional[str] = None) -> Any:
         """Возвращаю сведения о стилях."""
         user_id = getattr(self, "current_user_id", "default")
         return self.style_memory.get_style(user_id, style)
