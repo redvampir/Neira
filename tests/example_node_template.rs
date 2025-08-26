@@ -2,7 +2,8 @@ use backend::node_template::{load_schema_from, NodeTemplate};
 use serde_json::json;
 use std::path::Path;
 
-fn main() {
+#[test]
+fn example_node_template_validates() {
     let example = json!({
         "id": "example-node",
         "analysis_type": "text",
@@ -13,16 +14,6 @@ fn main() {
     });
 
     let schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).expect("load schema");
-    let validation = schema.validate(&example);
-    match validation {
-        Ok(_) => {
-            let template: NodeTemplate = serde_json::from_value(example.clone()).expect("deserialize");
-            println!("{:?}", template);
-        }
-        Err(errors) => {
-            for error in errors {
-                eprintln!("Ошибка проверки: {error}");
-            }
-        }
-    }
+    assert!(schema.validate(&example).is_ok(), "schema validation should pass");
+    let _template: NodeTemplate = serde_json::from_value(example).expect("deserialize");
 }
