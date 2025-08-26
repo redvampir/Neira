@@ -9,7 +9,7 @@
 - [Личность Нейры](personality.md)
 - [Шаблон узла](node-template.md)
 - [Политика источников](source-policy.md)
-- [Механизм саморазвивающейся системы](self-updating-system.md)
+- [Саморазвивающаяся система](self-updating-system.md)
 - [Пример использования](usage-example.md)
 - [Практическое руководство](practical-guide.md)
 - [Глоссарий](glossary.md)
