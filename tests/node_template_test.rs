@@ -1,24 +1,23 @@
-use backend::node_template::{NodeTemplate, load_schema, load_schema_from};
+use backend::node_template::{load_schema, load_schema_from, validate_template, NodeTemplate};
 use serde_json::json;
 use std::path::Path;
 
 #[test]
 fn valid_template_is_accepted() {
-    let schema = load_schema();
     let value = json!({
         "id": "valid-node",
         "analysis_type": "text",
         "links": ["a", "b"],
         "confidence_threshold": 0.5,
-        "metadata": {"schema": "1.0"}
+        "metadata": {"schema": "1.0.0"}
     });
-    assert!(schema.validate(&value).is_ok(), "schema validation should pass");
+    assert!(validate_template(&value).is_ok(), "schema validation should pass");
     let _template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
 }
 
 #[test]
 fn missing_required_fields_are_rejected() {
-    let schema = load_schema();
+    let schema = load_schema("1.0.0").expect("load schema");
     let value = json!({
         "links": [],
         "metadata": {}
@@ -29,12 +28,12 @@ fn missing_required_fields_are_rejected() {
 
 #[test]
 fn invalid_links_type_fails() {
-    let schema = load_schema();
+    let schema = load_schema("1.0.0").expect("load schema");
     let value = json!({
         "id": "node",
         "analysis_type": "text",
         "links": "not-an-array",
-        "metadata": {"schema": "1.0"}
+        "metadata": {"schema": "1.0.0"}
     });
     assert!(schema.validate(&value).is_err(), "schema validation should fail");
     assert!(serde_json::from_value::<NodeTemplate>(value).is_err(), "deserialization should fail");
@@ -42,12 +41,12 @@ fn invalid_links_type_fails() {
 
 #[test]
 fn invalid_confidence_threshold_type_fails() {
-    let schema = load_schema();
+    let schema = load_schema("1.0.0").expect("load schema");
     let value = json!({
         "id": "node",
         "analysis_type": "text",
         "confidence_threshold": "high",
-        "metadata": {"schema": "1.0"}
+        "metadata": {"schema": "1.0.0"}
     });
     assert!(schema.validate(&value).is_err(), "schema validation should fail");
     assert!(serde_json::from_value::<NodeTemplate>(value).is_err(), "deserialization should fail");
@@ -55,11 +54,11 @@ fn invalid_confidence_threshold_type_fails() {
 
 #[test]
 fn empty_id_is_handled() {
-    let schema = load_schema();
+    let schema = load_schema("1.0.0").expect("load schema");
     let value = json!({
         "id": "",
         "analysis_type": "text",
-        "metadata": {"schema": "1.0"}
+        "metadata": {"schema": "1.0.0"}
     });
     assert!(schema.validate(&value).is_ok(), "schema validation should pass for empty id");
     let template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
@@ -68,11 +67,22 @@ fn empty_id_is_handled() {
 
 #[test]
 fn explicit_path_loading_works() {
-    let schema = load_schema_from(Path::new("schemas/node-template.schema.json"));
+    let schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).expect("load schema");
     let value = json!({
-        "id": "explicit", 
+        "id": "explicit",
         "analysis_type": "text",
-        "metadata": {"schema": "1.0"}
+        "metadata": {"schema": "1.0.0"}
     });
     assert!(schema.validate(&value).is_ok(), "schema validation should pass");
+}
+
+#[test]
+fn unknown_schema_version_errors() {
+    assert!(load_schema("9.9.9").is_err(), "loading unknown version should fail");
+    let value = json!({
+        "id": "node",
+        "analysis_type": "text",
+        "metadata": {"schema": "9.9.9"}
+    });
+    assert!(validate_template(&value).is_err(), "validation should fail for unknown schema version");
 }

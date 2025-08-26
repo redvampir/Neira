@@ -70,22 +70,22 @@ metadata:
 Файл можно проверить с помощью JSON Schema. Сохраните шаблон в файл и выполните:
 
 ```bash
-npx ajv validate -s schemas/node-template.schema.json -d node-template.json
-npx ajv validate -s schemas/node-template.schema.json -d node-template.yaml
+npx ajv validate -s schemas/node-template/v1.0.0.json -d node-template.json
+npx ajv validate -s schemas/node-template/v1.0.0.json -d node-template.yaml
 ```
 
 ### Программная загрузка
 
-В Rust‑коде схема загружается функцией `load_schema`, которая читает путь из переменной окружения `NODE_TEMPLATE_SCHEMA_PATH`. Если переменная не задана, используется `schemas/node-template.schema.json` из текущего репозитория. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
+В Rust‑коде схема загружается функцией `load_schema(version)`, которая читает файл по указанной версии. Каталог с версиями можно переопределить переменной окружения `NODE_TEMPLATE_SCHEMA_DIR`; по умолчанию используется `schemas/node-template` из текущего репозитория. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
 
 ```rust
 use backend::node_template::{load_schema, load_schema_from};
 use std::path::Path;
 
-let schema = load_schema();
-let same_schema = load_schema_from(Path::new("schemas/node-template.schema.json"));
+let schema = load_schema("1.0.0").unwrap();
+let same_schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).unwrap();
 ```
 
 ## Схемы
 
-JSON‑схемы расположены в каталоге [schemas](schemas). Схема для NodeTemplate: [schemas/node-template.schema.json](schemas/node-template.schema.json). При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
+JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для NodeTemplate: `schemas/node-template/vX.Y.Z.json`. При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.

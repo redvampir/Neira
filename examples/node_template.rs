@@ -9,10 +9,10 @@ fn main() {
         "links": ["node-a", "node-b"],
         "confidence_threshold": 0.75,
         "draft_content": "draft",
-        "metadata": { "schema": "1.0", "author": "Alice" }
+        "metadata": { "schema": "1.0.0", "author": "Alice" }
     });
 
-    let schema = load_schema_from(Path::new("schemas/node-template.schema.json"));
+    let schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).expect("load schema");
     let validation = schema.validate(&example);
     match validation {
         Ok(_) => {

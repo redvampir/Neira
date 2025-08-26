@@ -139,7 +139,7 @@ pub fn register(registry: &mut NodeRegistry) {
 ## Схемы
 
 JSON‑схемы расположены в каталоге [schemas](schemas):
-- [node-template.schema.json](schemas/node-template.schema.json)
+- [node-template/v1.0.0.json](schemas/node-template/v1.0.0.json)
 - [analysis-result.schema.json](schemas/analysis-result.schema.json)
 
 При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
