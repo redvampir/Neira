@@ -74,6 +74,18 @@ npx ajv validate -s schemas/node-template.schema.json -d node-template.json
 npx ajv validate -s schemas/node-template.schema.json -d node-template.yaml
 ```
 
+### Программная загрузка
+
+В Rust‑коде схема загружается функцией `load_schema`, которая читает путь из переменной окружения `NODE_TEMPLATE_SCHEMA_PATH`. Если переменная не задана, используется `schemas/node-template.schema.json` из текущего репозитория. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
+
+```rust
+use backend::node_template::{load_schema, load_schema_from};
+use std::path::Path;
+
+let schema = load_schema();
+let same_schema = load_schema_from(Path::new("schemas/node-template.schema.json"));
+```
+
 ## Схемы
 
 JSON‑схемы расположены в каталоге [schemas](schemas). Схема для NodeTemplate: [schemas/node-template.schema.json](schemas/node-template.schema.json). При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.

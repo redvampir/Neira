@@ -1,5 +1,6 @@
-use backend::node_template::{NodeTemplate, load_schema};
+use backend::node_template::{NodeTemplate, load_schema, load_schema_from};
 use serde_json::json;
+use std::path::Path;
 
 #[test]
 fn valid_template_is_accepted() {
@@ -63,4 +64,15 @@ fn empty_id_is_handled() {
     assert!(schema.validate(&value).is_ok(), "schema validation should pass for empty id");
     let template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
     assert!(template.id.is_empty());
+}
+
+#[test]
+fn explicit_path_loading_works() {
+    let schema = load_schema_from(Path::new("schemas/node-template.schema.json"));
+    let value = json!({
+        "id": "explicit", 
+        "analysis_type": "text",
+        "metadata": {"schema": "1.0"}
+    });
+    assert!(schema.validate(&value).is_ok(), "schema validation should pass");
 }
