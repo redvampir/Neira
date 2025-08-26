@@ -64,7 +64,7 @@
 Запрос к API узлов действий передаётся в формате JSON.
 
 ```http
-POST /action HTTP/1.1
+POST /api/neira/action HTTP/1.1
 Host: localhost:4000
 Content-Type: application/json
 

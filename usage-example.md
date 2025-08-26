@@ -13,7 +13,7 @@
 
 ```bash
 # запрос
-curl -X POST http://localhost:4000/interact \
+curl -X POST http://localhost:4000/api/neira/interact \
      -H 'Content-Type: application/json' \
      -d '{"message":"Список задач"}'
 
@@ -47,6 +47,6 @@ npm run dev
 
 ## Маршруты API
 
-- `POST /interact` — общий вход для пользовательских запросов.
-- `POST /analysis` — выполнение конкретного `AnalysisNode`.
-- `POST /action` — запуск `ActionNode`.
+- `POST /api/neira/interact` — общий вход для пользовательских запросов.
+- `POST /api/neira/analysis` — выполнение конкретного `AnalysisNode`.
+- `POST /api/neira/action` — запуск `ActionNode`.
