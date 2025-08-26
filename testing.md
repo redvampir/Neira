@@ -56,3 +56,61 @@
 - **Gradual expansion** — разрешения расширяются только по мере необходимости.
 - **Human oversight** — критические действия требуют участия человека.
 - **Audit trail** — каждый этап фиксируется для последующего анализа.
+
+## Windows
+
+### Установка Node.js 20
+
+```powershell
+winget install OpenJS.NodeJS.LTS --version 20
+node -v
+```
+
+### Установка Rust 1.75
+
+```powershell
+winget install Rustlang.Rustup
+rustup default 1.75
+rustc --version
+```
+
+### Особенности `npm test` и `cargo test`
+
+```powershell
+npm test
+cargo test
+```
+
+- Переменные среды задаются через `setx` или `$Env:VAR=значение`.
+- Для скриптов, рассчитанных на Unix, может потребоваться пакет `cross-env`.
+- `cargo test` создаёт `.exe` файлы; пути в тестах следует указывать с `\\`.
+
+## macOS
+
+### Установка Node.js 20
+
+```bash
+brew install node@20
+node -v
+```
+
+### Установка Rust 1.75
+
+```bash
+brew install rustup
+rustup-init -y
+rustup install 1.75.0
+rustup default 1.75.0
+rustc --version
+```
+
+### Особенности `npm test` и `cargo test`
+
+```bash
+npm test
+cargo test
+```
+
+- При необходимости используйте `sudo` для установки зависимостей.
+- Инструменты сборки требуют Xcode Command Line Tools (`xcode-select --install`).
+- `cargo test` может запрашивать доступ к сети для скачивания зависимостей.
