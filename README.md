@@ -16,6 +16,7 @@
 - [FAQ](faq.md)
 - [Загрузка обучающих данных](training.md)
 - [Развертывание Neira](deployment.md)
+- [Веб-интерфейс обучения](web-interface.md)
 - [Тестирование Neira](testing.md)
 - [Дорожная карта Neira](roadmap.md)
 - [Структура управления Нейры](governance-structure.md)
