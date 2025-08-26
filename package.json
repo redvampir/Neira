@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "scripts": {
     "test": "jest",
-    "lint": "eslint . --ext .ts",
-    "prepare": "husky"
+    "lint": "eslint .",
+    "prepare": "husky",
+    "backend:dev": "cargo run --manifest-path backend/Cargo.toml",
+    "backend:test": "cargo test --manifest-path backend/Cargo.toml",
+    "frontend:dev": "npm run dev --prefix frontend",
+    "frontend:test": "npm test --prefix frontend"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

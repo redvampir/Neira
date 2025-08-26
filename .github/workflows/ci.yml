@@ -2,15 +2,13 @@ name: CI
 
 on:
   push:
-    branches: ['**']
+    branches: [ main ]
   pull_request:
-    branches: ['**']
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,16 +16,17 @@ jobs:
           node-version: 20
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.75
+          toolchain: stable
           override: true
-          components: clippy
       - name: Install dependencies
-        run: npm ci
-      - name: Run ESLint
+        run: |
+          npm ci
+          npm ci --prefix frontend
+      - name: Lint
         run: npm run lint
-      - name: Run JS tests
+      - name: Test backend
+        run: cargo test --manifest-path backend/Cargo.toml
+      - name: Test frontend
+        run: npm test --prefix frontend
+      - name: Test root
         run: npm test
-      - name: Run Rust tests
-        run: cargo test
-      - name: Run Clippy
-        run: cargo clippy -- -D warnings

@@ -1,0 +1,9 @@
+{
+  "name": "Neira PWA",
+  "short_name": "Neira",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "description": "Neira Progressive Web App",
+  "icons": []
+}

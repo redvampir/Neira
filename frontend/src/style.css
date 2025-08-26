@@ -1,0 +1,65 @@
+html, body, #app {
+  height: 100%;
+  margin: 0;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  font-family: sans-serif;
+}
+
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.msg {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.msg.user {
+  align-self: flex-end;
+  background: #dcf8c6;
+}
+
+.msg.bot {
+  align-self: flex-start;
+  background: #eee;
+}
+
+.msg.error {
+  align-self: center;
+  background: #fdd;
+  color: #900;
+}
+
+form {
+  display: flex;
+  padding: 0.5rem;
+  border-top: 1px solid #ccc;
+  gap: 0.5rem;
+}
+
+form input[type="text"] {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+form button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}
+
+@media (max-width: 600px) {
+  form button {
+    font-size: 0.9rem;
+  }
+}
