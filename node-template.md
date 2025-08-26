@@ -95,13 +95,13 @@ npx ajv validate -s schemas/node-template/v1.0.0.json -d node-template.yaml
 
 ### Программная загрузка
 
-В Rust‑коде схема загружается функцией `load_schema(version)`, которая читает файл по указанной версии. Каталог с версиями можно переопределить переменной окружения `NODE_TEMPLATE_SCHEMA_DIR`; по умолчанию используется `schemas/node-template` из текущего репозитория. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
+В Rust‑коде схема загружается функцией `load_schema()`, которая читает файл текущей версии схемы. Каталог можно переопределить переменной окружения `NODE_TEMPLATE_SCHEMA_DIR`; по умолчанию используется `schemas/node-template` из текущего репозитория. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
 
 ```rust
 use backend::node_template::{load_schema, load_schema_from};
 use std::path::Path;
 
-let schema = load_schema("1.0.0").unwrap();
+let schema = load_schema().unwrap();
 let same_schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).unwrap();
 ```
 
