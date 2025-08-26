@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 pub fn load_schema_from(path: &Path) -> Result<JSONSchema, String> {
     let schema_str = fs::read_to_string(path)
         .map_err(|e| format!("failed to read schema {}: {e}", path.display()))?;
-    let schema_json: Value =
-        serde_json::from_str(&schema_str).map_err(|e| format!("invalid schema JSON {}: {e}", path.display()))?;
+    let schema_json: Value = serde_json::from_str(&schema_str)
+        .map_err(|e| format!("invalid schema JSON {}: {e}", path.display()))?;
     JSONSchema::compile(&schema_json)
         .map_err(|e| format!("invalid JSON schema {}: {e}", path.display()))
 }
@@ -49,6 +49,19 @@ pub struct NodeTemplate {
     pub metadata: Metadata,
 }
 
+impl NodeTemplate {
+    pub fn to_json(&self) -> Value {
+        let value = serde_json::to_value(self).expect("serialize NodeTemplate");
+        #[cfg(debug_assertions)]
+        {
+            if let Err(errors) = validate_template(&value) {
+                panic!("serialized NodeTemplate failed validation: {:?}", errors);
+            }
+        }
+        value
+    }
+}
+
 pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
     let version = value
         .get("metadata")
@@ -56,7 +69,7 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
         .and_then(|s| s.as_str())
         .ok_or_else(|| vec!["metadata.schema is required".to_string()])?;
     if version != SCHEMA_VERSION {
-        return Err(vec![format!("unknown schema version {version}" )]);
+        return Err(vec![format!("unknown schema version {version}")]);
     }
     let schema = load_schema().map_err(|e| vec![e])?;
     let result = schema.validate(value);
