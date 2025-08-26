@@ -15,7 +15,7 @@
 - [Глоссарий](glossary.md)
 - [FAQ](faq.md)
 - [Загрузка обучающих данных](training.md)
-- [Развертывание Neira](deployment.md)
+- [CI/CD и деплой](docs/deployment.md)
 - [Веб-интерфейс обучения](web-interface.md)
 - [Тестирование Neira](testing.md)
 - [Дорожная карта Neira](roadmap.md)
@@ -372,7 +372,7 @@ time_slice_ms = 10
 
 Подробные инструкции по установке зависимостей,
 запуску демонстрационной конфигурации и настройке
-переменных окружения приведены в [deployment.md](deployment.md).
+переменных окружения приведены в [docs/deployment.md](docs/deployment.md).
 
 ## Дополнительная документация
 - [Узлы действий](action-nodes.md)
@@ -395,3 +395,19 @@ JSON‑схемы расположены в каталоге [schemas](schemas).
 npm test
 cargo test
 ```
+
+## CI/CD
+
+Основные команды конвейера:
+
+```bash
+npm run build
+npm test
+cargo build --release
+cargo test
+npm pack
+cargo package
+scp target/release/neira user@server:/opt/neira
+```
+
+Подробнее см. [docs/deployment.md](docs/deployment.md).
