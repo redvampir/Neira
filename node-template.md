@@ -69,10 +69,10 @@ metadata:
 Файл можно проверить с помощью JSON Schema. Сохраните шаблон в файл и выполните:
 
 ```bash
-npx ajv validate -s ../../schemas/node-template.schema.json -d node-template.json
-npx ajv validate -s ../../schemas/node-template.schema.json -d node-template.yaml
+npx ajv validate -s schemas/node-template.schema.json -d node-template.json
+npx ajv validate -s schemas/node-template.schema.json -d node-template.yaml
 ```
 
 ## Схемы
 
-JSON‑схемы расположены в каталоге [../../schemas](../../schemas). Схема для NodeTemplate: [../../schemas/node-template.schema.json](../../schemas/node-template.schema.json). При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
+JSON‑схемы расположены в каталоге [schemas](schemas). Схема для NodeTemplate: [schemas/node-template.schema.json](schemas/node-template.schema.json). При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
