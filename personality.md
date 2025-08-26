@@ -37,10 +37,10 @@
 - После завершения задачи персонаж возвращается, сохраняя контекст и накопленный опыт.
 
 ## API переключения личности
-Взаимодействие с образом Нейры управляется через REST-эндпоинт `/api/personality`.
+Взаимодействие с образом Нейры управляется через REST-эндпоинт `/api/neira/personality`.
 
 ```http
-POST /api/personality
+POST /api/neira/personality
 Content-Type: application/json
 
 {

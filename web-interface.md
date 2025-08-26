@@ -28,9 +28,43 @@
 - **Локальный**: приложение взаимодействует с `http://localhost:3001` и имеет полный доступ к InteractionHub и логам.
 - **Удалённый**: доступ через туннели (ngrok, Cloudflare) или собственный домен с HTTPS; аутентификация через JWT и ограничение прав узлов.
 
+
+## Основные эндпоинты
+Все REST-запросы проходят через префикс `/api/neira`.
+
+| Метод | Маршрут | Назначение |
+|-------|---------|-----------|
+| POST | `/api/neira/interact` | общий вход для пользовательских запросов |
+| POST | `/api/neira/analysis` | выполнение `AnalysisNode` |
+| POST | `/api/neira/action` | запуск `ActionNode` |
+| POST | `/api/neira/personality` | переключение образа Нейры |
+| WS   | `/ws` | трансляция прогресса обучения |
+
 ## Функциональные модули
 - **Чат / InteractionHub** — единая точка общения и управления памятью.
-- **Панель обучения** — загрузка сегментов, просмотр `reliability`, постановка задач в очередь ручной проверки.
+- **Панель обучения** — загрузка сегментов, просмотр `reliability`, постановка задач в очередь ручной проверки; работает с `TeacherClient` по [спецификации](training.md#api-teacherclient):
+
+    Пример запроса:
+    ```json
+    {
+      "bookId": "isbn:9780000000000",
+      "segmentId": "ch01-0001",
+      "prompt": "Summarize the following segment",
+      "text": "<segment contents>",
+      "temperature": 0.2
+    }
+    ```
+
+    Пример ответа:
+    ```json
+    {
+      "bookId": "isbn:9780000000000",
+      "segmentId": "ch01-0001",
+      "summary": "...",
+      "reliability": "medium",
+      "tokensUsed": 123
+    }
+    ```
 - **Мониторинг** — визуализация очередей `TaskScheduler`, уведомления о ходе обучения через WebSocket.
 - **Управление узлами** — promotion/rollback версий и просмотр статуса `NodeRegistry`.
 
