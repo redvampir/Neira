@@ -43,3 +43,57 @@ NEIRA_LOG_LEVEL=info
 3. Логи сборки и выполнения сохраняйте в отдельной директории, чтобы упростить диагностику.
 4. В случае ошибок используйте механизм отката для возврата к последней рабочей версии.
 5. О завершении сборки отправляйте уведомления по e‑mail или через вебhook, чтобы команда оперативно получала информацию о результатах.
+
+## Windows
+
+### Установка Node.js 20
+
+```powershell
+winget install OpenJS.NodeJS.LTS --version 20
+node -v
+```
+
+### Установка Rust 1.75
+
+```powershell
+winget install Rustlang.Rustup
+rustup default 1.75
+rustc --version
+```
+
+### Запуск тестов
+
+```powershell
+npm test
+cargo test
+```
+
+На Windows команды выполняются в PowerShell или `cmd`. Утилиты `npm` и `cargo` доступны как `npm.cmd` и `cargo.exe`; при первом запуске `cargo test` возможно появление запроса брандмауэра.
+
+## macOS
+
+### Установка Node.js 20
+
+```bash
+brew install node@20
+node -v
+```
+
+### Установка Rust 1.75
+
+```bash
+brew install rustup
+rustup-init -y
+rustup install 1.75.0
+rustup default 1.75.0
+rustc --version
+```
+
+### Запуск тестов
+
+```bash
+npm test
+cargo test
+```
+
+На macOS тесты запускаются из стандартного терминала. При первом использовании инструментов разработки может потребоваться установка Xcode Command Line Tools с помощью `xcode-select --install`.
