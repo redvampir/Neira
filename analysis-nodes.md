@@ -91,7 +91,7 @@ struct QualityMetrics {
 Запрос к API узлов анализа принимает параметры задачи и возвращает результат с метриками качества.
 
 ```http
-POST /analysis HTTP/1.1
+POST /api/neira/analysis HTTP/1.1
 Host: localhost:4000
 Content-Type: application/json
 
