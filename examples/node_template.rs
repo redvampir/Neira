@@ -1,10 +1,7 @@
-use backend::node_template::{load_schema, validate_template, NodeTemplate};
+use backend::node_template::{validate_template, NodeTemplate};
 use serde_json::json;
 
 fn main() {
-    // Load schema to ensure it exists
-    let _schema = load_schema().expect("schema should load");
-
     // Example template in JSON form
     let value = json!({
         "id": "example.template",
