@@ -340,7 +340,7 @@ metadata:
   source: "https://example.org"
 ```
 
-**Проверка перед ревью:** сохраните шаблон в файл и проверьте его с помощью JSON Schema, например командой `npx ajv validate -s schemas/node-template/v1.0.0.json -d node-template.json`. Для YAML используйте `npx ajv validate -s schemas/node-template/v1.0.0.json -d node-template.yaml` или `yamllint` для проверки синтаксиса.
+**Проверка перед ревью:** сохраните шаблон в файл и проверьте его с помощью JSON Schema, например командой `npx ajv validate -s schemas/v1/node-template.schema.json -d node-template.json`. Для YAML используйте `npx ajv validate -s schemas/v1/node-template.schema.json -d node-template.yaml` или `yamllint` для проверки синтаксиса.
 
 ## 1. Базовый интерфейс узла
 - **Интерфейс:** `AnalysisNode`
@@ -996,7 +996,7 @@ metadata:
 ## Схемы
 
 JSON‑схемы расположены в каталоге [schemas](schemas):
-- [node-template/v1.0.0.json](schemas/node-template/v1.0.0.json)
+- [v1/node-template.schema.json](schemas/v1/node-template.schema.json)
 - [analysis-result.schema.json](schemas/analysis-result.schema.json)
 
 При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.

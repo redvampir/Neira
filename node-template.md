@@ -89,20 +89,19 @@ metadata:
 Файл можно проверить с помощью JSON Schema. Сохраните шаблон в файл и выполните:
 
 ```bash
-npx ajv validate -s schemas/node-template/v1.0.0.json -d node-template.json
-npx ajv validate -s schemas/node-template/v1.0.0.json -d node-template.yaml
+npx ajv validate -s schemas/v1/node-template.schema.json -d node-template.json
+npx ajv validate -s schemas/v1/node-template.schema.json -d node-template.yaml
 ```
 
 ### Программная загрузка
 
-В Rust‑коде схема загружается функцией `load_schema()`, которая читает файл текущей версии схемы. Каталог можно переопределить переменной окружения `NODE_TEMPLATE_SCHEMA_DIR`; по умолчанию используется `schemas/node-template` из текущего репозитория. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
+В Rust‑коде схема выбирается на основе поля `metadata.schema`, из которого извлекается мажорная версия. Файлы схем ожидаются в каталоге `schemas/vX/`, путь можно переопределить переменной окружения `NODE_TEMPLATE_SCHEMAS_DIR`. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
 
 ```rust
-use backend::node_template::{load_schema, load_schema_from};
+use backend::node_template::load_schema_from;
 use std::path::Path;
 
-let schema = load_schema().unwrap();
-let same_schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).unwrap();
+let schema = load_schema_from(Path::new("schemas/v1/node-template.schema.json")).unwrap();
 ```
 
 ## Рекомендации по валидации и обратной совместимости
@@ -116,4 +115,4 @@ let same_schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json"
 
 ## Схемы
 
-JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для NodeTemplate: `schemas/node-template/vX.Y.Z.json`. При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
+JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для NodeTemplate хранятся в `schemas/vX/node-template.schema.json`, где `X` — номер мажорной версии. При несовместимых изменениях повышайте версию: `1.0.0` → `2.0.0`.

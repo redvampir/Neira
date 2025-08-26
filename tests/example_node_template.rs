@@ -19,7 +19,7 @@ fn example_node_template_validates() {
     });
 
     let schema =
-        load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).expect("load schema");
+        load_schema_from(Path::new("schemas/v1/node-template.schema.json")).expect("load schema");
     assert!(
         schema.validate(&example).is_ok(),
         "schema validation should pass"

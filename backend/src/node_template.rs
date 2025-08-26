@@ -1,11 +1,12 @@
 use jsonschema_valid::{self, Config};
-use once_cell::sync::OnceCell;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use tracing::{error, info};
 
 pub fn load_schema_from(path: &Path) -> Result<Config<'static>, String> {
@@ -35,26 +36,36 @@ pub fn load_schema_from(path: &Path) -> Result<Config<'static>, String> {
     Ok(cfg)
 }
 
-static SCHEMA: OnceCell<Config<'static>> = OnceCell::new();
-const SCHEMA_VERSION: &str = "1.0.0";
+static SCHEMAS: Lazy<Mutex<HashMap<String, &'static Config<'static>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
-pub fn load_schema() -> Result<&'static Config<'static>, String> {
-    let schema = SCHEMA
-        .get_or_try_init(|| {
-            let path = env::var("NODE_TEMPLATE_SCHEMA_PATH")
-                .map(PathBuf::from)
-                .unwrap_or_else(|_| {
-                    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                        .join("../schemas/node-template.schema.json")
-                });
-            load_schema_from(&path)
-        })
-        .map_err(|e| {
-            error!("{e}");
-            e
-        })?;
-    info!("Using NodeTemplate schema v{SCHEMA_VERSION}");
-    Ok(schema)
+fn parse_version(version: &str) -> Result<String, String> {
+    let trimmed = version.trim_start_matches('v');
+    let major = trimmed
+        .split('.')
+        .next()
+        .ok_or_else(|| format!("invalid schema version {version}"))?;
+    if major.chars().all(|c| c.is_ascii_digit()) {
+        Ok(format!("v{}", major))
+    } else {
+        Err(format!("invalid schema version {version}"))
+    }
+}
+
+fn load_schema(version: &str) -> Result<&'static Config<'static>, String> {
+    let mut map = SCHEMAS.lock().map_err(|e| e.to_string())?;
+    if let Some(cfg) = map.get(version) {
+        return Ok(*cfg);
+    }
+    let base = env::var("NODE_TEMPLATE_SCHEMAS_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas"));
+    let path = base.join(version).join("node-template.schema.json");
+    let cfg = load_schema_from(&path)?;
+    let cfg_static: &'static Config<'static> = Box::leak(Box::new(cfg));
+    info!("Using NodeTemplate schema {}", version);
+    map.insert(version.to_string(), cfg_static);
+    Ok(cfg_static)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -98,12 +109,11 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
             error!("{msg}");
             vec![msg]
         })?;
-    if version != SCHEMA_VERSION {
-        let msg = format!("unknown schema version {version}");
+    let dir = parse_version(version).map_err(|msg| {
         error!("{msg}");
-        return Err(vec![msg]);
-    }
-    let schema = load_schema().map_err(|e| {
+        vec![msg]
+    })?;
+    let schema = load_schema(&dir).map_err(|e| {
         error!("{e}");
         vec![e]
     })?;
