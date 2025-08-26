@@ -3,7 +3,7 @@ use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() {
-    // Сообщение в консоль при старте — «примиряем» обе версии :)
+    // Короткий баннер при старте — «примиряем» обе версии :)
     println!("Hello, world!");
 
     let app = Router::new().route("/", get(|| async { "Hello, world!" }));
