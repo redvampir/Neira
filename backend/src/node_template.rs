@@ -1,4 +1,4 @@
-use jsonschema::JSONSchema;
+use jsonschema_valid::{self, Config};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::{error, info};
 
-pub fn load_schema_from(path: &Path) -> Result<JSONSchema, String> {
+pub fn load_schema_from(path: &Path) -> Result<Config<'static>, String> {
     let schema_str = fs::read_to_string(path).map_err(|e| {
         let msg = format!("failed to read schema {}: {e}", path.display());
         error!("{msg}");
@@ -19,19 +19,26 @@ pub fn load_schema_from(path: &Path) -> Result<JSONSchema, String> {
         error!("{msg}");
         msg
     })?;
-    let schema = JSONSchema::compile(&schema_json).map_err(|e| {
+    let schema_ref: &'static Value = Box::leak(Box::new(schema_json));
+    let cfg = Config::from_schema(schema_ref, None).map_err(|e| {
         let msg = format!("invalid JSON schema {}: {e}", path.display());
         error!("{msg}");
         msg
     })?;
+    cfg.validate_schema().map_err(|errors| {
+        let messages: Vec<String> = errors.map(|err| format!("{}", err)).collect();
+        let msg = format!("invalid JSON schema {}: {:?}", path.display(), messages);
+        error!("{msg}");
+        msg
+    })?;
     info!("Loaded JSON schema {}", path.display());
-    Ok(schema)
+    Ok(cfg)
 }
 
-static SCHEMA: OnceCell<JSONSchema> = OnceCell::new();
+static SCHEMA: OnceCell<Config<'static>> = OnceCell::new();
 const SCHEMA_VERSION: &str = "1.0.0";
 
-pub fn load_schema() -> Result<&'static JSONSchema, String> {
+pub fn load_schema() -> Result<&'static Config<'static>, String> {
     let schema = SCHEMA
         .get_or_try_init(|| {
             let base = env::var("NODE_TEMPLATE_SCHEMA_DIR")
@@ -100,15 +107,22 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
         error!("{e}");
         vec![e]
     })?;
-    let result = schema.validate(value);
-    match result {
-        Ok(_) => {
+    match schema.validate(value) {
+        Ok(()) => {
             info!("NodeTemplate validation succeeded");
             Ok(())
         }
         Err(errors) => {
             let messages: Vec<String> = errors
-                .map(|error| format!("{}: {}", error.instance_path, error))
+                .map(|err| {
+                    let path = if err.instance_path.is_empty() {
+                        "/".to_string()
+                    } else {
+                        let segments: Vec<String> = err.instance_path.iter().rev().cloned().collect();
+                        format!("/{}", segments.join("/"))
+                    };
+                    format!("{}: {}", path, err.msg)
+                })
                 .collect();
             error!("NodeTemplate validation failed: {:?}", messages);
             Err(messages)
