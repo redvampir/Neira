@@ -18,7 +18,13 @@ jobs:
         with:
           toolchain: 1.75
           override: true
-      - name: Install dependencies and run JS tests
-        run: npm ci && npm test
+      - name: Install dependencies
+        run: npm ci
+      - name: Run ESLint
+        run: npm run lint
+      - name: Run JS tests
+        run: npm test
       - name: Run Rust tests
         run: cargo test
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
