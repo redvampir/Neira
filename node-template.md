@@ -14,10 +14,13 @@
 
 ## Оглавление
 - [Обязательные поля](#обязательные-поля)
+- [Дополнительные поля](#дополнительные-поля)
 - [Пример](#пример)
   - [JSON](#json)
   - [YAML](#yaml)
 - [Проверка](#проверка)
+- [Рекомендации по валидации и обратной совместимости](#рекомендации-по-валидации-и-обратной-совместимости)
+- [Примеры и тесты](#примеры-и-тесты)
 
 
 Шаблон для создания узлов анализа. Обязательными являются поля `id`, `analysis_type` и `metadata`.
@@ -33,6 +36,14 @@
 | `draft_content` | string | нет | Черновое содержимое узла. |
 | `metadata` | object | да | Дополнительные метаданные в формате ключ‑значение. Должно содержать поле `schema`. |
 
+## Дополнительные поля
+
+Поле `metadata` допускает произвольные ключи. Распространённые примеры:
+
+- `author` — автор шаблона.
+- `tags` — массив строковых тегов.
+- `version` — произвольная версия содержимого.
+
 ## Пример
 
 ### JSON
@@ -45,8 +56,11 @@
   "confidence_threshold": 0.8,
   "draft_content": "Initial description",
   "metadata": {
-    "schema": "1.1.0",
-    "source": "https://example.org"
+    "schema": "1.0.0",
+    "source": "https://example.org",
+    "author": "Alice",
+    "tags": ["demo", "template"],
+    "version": "0.1.0"
   }
 }
 ```
@@ -61,8 +75,13 @@ links:
 confidence_threshold: 0.8
 draft_content: Initial description
 metadata:
-  schema: "1.1.0"
+  schema: "1.0.0"
   source: "https://example.org"
+  author: Alice
+  tags:
+    - demo
+    - template
+  version: "0.1.0"
 ```
 
 ## Проверка
@@ -85,6 +104,15 @@ use std::path::Path;
 let schema = load_schema("1.0.0").unwrap();
 let same_schema = load_schema_from(Path::new("schemas/node-template/v1.0.0.json")).unwrap();
 ```
+
+## Рекомендации по валидации и обратной совместимости
+
+Используйте актуальные JSON Schema для проверки шаблонов. Добавляя новые поля, делайте их необязательными и сохраняйте поддержку предыдущих версий схем. При изменении структуры повышайте номер версии в `metadata.schema` и предоставляйте миграционный путь.
+
+## Примеры и тесты
+
+- Полный пример с дополнительными полями: [tests/example_node_template.rs](tests/example_node_template.rs)
+- Тесты на валидацию шаблонов: [tests/node_template_test.rs](tests/node_template_test.rs), [tests/node_template_validation_test.rs](tests/node_template_validation_test.rs)
 
 ## Схемы
 

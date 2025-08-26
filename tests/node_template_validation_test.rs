@@ -6,10 +6,18 @@ fn valid_template_passes_validation() {
     let value = json!({
         "id": "example-node",
         "analysis_type": "text",
-        "metadata": {"schema": "1.0.0"}
+        "metadata": {
+            "schema": "1.0.0",
+            "author": "Carol",
+            "tags": ["demo"],
+            "version": "0.1.0"
+        }
     });
     validate_template(&value).expect("should be valid");
-    let _template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
+    let template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
+    assert!(template.metadata.extra.contains_key("author"));
+    assert!(template.metadata.extra.contains_key("tags"));
+    assert!(template.metadata.extra.contains_key("version"));
 }
 
 #[test]
