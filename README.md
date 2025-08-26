@@ -9,6 +9,7 @@
 - [Личность Нейры](personality.md)
 - [Шаблон узла](node-template.md)
 - [Политика источников](source-policy.md)
+- [Механизм саморазвивающейся системы](self-updating-system.md)
 - [Пример использования](usage-example.md)
 - [Практическое руководство](practical-guide.md)
 - [Глоссарий](glossary.md)
@@ -375,6 +376,7 @@ time_slice_ms = 10
 - [Узлы действий](action-nodes.md)
 - [Узлы памяти](memory-nodes.md)
 - [Узлы анализа](analysis-nodes.md)
+- [Механизм саморазвивающейся системы](self-updating-system.md)
 
 ## Схемы
 
