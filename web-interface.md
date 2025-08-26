@@ -30,7 +30,29 @@
 
 ## Функциональные модули
 - **Чат / InteractionHub** — единая точка общения и управления памятью.
-- **Панель обучения** — загрузка сегментов, просмотр `reliability`, постановка задач в очередь ручной проверки.
+- **Панель обучения** — загрузка сегментов, просмотр `reliability`, постановка задач в очередь ручной проверки; работает с `TeacherClient` по [спецификации](training.md#api-teacherclient):
+
+    Пример запроса:
+    ```json
+    {
+      "bookId": "isbn:9780000000000",
+      "segmentId": "ch01-0001",
+      "prompt": "Summarize the following segment",
+      "text": "<segment contents>",
+      "temperature": 0.2
+    }
+    ```
+
+    Пример ответа:
+    ```json
+    {
+      "bookId": "isbn:9780000000000",
+      "segmentId": "ch01-0001",
+      "summary": "...",
+      "reliability": "medium",
+      "tokensUsed": 123
+    }
+    ```
 - **Мониторинг** — визуализация очередей `TaskScheduler`, уведомления о ходе обучения через WebSocket.
 - **Управление узлами** — promotion/rollback версий и просмотр статуса `NodeRegistry`.
 
