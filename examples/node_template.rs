@@ -1,4 +1,4 @@
-use backend::node_template::{load_schema, NodeTemplate};
+use backend::node_template::{validate_template, NodeTemplate};
 use serde_json::json;
 
 fn main() {
@@ -12,9 +12,7 @@ fn main() {
     });
 
     let template: NodeTemplate = serde_json::from_value(example.clone()).expect("deserialize");
-    let schema = load_schema();
-    let result = schema.validate(&example);
-    match result {
+    match validate_template(&example) {
         Ok(_) => println!("{:?}", template),
         Err(errors) => {
             for error in errors {
