@@ -45,7 +45,7 @@ fn valid_template_is_accepted() {
 
 #[test]
 fn missing_required_fields_are_rejected() {
-    let schema = load_schema("1.0.0").expect("load schema");
+    let schema = load_schema().expect("load schema");
     let value = json!({
         "links": [],
         "metadata": {}
@@ -62,7 +62,7 @@ fn missing_required_fields_are_rejected() {
 
 #[test]
 fn invalid_links_type_fails() {
-    let schema = load_schema("1.0.0").expect("load schema");
+    let schema = load_schema().expect("load schema");
     let value = json!({
         "id": "node",
         "analysis_type": "text",
@@ -81,7 +81,7 @@ fn invalid_links_type_fails() {
 
 #[test]
 fn invalid_confidence_threshold_type_fails() {
-    let schema = load_schema("1.0.0").expect("load schema");
+    let schema = load_schema().expect("load schema");
     let value = json!({
         "id": "node",
         "analysis_type": "text",
@@ -100,7 +100,7 @@ fn invalid_confidence_threshold_type_fails() {
 
 #[test]
 fn empty_id_is_handled() {
-    let schema = load_schema("1.0.0").expect("load schema");
+    let schema = load_schema().expect("load schema");
     let value = json!({
         "id": "",
         "analysis_type": "text",
@@ -131,10 +131,6 @@ fn explicit_path_loading_works() {
 
 #[test]
 fn unknown_schema_version_errors() {
-    assert!(
-        load_schema("9.9.9").is_err(),
-        "loading unknown version should fail"
-    );
     let value = json!({
         "id": "node",
         "analysis_type": "text",

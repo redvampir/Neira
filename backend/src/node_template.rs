@@ -1,4 +1,5 @@
 use jsonschema::JSONSchema;
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -15,14 +16,19 @@ pub fn load_schema_from(path: &Path) -> Result<JSONSchema, String> {
         .map_err(|e| format!("invalid JSON schema {}: {e}", path.display()))
 }
 
-pub fn load_schema(version: &str) -> Result<JSONSchema, String> {
-    let base = env::var("NODE_TEMPLATE_SCHEMA_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas/node-template")
-        });
-    let path = base.join(format!("v{version}.json"));
-    load_schema_from(&path)
+static SCHEMA: OnceCell<JSONSchema> = OnceCell::new();
+const SCHEMA_VERSION: &str = "1.0.0";
+
+pub fn load_schema() -> Result<&'static JSONSchema, String> {
+    SCHEMA.get_or_try_init(|| {
+        let base = env::var("NODE_TEMPLATE_SCHEMA_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas/node-template")
+            });
+        let path = base.join(format!("v{SCHEMA_VERSION}.json"));
+        load_schema_from(&path)
+    })
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -49,7 +55,10 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
         .and_then(|m| m.get("schema"))
         .and_then(|s| s.as_str())
         .ok_or_else(|| vec!["metadata.schema is required".to_string()])?;
-    let schema = load_schema(version).map_err(|e| vec![e])?;
+    if version != SCHEMA_VERSION {
+        return Err(vec![format!("unknown schema version {version}" )]);
+    }
+    let schema = load_schema().map_err(|e| vec![e])?;
     let result = schema.validate(value);
     match result {
         Ok(_) => Ok(()),
