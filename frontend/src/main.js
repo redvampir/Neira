@@ -1,6 +1,8 @@
 /* global navigator, window, document, fetch, console */
 import './style.css';
 
+console.log('Hello PWA');
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js').catch(err => {
