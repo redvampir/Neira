@@ -41,12 +41,12 @@ const SCHEMA_VERSION: &str = "1.0.0";
 pub fn load_schema() -> Result<&'static Config<'static>, String> {
     let schema = SCHEMA
         .get_or_try_init(|| {
-            let base = env::var("NODE_TEMPLATE_SCHEMA_DIR")
+            let path = env::var("NODE_TEMPLATE_SCHEMA_PATH")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| {
-                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas/node-template")
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                        .join("../schemas/node-template.schema.json")
                 });
-            let path = base.join(format!("v{SCHEMA_VERSION}.json"));
             load_schema_from(&path)
         })
         .map_err(|e| {
