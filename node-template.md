@@ -77,3 +77,21 @@ npx ajv validate -s schemas/node-template.schema.json -d node-template.yaml
 ## Схемы
 
 JSON‑схемы расположены в каталоге [schemas](schemas). Схема для NodeTemplate: [schemas/node-template.schema.json](schemas/node-template.schema.json). При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
+
+## Расширенные метаданные
+
+В поле `metadata` можно указывать произвольные дополнительные параметры. Например:
+
+```json
+{
+  "id": "extended.template",
+  "analysis_type": "text",
+  "metadata": {
+    "schema": "1.0",
+    "author": "Alice",
+    "tags": ["demo", "example"]
+  }
+}
+```
+
+Путь к JSON‑схеме можно переопределить переменной окружения `NODE_TEMPLATE_SCHEMA_PATH`. Для выбора версии используйте `NODE_TEMPLATE_SCHEMA_VERSION`.
