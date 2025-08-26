@@ -3,11 +3,24 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+pub fn load_schema_from(path: &Path) -> JSONSchema {
+    let schema_str = fs::read_to_string(path)
+        .unwrap_or_else(|e| panic!("failed to read schema {}: {e}", path.display()));
+    let schema_json: Value = serde_json::from_str(&schema_str).expect("invalid schema JSON");
+    JSONSchema::compile(&schema_json).expect("invalid JSON schema")
+}
 
 static SCHEMA: Lazy<JSONSchema> = Lazy::new(|| {
-    let schema_str = include_str!("../../schemas/node-template.schema.json");
-    let schema_json: Value = serde_json::from_str(schema_str).expect("invalid schema JSON");
-    JSONSchema::compile(&schema_json).expect("invalid JSON schema")
+    let path = env::var("NODE_TEMPLATE_SCHEMA_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas/node-template.schema.json")
+        });
+    load_schema_from(&path)
 });
 
 #[derive(Debug, Serialize, Deserialize)]
