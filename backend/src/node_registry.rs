@@ -11,8 +11,8 @@ use crate::node_template::{validate_template, NodeTemplate};
 
 /// Загружает `NodeTemplate` из файла JSON или YAML.
 fn load_template(path: &Path) -> Result<NodeTemplate, String> {
-    let content = fs::read_to_string(path)
-        .map_err(|e| format!("failed to read {}: {e}", path.display()))?;
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("failed to read {}: {e}", path.display()))?;
     let value: Value = match path.extension().and_then(|s| s.to_str()) {
         Some("yaml") | Some("yml") => {
             let yaml: serde_yaml::Value =
@@ -27,6 +27,7 @@ fn load_template(path: &Path) -> Result<NodeTemplate, String> {
 
 /// Реестр узлов: хранит метаданные и следит за изменениями файлов.
 pub struct NodeRegistry {
+    root: PathBuf,
     nodes: Arc<RwLock<HashMap<String, NodeTemplate>>>,
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
     _watcher: RecommendedWatcher,
@@ -40,9 +41,7 @@ impl NodeRegistry {
         let paths = Arc::new(RwLock::new(HashMap::new()));
 
         // Начальная загрузка файлов
-        for entry in fs::read_dir(&dir)
-            .map_err(|e| format!("read_dir {}: {e}", dir.display()))?
-        {
+        for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir {}: {e}", dir.display()))? {
             let path = entry.map_err(|e| e.to_string())?.path();
             if path.is_file() {
                 match load_template(&path) {
@@ -77,10 +76,7 @@ impl NodeRegistry {
                                         .write()
                                         .unwrap()
                                         .insert(path.clone(), tpl.id.clone());
-                                    nodes_w
-                                        .write()
-                                        .unwrap()
-                                        .insert(tpl.id.clone(), tpl);
+                                    nodes_w.write().unwrap().insert(tpl.id.clone(), tpl);
                                     info!("Loaded node template {}", path.display());
                                 }
                                 Err(e) => error!("{e}"),
@@ -99,6 +95,7 @@ impl NodeRegistry {
             .map_err(|e| e.to_string())?;
 
         Ok(Self {
+            root: dir,
             nodes,
             paths,
             _watcher: watcher,
@@ -114,6 +111,15 @@ impl NodeRegistry {
             .insert(path.to_path_buf(), tpl.id.clone());
         self.nodes.write().unwrap().insert(tpl.id.clone(), tpl);
         Ok(())
+    }
+
+    /// Регистрация узла по структуре `NodeTemplate` с сохранением на диск.
+    pub fn register_template(&self, tpl: NodeTemplate) -> Result<(), String> {
+        let file = format!("{}-{}.json", tpl.id, tpl.version);
+        let path = self.root.join(file);
+        let content = serde_json::to_string(&tpl).map_err(|e| e.to_string())?;
+        fs::write(&path, content).map_err(|e| e.to_string())?;
+        self.register(&path)
     }
 
     /// Получение метаданных узла по идентификатору.

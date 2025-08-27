@@ -17,7 +17,7 @@ fn hot_reload_detects_file_changes() {
     fs::write(&path, serde_json::to_string(&tpl).unwrap()).unwrap();
 
     let registry = NodeRegistry::new(dir.path()).unwrap();
-    assert_eq!(registry.get("n1", None).unwrap().analysis_type, "a");
+    assert_eq!(registry.get("n1").unwrap().analysis_type, "a");
 
     let tpl2 = json!({
         "id": "n1",
@@ -27,7 +27,7 @@ fn hot_reload_detects_file_changes() {
     });
     fs::write(&path, serde_json::to_string(&tpl2).unwrap()).unwrap();
     thread::sleep(Duration::from_secs(1));
-    assert_eq!(registry.get("n1", None).unwrap().analysis_type, "b");
+    assert_eq!(registry.get("n1").unwrap().analysis_type, "b");
 
     fs::remove_file(&path).unwrap();
     thread::sleep(Duration::from_secs(1));
@@ -45,11 +45,14 @@ fn register_template_persists_to_disk() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: Metadata { schema: "1.0.0".to_string(), extra: HashMap::new() },
+        metadata: Metadata {
+            schema: "1.0.0".to_string(),
+            extra: HashMap::new(),
+        },
     };
     registry.register_template(tpl.clone()).unwrap();
-    assert!(registry.get("n2", Some("0.1.0")).is_some());
+    assert!(registry.get("n2").is_some());
     drop(registry);
     let registry2 = NodeRegistry::new(dir.path()).unwrap();
-    assert!(registry2.get("n2", Some("0.1.0")).is_some());
+    assert!(registry2.get("n2").is_some());
 }
