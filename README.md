@@ -2,29 +2,29 @@
 
 ## Навигация
 
-- [Узлы действий](action-nodes.md)
-- [Узлы анализа](analysis-nodes.md)
-- [Узлы памяти](memory-nodes.md)
-- [Архитектура анализа](analysis-architecture.md)
-- [Поддерживающие системы](support-systems.md)
-- [Личность Нейры](personality.md)
-- [Шаблон узла](node-template.md)
-- [Генератор шаблонов узлов](node-template.md#генератор-шаблонов)
-- [Политика источников](source-policy.md)
-- [Низкоуровневая цепочка инструментов](low-level-toolchain.md)
-- [Система самообновления](self-updating-system.md)
-- [Пример использования](usage-example.md)
-- [CLI‑утилита валидации шаблонов](docs/usage-example.md)
-- [Практическое руководство](practical-guide.md)
-- [Глоссарий](glossary.md)
-- [FAQ](faq.md)
-- [Загрузка обучающих данных](training.md)
-- [CI/CD и деплой](docs/deployment.md)
-- [Веб-интерфейс обучения](web-interface.md)
-- [Тестирование Neira](testing.md)
-- [Дорожная карта Neira](roadmap.md)
-- [Структура управления Нейры](governance-structure.md)
-- [Мотивация и прогресс Нейры](motivation.md)
+- [Узлы действий](docs/nodes/action-nodes.md)
+- [Узлы анализа](docs/nodes/analysis-nodes.md)
+- [Узлы памяти](docs/nodes/memory-nodes.md)
+- [Архитектура анализа](docs/system/analysis-architecture.md)
+- [Поддерживающие системы](docs/system/support-systems.md)
+- [Личность Нейры](docs/meta/personality.md)
+- [Шаблон узла](docs/nodes/node-template.md)
+- [Генератор шаблонов узлов](docs/nodes/node-template.md#генератор-шаблонов)
+- [Политика источников](docs/system/source-policy.md)
+- [Низкоуровневая цепочка инструментов](docs/system/low-level-toolchain.md)
+- [Система самообновления](docs/system/self-updating-system.md)
+- [Пример использования](docs/guides/usage-example.md)
+- [CLI‑утилита валидации шаблонов](docs/legacy/usage-example.md)
+- [Практическое руководство](docs/guides/practical-guide.md)
+- [Глоссарий](docs/meta/glossary.md)
+- [FAQ](docs/meta/faq.md)
+- [Загрузка обучающих данных](docs/guides/training.md)
+- [CI/CD и деплой](docs/legacy/deployment.md)
+- [Веб-интерфейс обучения](docs/guides/web-interface.md)
+- [Тестирование Neira](docs/guides/testing.md)
+- [Дорожная карта Neira](docs/meta/roadmap.md)
+- [Структура управления Нейры](docs/system/governance-structure.md)
+- [Мотивация и прогресс Нейры](docs/meta/motivation.md)
 
 ## Оглавление
 
@@ -166,7 +166,7 @@ impl Node {
 
 ## Личность Нейры
 
-Стартовый образ и правила развития описаны в [отдельном документе](personality.md).
+Стартовый образ и правила развития описаны в [отдельном документе](docs/meta/personality.md).
 Кратко: на старте система проецирует образ 14‑летней девочки, увлекающейся анализом и играми.
 По мере роста функциональности персонаж взрослеет до примерно 30 лет, но базовые черты сохраняются.
 При необходимости доступен режим без личности для сухих академических ответов.
@@ -289,13 +289,13 @@ flowchart LR
 - **Метапознание** — модуль самооценки анализирует собственные рассуждения
   и выбирает альтернативные стратегии.
 
-Подробнее см. [поддерживающие системы](support-systems.md).
+Подробнее см. [поддерживающие системы](docs/system/support-systems.md).
 
 ## Планировщик и лимиты итераций
 
 Этот раздел описывает операционные лимиты планировщика. Они определяют, сколько времени и итераций выделяется узлам и не являются пределами физических ресурсов системы.
 
-`TaskScheduler` распределяет задачи по очередям `fast`, `standard` и `long`, учитывая параметры `priority`, `max_iterations` и `time_slice_ms`. Подробности см. в разделе [TaskScheduler](support-systems.md#taskscheduler).
+`TaskScheduler` распределяет задачи по очередям `fast`, `standard` и `long`, учитывая параметры `priority`, `max_iterations` и `time_slice_ms`. Подробности см. в разделе [TaskScheduler](docs/system/support-systems.md#taskscheduler).
 
 Планировщик может учитывать отдельный бюджет `pmem_limit_mb` для энергонезависимой памяти, чтобы узлы не превышали доступный объём NVRAM.
 
@@ -335,7 +335,7 @@ time_slice_ms = 10
 - Пользователь тестирует устойчивость и функциональность.
 - После одобрения новая версия становится основной, а прежняя архивируется или удаляется.
 
-Связанные этапы описаны в [жизненном цикле узлов](node-lifecycle.md).
+Связанные этапы описаны в [жизненном цикле узлов](docs/nodes/node-lifecycle.md).
 
 ## Автономное создание подтипов и метаданные
 
@@ -389,18 +389,18 @@ time_slice_ms = 10
 
 Подробные инструкции по установке зависимостей,
 запуску демонстрационной конфигурации и настройке
-переменных окружения приведены в [docs/deployment.md](docs/deployment.md).
+переменных окружения приведены в [docs/legacy/deployment.md](docs/legacy/deployment.md).
 
 ## Дополнительная документация
 
-- [Узлы действий](action-nodes.md)
-- [Узлы памяти](memory-nodes.md)
-- [Узлы анализа](analysis-nodes.md)
-- [Механизм саморазвивающейся системы](self-updating-system.md)
+- [Узлы действий](docs/nodes/action-nodes.md)
+- [Узлы памяти](docs/nodes/memory-nodes.md)
+- [Узлы анализа](docs/nodes/analysis-nodes.md)
+- [Механизм саморазвивающейся системы](docs/system/self-updating-system.md)
 
 ## Development
 
-- [Интеграция IDE](docs/ide-integration.md)
+- [Интеграция IDE](docs/guides/ide-integration.md)
 
 ## Схемы
 
@@ -429,4 +429,4 @@ cargo package
 scp target/release/neira user@server:/opt/neira
 ```
 
-Подробнее см. [docs/deployment.md](docs/deployment.md).
+Подробнее см. [docs/legacy/deployment.md](docs/legacy/deployment.md).
