@@ -7,8 +7,9 @@ use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde_json::Value;
 use tracing::{error, info};
 
-use crate::analysis_node::AnalysisNode;
+use crate::action::chat_node::ChatNode;
 use crate::action_node::ActionNode;
+use crate::analysis_node::AnalysisNode;
 use crate::node_template::{validate_template, NodeTemplate};
 
 /// Загружает `NodeTemplate` из файла JSON или YAML.
@@ -34,6 +35,7 @@ pub struct NodeRegistry {
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
     analysis_nodes: Arc<RwLock<HashMap<String, Arc<dyn AnalysisNode + Send + Sync>>>>,
     action_nodes: Arc<RwLock<Vec<Arc<dyn ActionNode>>>>,
+    chat_nodes: Arc<RwLock<HashMap<String, Arc<dyn ChatNode + Send + Sync>>>>,
     _watcher: RecommendedWatcher,
 }
 
@@ -45,6 +47,7 @@ impl NodeRegistry {
         let paths = Arc::new(RwLock::new(HashMap::new()));
         let analysis_nodes = Arc::new(RwLock::new(HashMap::new()));
         let action_nodes = Arc::new(RwLock::new(Vec::new()));
+        let chat_nodes = Arc::new(RwLock::new(HashMap::new()));
 
         // Начальная загрузка файлов
         for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir {}: {e}", dir.display()))? {
@@ -106,6 +109,7 @@ impl NodeRegistry {
             paths,
             analysis_nodes,
             action_nodes,
+            chat_nodes,
             _watcher: watcher,
         })
     }
@@ -137,8 +141,7 @@ impl NodeRegistry {
 
     /// Регистрация реализации `AnalysisNode`.
     pub fn register_analysis_node(&self, node: Arc<dyn AnalysisNode + Send + Sync>) {
-        self
-            .analysis_nodes
+        self.analysis_nodes
             .write()
             .unwrap()
             .insert(node.id().to_string(), node);
@@ -155,5 +158,16 @@ impl NodeRegistry {
 
     pub fn action_nodes(&self) -> Vec<Arc<dyn ActionNode>> {
         self.action_nodes.read().unwrap().clone()
+    }
+
+    pub fn register_chat_node(&self, node: Arc<dyn ChatNode + Send + Sync>) {
+        self.chat_nodes
+            .write()
+            .unwrap()
+            .insert(node.id().to_string(), node);
+    }
+
+    pub fn get_chat_node(&self, id: &str) -> Option<Arc<dyn ChatNode + Send + Sync>> {
+        self.chat_nodes.read().unwrap().get(id).cloned()
     }
 }
