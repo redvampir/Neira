@@ -22,6 +22,8 @@ jobs:
         run: |
           npm ci
           npm ci --prefix frontend
+      - name: Check duplicate crates
+        run: scripts/check-duplicates.sh
       - name: Lint
         run: npm run lint
       - name: Test backend
