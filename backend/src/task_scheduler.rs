@@ -49,7 +49,7 @@ impl TaskScheduler {
     }
 }
 
-fn compute_priority(metrics: &QualityMetrics, stats: &UsageStats) -> u8 {
+pub fn compute_priority(metrics: &QualityMetrics, stats: &UsageStats) -> u8 {
     let credibility = metrics.credibility.unwrap_or(0.0);
     let recency = metrics
         .recency_days

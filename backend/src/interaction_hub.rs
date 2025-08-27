@@ -6,8 +6,8 @@ use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 use tracing::info;
 
-use crate::analysis_node::{AnalysisResult, NodeStatus, QualityMetrics};
-use crate::memory_node::{MemoryNode, UsageStats};
+use crate::analysis_node::{AnalysisResult, NodeStatus};
+use crate::memory_node::MemoryNode;
 use crate::node_registry::NodeRegistry;
 use crate::task_scheduler::TaskScheduler;
 use crate::trigger_detector::TriggerDetector;
@@ -67,14 +67,12 @@ impl InteractionHub {
             node.preload(&triggers, &self.memory);
         }
 
-        let quality: QualityMetrics = self.memory.get_quality(id);
-        let usage: UsageStats = self.memory.get_usage(id);
-        self.scheduler.write().unwrap().enqueue_with_metrics(
-            id.to_string(),
-            input.to_string(),
-            quality,
-            usage,
-        );
+        let priority = self.memory.get_priority(id);
+        self
+            .scheduler
+            .write()
+            .unwrap()
+            .enqueue(id.to_string(), input.to_string(), priority);
 
         let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
         let node = self.registry.get_analysis_node(&task_id)?;
@@ -122,6 +120,9 @@ impl InteractionHub {
                     } else {
                         self.memory.push_metrics(&result);
                         self.memory.update_time(id, elapsed);
+                        let mem = self.memory.clone();
+                        let rid = id.to_string();
+                        mem.recalc_priority_async(rid);
                     }
                     info!("analysis {} completed", id);
                     Some(result)
