@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
+set -e
 
 npm run lint
 npm test
 cargo clippy
 cargo test
+cargo test --manifest-path backend/Cargo.toml
