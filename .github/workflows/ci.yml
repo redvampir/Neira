@@ -18,6 +18,8 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Validate Cargo files
+        run: cargo metadata --locked
       - name: Install dependencies
         run: |
           npm ci

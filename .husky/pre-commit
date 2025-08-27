@@ -3,6 +3,7 @@ set -e
 
 npm run lint
 npm test
+cargo metadata --locked
 cargo clippy
 scripts/check-duplicates.sh
 cargo test
