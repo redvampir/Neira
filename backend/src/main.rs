@@ -1,9 +1,13 @@
 use std::sync::Arc;
 
-use axum::{routing::{get, post}, Router, extract::{State, Path}, Json};
+use axum::{
+    extract::{Path, State},
+    routing::{get, post},
+    Json, Router,
+};
+use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio::net::TcpListener;
 use tracing::{error, info};
-use metrics_exporter_prometheus::PrometheusBuilder;
 
 use backend::node_registry::NodeRegistry;
 use backend::node_template::NodeTemplate;
@@ -28,11 +32,10 @@ async fn get_node(
     State(state): State<AppState>,
     Path((id, version)): Path<(String, String)>,
 ) -> Result<Json<NodeTemplate>, axum::http::StatusCode> {
-    state
-        .registry
-        .get(&id, Some(&version))
-        .map(Json)
-        .ok_or(axum::http::StatusCode::NOT_FOUND)
+    match state.registry.get(&id) {
+        Some(tpl) if tpl.version == version => Ok(Json(tpl)),
+        _ => Err(axum::http::StatusCode::NOT_FOUND),
+    }
 }
 
 async fn get_node_latest(
@@ -41,7 +44,7 @@ async fn get_node_latest(
 ) -> Result<Json<NodeTemplate>, axum::http::StatusCode> {
     state
         .registry
-        .get(&id, None)
+        .get(&id)
         .map(Json)
         .ok_or(axum::http::StatusCode::NOT_FOUND)
 }
@@ -50,13 +53,18 @@ async fn get_node_latest(
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let templates_dir = std::env::var("NODE_TEMPLATES_DIR").unwrap_or_else(|_| "./templates".into());
+    let templates_dir =
+        std::env::var("NODE_TEMPLATES_DIR").unwrap_or_else(|_| "./templates".into());
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
 
-    let handle = PrometheusBuilder::new().install_recorder().expect("metrics");
+    let handle = PrometheusBuilder::new()
+        .install_recorder()
+        .expect("metrics");
 
-    let state = AppState { registry: registry.clone() };
+    let state = AppState {
+        registry: registry.clone(),
+    };
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, world!" }))
