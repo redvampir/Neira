@@ -1,0 +1,5 @@
+id: example.template
+analysis_type: ExampleNode
+metadata:
+  schema: "1.0.0"
+  author: "Example"
