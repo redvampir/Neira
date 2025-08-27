@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -108,7 +109,7 @@ pub trait AnalysisNode {
     fn status(&self) -> NodeStatus;
     fn links(&self) -> &[String];
     fn confidence_threshold(&self) -> f32;
-    fn analyze(&self, input: &str) -> AnalysisResult;
+    fn analyze(&self, input: &str, cancel_token: &CancellationToken) -> AnalysisResult;
     fn explain(&self) -> String;
 }
 

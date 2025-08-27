@@ -10,14 +10,14 @@ use tokio::net::TcpListener;
 use tracing::{error, info};
 
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::interaction_hub::InteractionHub;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use backend::node_template::NodeTemplate;
 
 #[derive(Clone)]
 struct AppState {
-    registry: Arc<NodeRegistry>,
-    memory: Arc<MemoryNode>,
+    hub: Arc<InteractionHub>,
 }
 
 async fn register_node(
@@ -25,6 +25,7 @@ async fn register_node(
     Json(tpl): Json<NodeTemplate>,
 ) -> Result<String, (axum::http::StatusCode, String)> {
     state
+        .hub
         .registry
         .register_template(tpl)
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e))?;
@@ -35,7 +36,7 @@ async fn get_node(
     State(state): State<AppState>,
     Path((id, version)): Path<(String, String)>,
 ) -> Result<Json<NodeTemplate>, axum::http::StatusCode> {
-    match state.registry.get(&id) {
+    match state.hub.registry.get(&id) {
         Some(tpl) if tpl.version == version => Ok(Json(tpl)),
         _ => Err(axum::http::StatusCode::NOT_FOUND),
     }
@@ -46,6 +47,7 @@ async fn get_node_latest(
     Path(id): Path<String>,
 ) -> Result<Json<NodeTemplate>, axum::http::StatusCode> {
     state
+        .hub
         .registry
         .get(&id)
         .map(Json)
@@ -62,12 +64,11 @@ async fn analyze_request(
     State(state): State<AppState>,
     Json(req): Json<AnalysisRequest>,
 ) -> Result<Json<AnalysisResult>, axum::http::StatusCode> {
-    let node = state
-        .registry
-        .get_analysis_node(&req.id)
+    let token = tokio_util::sync::CancellationToken::new();
+    let result = state
+        .hub
+        .analyze(&req.id, &req.input, &token)
         .ok_or(axum::http::StatusCode::NOT_FOUND)?;
-    let mut result = node.analyze(&req.input);
-    state.memory.push_metrics(&result);
     Ok(Json(result))
 }
 
@@ -80,6 +81,7 @@ async fn main() {
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
+    let hub = Arc::new(InteractionHub::new(registry.clone(), memory.clone()));
 
     // Пример узла анализа
     struct EchoNode;
@@ -89,22 +91,29 @@ async fn main() {
         fn status(&self) -> NodeStatus { NodeStatus::Active }
         fn links(&self) -> &[String] { &[] }
         fn confidence_threshold(&self) -> f32 { 0.0 }
-        fn analyze(&self, input: &str) -> AnalysisResult {
+        fn analyze(
+            &self,
+            input: &str,
+            cancel_token: &tokio_util::sync::CancellationToken,
+        ) -> AnalysisResult {
+            if cancel_token.is_cancelled() {
+                let mut r = AnalysisResult::new(self.id(), input, vec![]);
+                r.status = NodeStatus::Error;
+                return r;
+            }
             AnalysisResult::new(self.id(), input, vec!["echo".into()])
         }
         fn explain(&self) -> String { "Echoes input".into() }
     }
 
-    registry.register_analysis_node(Arc::new(EchoNode));
+    // регистрируем пример узла через InteractionHub (новая архитектура)
+    hub.register_analysis_node(Arc::new(EchoNode));
 
     let handle = PrometheusBuilder::new()
         .install_recorder()
         .expect("metrics");
 
-    let state = AppState {
-        registry: registry.clone(),
-        memory: memory.clone(),
-    };
+    let state = AppState { hub: hub.clone() };
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, world!" }))
