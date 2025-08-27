@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use crate::memory_node::MemoryNode;
 
 pub trait ActionNode: Send + Sync {
     fn id(&self) -> &str;
-    fn preload(&self, triggers: &[String], memory: &MemoryNode);
+    fn preload(&self, triggers: &[String], memory: &Arc<MemoryNode>);
 }
 
 pub struct PreloadAction;
@@ -12,8 +14,12 @@ impl ActionNode for PreloadAction {
         "preload.action"
     }
 
-    fn preload(&self, triggers: &[String], memory: &MemoryNode) {
-        let _ = memory.preload_by_trigger(triggers);
+    fn preload(&self, triggers: &[String], memory: &Arc<MemoryNode>) {
+        let matched = memory.preload_by_trigger(triggers);
+        for rec in matched {
+            let mem = Arc::clone(memory);
+            mem.recalc_priority_async(rec.id.clone());
+        }
     }
 }
 
