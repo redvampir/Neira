@@ -38,8 +38,7 @@ impl MemoryNode {
     }
 
     pub fn save_checkpoint(&self, id: &str, result: &AnalysisResult) {
-        self
-            .checkpoints
+        self.checkpoints
             .write()
             .unwrap()
             .insert(id.to_string(), result.clone());

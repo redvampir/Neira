@@ -7,27 +7,15 @@ use tokio_util::sync::CancellationToken;
 struct DummyNode;
 
 impl AnalysisNode for DummyNode {
-    fn id(&self) -> &str {
-        "dummy"
-    }
-    fn analysis_type(&self) -> &str {
-        "dummy"
-    }
-    fn status(&self) -> NodeStatus {
-        NodeStatus::Active
-    }
-    fn links(&self) -> &[String] {
-        &[]
-    }
-    fn confidence_threshold(&self) -> f32 {
-        0.0
-    }
+    fn id(&self) -> &str { "dummy" }
+    fn analysis_type(&self) -> &str { "dummy" }
+    fn status(&self) -> NodeStatus { NodeStatus::Active }
+    fn links(&self) -> &[String] { &[] }
+    fn confidence_threshold(&self) -> f32 { 0.0 }
     fn analyze(&self, _input: &str, _cancel: &CancellationToken) -> AnalysisResult {
         AnalysisResult::new(self.id(), "out", vec![])
     }
-    fn explain(&self) -> String {
-        String::new()
-    }
+    fn explain(&self) -> String { String::new() }
 }
 
 #[test]

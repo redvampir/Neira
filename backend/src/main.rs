@@ -106,7 +106,8 @@ async fn main() {
         fn explain(&self) -> String { "Echoes input".into() }
     }
 
-    registry.register_analysis_node(Arc::new(EchoNode));
+    // регистрируем пример узла через InteractionHub (новая архитектура)
+    hub.register_analysis_node(Arc::new(EchoNode));
 
     let handle = PrometheusBuilder::new()
         .install_recorder()
