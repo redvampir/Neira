@@ -18,6 +18,8 @@ serde_yaml = "0.9"
 notify = { version = "8.2", default-features = false }
 semver = "1"
 metrics-exporter-prometheus = "0.17"
+chrono = { version = "0.4", features = ["serde", "alloc"] }
+tokio-util = "0.7"
 
 [dev-dependencies]
 tempfile = "3"
