@@ -1,7 +1,15 @@
 use std::sync::RwLock;
 
+type ReflexAction = Box<dyn Fn() + Send + Sync>;
+
+struct MicroReflex {
+    pattern: String,
+    action: ReflexAction,
+}
+
 pub struct TriggerDetector {
     keywords: RwLock<Vec<String>>,
+    micro_reflexes: RwLock<Vec<MicroReflex>>,
 }
 
 impl Default for TriggerDetector {
@@ -15,6 +23,7 @@ impl Default for TriggerDetector {
         ];
         Self {
             keywords: RwLock::new(defaults),
+            micro_reflexes: RwLock::new(Vec::new()),
         }
     }
 }
@@ -24,11 +33,29 @@ impl TriggerDetector {
         self.keywords.write().unwrap().push(keyword);
     }
 
+    pub fn add_micro_reflex<F>(&self, pattern: impl Into<String>, action: F)
+    where
+        F: Fn() + Send + Sync + 'static,
+    {
+        self.micro_reflexes.write().unwrap().push(MicroReflex {
+            pattern: pattern.into(),
+            action: Box::new(action),
+        });
+    }
+
     pub fn detect(&self, text: &str) -> Vec<String> {
         let kws = self.keywords.read().unwrap();
-        kws.iter()
+        let found: Vec<String> = kws
+            .iter()
             .filter(|k| text.to_lowercase().contains(&k.to_lowercase()))
             .cloned()
-            .collect()
+            .collect();
+        let reflexes = self.micro_reflexes.read().unwrap();
+        for reflex in reflexes.iter() {
+            if text.to_lowercase().contains(&reflex.pattern.to_lowercase()) {
+                (reflex.action)();
+            }
+        }
+        found
     }
 }
