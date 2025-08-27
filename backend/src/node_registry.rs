@@ -7,6 +7,7 @@ use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde_json::Value;
 use tracing::{error, info};
 
+use crate::analysis_node::AnalysisNode;
 use crate::node_template::{validate_template, NodeTemplate};
 
 /// Загружает `NodeTemplate` из файла JSON или YAML.
@@ -30,6 +31,7 @@ pub struct NodeRegistry {
     root: PathBuf,
     nodes: Arc<RwLock<HashMap<String, NodeTemplate>>>,
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
+    analysis_nodes: Arc<RwLock<HashMap<String, Arc<dyn AnalysisNode + Send + Sync>>>>,
     _watcher: RecommendedWatcher,
 }
 
@@ -39,6 +41,7 @@ impl NodeRegistry {
         let dir = dir.as_ref().to_path_buf();
         let nodes = Arc::new(RwLock::new(HashMap::new()));
         let paths = Arc::new(RwLock::new(HashMap::new()));
+        let analysis_nodes = Arc::new(RwLock::new(HashMap::new()));
 
         // Начальная загрузка файлов
         for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir {}: {e}", dir.display()))? {
@@ -98,6 +101,7 @@ impl NodeRegistry {
             root: dir,
             nodes,
             paths,
+            analysis_nodes,
             _watcher: watcher,
         })
     }
@@ -125,5 +129,19 @@ impl NodeRegistry {
     /// Получение метаданных узла по идентификатору.
     pub fn get(&self, id: &str) -> Option<NodeTemplate> {
         self.nodes.read().unwrap().get(id).cloned()
+    }
+
+    /// Регистрация реализации `AnalysisNode`.
+    pub fn register_analysis_node(&self, node: Arc<dyn AnalysisNode + Send + Sync>) {
+        self
+            .analysis_nodes
+            .write()
+            .unwrap()
+            .insert(node.id().to_string(), node);
+    }
+
+    /// Получение реализации `AnalysisNode` по идентификатору.
+    pub fn get_analysis_node(&self, id: &str) -> Option<Arc<dyn AnalysisNode + Send + Sync>> {
+        self.analysis_nodes.read().unwrap().get(id).cloned()
     }
 }
