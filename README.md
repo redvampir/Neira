@@ -10,7 +10,7 @@
 - [Шаблон узла](node-template.md)
 - [Политика источников](source-policy.md)
 - [Низкоуровневая цепочка инструментов](low-level-toolchain.md)
-- [Саморазвивающаяся система](self-updating-system.md)
+- [Система самообновления](self-updating-system.md)
 - [Пример использования](usage-example.md)
 - [Практическое руководство](practical-guide.md)
 - [Глоссарий](glossary.md)
