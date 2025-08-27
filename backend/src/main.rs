@@ -58,6 +58,15 @@ async fn get_node_latest(
 struct AnalysisRequest {
     id: String,
     input: String,
+    auth: String,
+    #[serde(default)]
+    priority: Option<u8>,
+}
+
+#[derive(serde::Deserialize)]
+struct ResumeRequest {
+    id: String,
+    auth: String,
 }
 
 async fn analyze_request(
@@ -67,9 +76,27 @@ async fn analyze_request(
     let token = tokio_util::sync::CancellationToken::new();
     let result = state
         .hub
-        .analyze(&req.id, &req.input, &token)
-        .ok_or(axum::http::StatusCode::NOT_FOUND)?;
+        .analyze(
+            &req.id,
+            &req.input,
+            req.priority.unwrap_or(0),
+            &req.auth,
+            &token,
+        )
+        .await
+        .ok_or(axum::http::StatusCode::UNAUTHORIZED)?;
     Ok(Json(result))
+}
+
+async fn resume_request(
+    State(state): State<AppState>,
+    Json(req): Json<ResumeRequest>,
+) -> Result<Json<AnalysisResult>, axum::http::StatusCode> {
+    state
+        .hub
+        .resume(&req.id, &req.auth)
+        .map(Json)
+        .ok_or(axum::http::StatusCode::NOT_FOUND)
 }
 
 #[tokio::main]
@@ -82,6 +109,8 @@ async fn main() {
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
     let hub = Arc::new(InteractionHub::new(registry.clone(), memory.clone()));
+    hub.add_auth_token("secret");
+    hub.add_trigger_keyword("echo");
 
     // Пример узла анализа
     struct EchoNode;
@@ -106,8 +135,7 @@ async fn main() {
         fn explain(&self) -> String { "Echoes input".into() }
     }
 
-    // регистрируем пример узла через InteractionHub (новая архитектура)
-    hub.register_analysis_node(Arc::new(EchoNode));
+    registry.register_analysis_node(Arc::new(EchoNode));
 
     let handle = PrometheusBuilder::new()
         .install_recorder()
@@ -121,6 +149,7 @@ async fn main() {
         .route("/nodes/:id", get(get_node_latest))
         .route("/nodes/:id/:version", get(get_node))
         .route("/api/neira/analysis", post(analyze_request))
+        .route("/api/neira/analysis/resume", post(resume_request))
         .route("/metrics", get(move || async move { handle.render() }))
         .with_state(state);
 

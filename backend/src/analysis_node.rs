@@ -112,4 +112,3 @@ pub trait AnalysisNode {
     fn analyze(&self, input: &str, cancel_token: &CancellationToken) -> AnalysisResult;
     fn explain(&self) -> String;
 }
-

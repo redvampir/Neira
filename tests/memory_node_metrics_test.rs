@@ -23,4 +23,3 @@ fn memory_node_stores_metrics_and_chain() {
     assert_eq!(records[0].quality_metrics.demand, Some(2));
     assert_eq!(records[0].reasoning_chain[0].content, "rust");
 }
-
