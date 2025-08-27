@@ -93,12 +93,34 @@ async fn resume_request(
 }
 
 #[tokio::main]
+
 async fn main() {
+
     let logs_dir = "logs";
-    let _ = std::fs::create_dir_all(logs_dir);
+
+    let _ = fs::create_dir_all(logs_dir);
+
+    // Ежедневная ротация + неблокирующая запись
+
     let file_appender = tracing_appender::rolling::daily(logs_dir, "backend.log");
+
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-    tracing_subscriber::fmt().with_writer(non_blocking).init();
+
+    tracing_subscriber::fmt()
+
+        .with_writer(non_blocking)
+
+        .with_ansi(false)
+
+        .with_target(false)
+
+        .with_env_filter(EnvFilter::from_default_env()) // поддержка RUST_LOG
+
+        .init();
+
+    // ... остальной код
+
+}
 
     let templates_dir =
         std::env::var("NODE_TEMPLATES_DIR").unwrap_or_else(|_| "./templates".into());
