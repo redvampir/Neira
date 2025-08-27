@@ -8,6 +8,7 @@ use serde_json::Value;
 use tracing::{error, info};
 
 use crate::analysis_node::AnalysisNode;
+use crate::action_node::ActionNode;
 use crate::node_template::{validate_template, NodeTemplate};
 
 /// Загружает `NodeTemplate` из файла JSON или YAML.
@@ -32,6 +33,7 @@ pub struct NodeRegistry {
     nodes: Arc<RwLock<HashMap<String, NodeTemplate>>>,
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
     analysis_nodes: Arc<RwLock<HashMap<String, Arc<dyn AnalysisNode + Send + Sync>>>>,
+    action_nodes: Arc<RwLock<Vec<Arc<dyn ActionNode>>>>,
     _watcher: RecommendedWatcher,
 }
 
@@ -42,6 +44,7 @@ impl NodeRegistry {
         let nodes = Arc::new(RwLock::new(HashMap::new()));
         let paths = Arc::new(RwLock::new(HashMap::new()));
         let analysis_nodes = Arc::new(RwLock::new(HashMap::new()));
+        let action_nodes = Arc::new(RwLock::new(Vec::new()));
 
         // Начальная загрузка файлов
         for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir {}: {e}", dir.display()))? {
@@ -102,6 +105,7 @@ impl NodeRegistry {
             nodes,
             paths,
             analysis_nodes,
+            action_nodes,
             _watcher: watcher,
         })
     }
@@ -143,5 +147,13 @@ impl NodeRegistry {
     /// Получение реализации `AnalysisNode` по идентификатору.
     pub fn get_analysis_node(&self, id: &str) -> Option<Arc<dyn AnalysisNode + Send + Sync>> {
         self.analysis_nodes.read().unwrap().get(id).cloned()
+    }
+
+    pub fn register_action_node(&self, node: Arc<dyn ActionNode>) {
+        self.action_nodes.write().unwrap().push(node);
+    }
+
+    pub fn action_nodes(&self) -> Vec<Arc<dyn ActionNode>> {
+        self.action_nodes.read().unwrap().clone()
     }
 }

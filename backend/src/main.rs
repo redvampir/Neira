@@ -10,6 +10,7 @@ use tokio::net::TcpListener;
 use tracing::{error, info};
 
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::action_node::PreloadAction;
 use backend::interaction_hub::InteractionHub;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
@@ -59,8 +60,6 @@ struct AnalysisRequest {
     id: String,
     input: String,
     auth: String,
-    #[serde(default)]
-    priority: Option<u8>,
 }
 
 #[derive(serde::Deserialize)]
@@ -76,13 +75,7 @@ async fn analyze_request(
     let token = tokio_util::sync::CancellationToken::new();
     let result = state
         .hub
-        .analyze(
-            &req.id,
-            &req.input,
-            req.priority.unwrap_or(0),
-            &req.auth,
-            &token,
-        )
+        .analyze(&req.id, &req.input, &req.auth, &token)
         .await
         .ok_or(axum::http::StatusCode::UNAUTHORIZED)?;
     Ok(Json(result))
@@ -111,6 +104,7 @@ async fn main() {
     let hub = Arc::new(InteractionHub::new(registry.clone(), memory.clone()));
     hub.add_auth_token("secret");
     hub.add_trigger_keyword("echo");
+    registry.register_action_node(Arc::new(PreloadAction::default()));
 
     // Пример узла анализа
     struct EchoNode;

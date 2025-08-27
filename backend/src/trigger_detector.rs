@@ -1,8 +1,22 @@
 use std::sync::RwLock;
 
-#[derive(Default)]
 pub struct TriggerDetector {
     keywords: RwLock<Vec<String>>,
+}
+
+impl Default for TriggerDetector {
+    fn default() -> Self {
+        let defaults = vec![
+            "биология".to_string(),
+            "программирование".to_string(),
+            "rust".to_string(),
+            "математика".to_string(),
+            "нейросети".to_string(),
+        ];
+        Self {
+            keywords: RwLock::new(defaults),
+        }
+    }
 }
 
 impl TriggerDetector {

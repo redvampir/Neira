@@ -21,3 +21,4 @@ rustflags = ["-Dwarnings"]
 
 [patch.crates-io]
 kqueue-sys = { path = "patches/kqueue-sys" }
+

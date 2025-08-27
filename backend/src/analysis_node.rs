@@ -88,6 +88,8 @@ impl AnalysisResult {
             },
         }
     }
+}
+
 
     pub fn add_step(&mut self, step: impl Into<String>) {
         self.reasoning_chain.push(ReasoningStep {
