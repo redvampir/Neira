@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use tracing::info;
 
 /// Узел для простого чата.
 #[async_trait]
@@ -19,7 +20,10 @@ impl ChatNode for EchoChatNode {
     }
 
     async fn chat(&self, input: &str) -> String {
-        input.to_string()
+        info!("chat request: {}", input);
+        let response = input.to_string();
+        info!("chat response: {}", response);
+        response
     }
 }
 
