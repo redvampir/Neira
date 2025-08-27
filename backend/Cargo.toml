@@ -26,3 +26,4 @@ tempfile = "3"
 
 [patch.crates-io]
 kqueue-sys = { path = "../patches/kqueue-sys" }
+

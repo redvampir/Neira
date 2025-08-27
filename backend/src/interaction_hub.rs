@@ -33,7 +33,7 @@ impl InteractionHub {
         self.allowed_tokens.write().unwrap().push(token.into());
     }
 
-    fn authorize(&self, token: &str) -> bool {
+    fn authorize(&self, token: &str) => bool {
         self.allowed_tokens
             .read()
             .unwrap()
@@ -59,10 +59,12 @@ impl InteractionHub {
 
         let triggers = self.trigger_detector.detect(input);
         let _ = self.memory.preload_by_trigger(&triggers);
+
         self.scheduler
             .write()
             .unwrap()
             .enqueue(id.to_string(), input.to_string(), priority);
+
         let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
         let node = self.registry.get_analysis_node(&task_id)?;
         let cancel = cancel_token.clone();

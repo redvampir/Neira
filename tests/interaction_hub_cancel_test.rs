@@ -44,13 +44,16 @@ async fn interaction_hub_saves_checkpoint_on_cancel() {
     registry.register_analysis_node(Arc::new(CancelNode));
     let memory = Arc::new(MemoryNode::new());
     let hub = InteractionHub::new(registry.clone(), memory.clone());
+
     hub.add_auth_token("t");
     let token = CancellationToken::new();
     token.cancel();
+
     let result = hub
         .analyze("cancel.node", "", 0, "t", &token)
         .await
         .unwrap();
+
     assert_eq!(result.status, NodeStatus::Error);
     assert!(memory.load_checkpoint("cancel.node").is_some());
 }
