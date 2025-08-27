@@ -68,14 +68,14 @@ fn load_schema(version: &str) -> Result<&'static Config<'static>, String> {
     Ok(cfg_static)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Metadata {
     pub schema: String,
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NodeTemplate {
     pub id: String,
     pub analysis_type: String,
