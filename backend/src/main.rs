@@ -9,12 +9,15 @@ use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio::net::TcpListener;
 use tracing::{error, info};
 
+use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use backend::node_template::NodeTemplate;
 
 #[derive(Clone)]
 struct AppState {
     registry: Arc<NodeRegistry>,
+    memory: Arc<MemoryNode>,
 }
 
 async fn register_node(
@@ -49,6 +52,25 @@ async fn get_node_latest(
         .ok_or(axum::http::StatusCode::NOT_FOUND)
 }
 
+#[derive(serde::Deserialize)]
+struct AnalysisRequest {
+    id: String,
+    input: String,
+}
+
+async fn analyze_request(
+    State(state): State<AppState>,
+    Json(req): Json<AnalysisRequest>,
+) -> Result<Json<AnalysisResult>, axum::http::StatusCode> {
+    let node = state
+        .registry
+        .get_analysis_node(&req.id)
+        .ok_or(axum::http::StatusCode::NOT_FOUND)?;
+    let mut result = node.analyze(&req.input);
+    state.memory.push_metrics(&result);
+    Ok(Json(result))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -57,6 +79,23 @@ async fn main() {
         std::env::var("NODE_TEMPLATES_DIR").unwrap_or_else(|_| "./templates".into());
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
+    let memory = Arc::new(MemoryNode::new());
+
+    // Пример узла анализа
+    struct EchoNode;
+    impl AnalysisNode for EchoNode {
+        fn id(&self) -> &str { "example.analysis" }
+        fn analysis_type(&self) -> &str { "summary" }
+        fn status(&self) -> NodeStatus { NodeStatus::Active }
+        fn links(&self) -> &[String] { &[] }
+        fn confidence_threshold(&self) -> f32 { 0.0 }
+        fn analyze(&self, input: &str) -> AnalysisResult {
+            AnalysisResult::new(self.id(), input, vec!["echo".into()])
+        }
+        fn explain(&self) -> String { "Echoes input".into() }
+    }
+
+    registry.register_analysis_node(Arc::new(EchoNode));
 
     let handle = PrometheusBuilder::new()
         .install_recorder()
@@ -64,6 +103,7 @@ async fn main() {
 
     let state = AppState {
         registry: registry.clone(),
+        memory: memory.clone(),
     };
 
     let app = Router::new()
@@ -71,6 +111,7 @@ async fn main() {
         .route("/nodes", post(register_node))
         .route("/nodes/:id", get(get_node_latest))
         .route("/nodes/:id/:version", get(get_node))
+        .route("/api/neira/analysis", post(analyze_request))
         .route("/metrics", get(move || async move { handle.render() }))
         .with_state(state);
 

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -20,7 +21,7 @@ pub struct QualityMetrics {
 }
 
 impl QualityMetrics {
-    pub fn compute(reasoning_chain: &[String]) -> Self {
+    pub fn compute(reasoning_chain: &[ReasoningStep]) -> Self {
         let credibility = if reasoning_chain.is_empty() { 0.0 } else { 1.0 };
         let demand = reasoning_chain.len() as u32;
         QualityMetrics {
@@ -29,6 +30,12 @@ impl QualityMetrics {
             demand: Some(demand),
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReasoningStep {
+    pub timestamp: DateTime<Utc>,
+    pub content: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -44,7 +51,7 @@ pub struct AnalysisResult {
     pub status: NodeStatus,
     pub quality_metrics: QualityMetrics,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub reasoning_chain: Vec<String>,
+    pub reasoning_chain: Vec<ReasoningStep>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub uncertainty_score: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -55,7 +62,15 @@ pub struct AnalysisResult {
 }
 
 impl AnalysisResult {
-    pub fn new(id: impl Into<String>, output: impl Into<String>, reasoning_chain: Vec<String>) -> Self {
+    pub fn new(id: impl Into<String>, output: impl Into<String>, steps: Vec<String>) -> Self {
+        let reasoning_chain = steps
+            .into_iter()
+            .map(|s| ReasoningStep {
+                timestamp: Utc::now(),
+                content: s,
+            })
+            .collect::<Vec<_>>();
+
         let quality_metrics = QualityMetrics::compute(&reasoning_chain);
         let uncertainty_score = quality_metrics.credibility.map(|c| 1.0 - c);
         AnalysisResult {
@@ -72,6 +87,19 @@ impl AnalysisResult {
             },
         }
     }
+
+    pub fn add_step(&mut self, step: impl Into<String>) {
+        self.reasoning_chain.push(ReasoningStep {
+            timestamp: Utc::now(),
+            content: step.into(),
+        });
+        self.update_metrics();
+    }
+
+    fn update_metrics(&mut self) {
+        self.quality_metrics = QualityMetrics::compute(&self.reasoning_chain);
+        self.uncertainty_score = self.quality_metrics.credibility.map(|c| 1.0 - c);
+    }
 }
 
 pub trait AnalysisNode {
@@ -83,3 +111,4 @@ pub trait AnalysisNode {
     fn analyze(&self, input: &str) -> AnalysisResult;
     fn explain(&self) -> String;
 }
+
