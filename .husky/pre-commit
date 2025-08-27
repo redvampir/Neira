@@ -4,5 +4,6 @@ set -e
 npm run lint
 npm test
 cargo clippy
+scripts/check-duplicates.sh
 cargo test
 cargo test --manifest-path backend/Cargo.toml
