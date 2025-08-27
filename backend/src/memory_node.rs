@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use tokio::spawn;
 
 use crate::analysis_node::{AnalysisResult, QualityMetrics, ReasoningStep};
-use crate::task_scheduler::compute_priority;
+use crate::task_scheduler::{compute_priority, Priority};
 
 #[derive(Debug, Clone, Default)]
 pub struct UsageStats {
@@ -34,7 +34,7 @@ pub struct MemoryRecord {
     pub reasoning_chain: Vec<ReasoningStep>,
     pub usage: UsageStats,
     pub time: TimeMetrics,
-    pub priority: u8,
+    pub priority: Priority,
 }
 
 #[derive(Debug)]
@@ -70,7 +70,7 @@ impl MemoryNode {
                 reasoning_chain: result.reasoning_chain.clone(),
                 usage: UsageStats::default(),
                 time: TimeMetrics::default(),
-                priority: 0,
+                priority: Priority::Low,
             });
         }
     }
@@ -80,8 +80,7 @@ impl MemoryNode {
     }
 
     pub fn save_checkpoint(&self, id: &str, result: &AnalysisResult) {
-        self
-            .checkpoints
+        self.checkpoints
             .write()
             .unwrap()
             .insert(id.to_string(), result.clone());
@@ -189,14 +188,14 @@ impl MemoryNode {
             })
     }
 
-    pub fn get_priority(&self, id: &str) -> u8 {
+    pub fn get_priority(&self, id: &str) -> Priority {
         self.records
             .read()
             .unwrap()
             .iter()
             .find(|r| r.id == id)
             .map(|r| r.priority)
-            .unwrap_or(0)
+            .unwrap_or(Priority::Low)
     }
 
     fn recalc_priority(&self, id: &str) {

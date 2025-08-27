@@ -9,7 +9,7 @@ use tracing::info;
 use crate::analysis_node::{AnalysisResult, NodeStatus};
 use crate::memory_node::MemoryNode;
 use crate::node_registry::NodeRegistry;
-use crate::task_scheduler::TaskScheduler;
+use crate::task_scheduler::{Queue, TaskScheduler};
 use crate::trigger_detector::TriggerDetector;
 
 pub struct InteractionHub {
@@ -18,8 +18,6 @@ pub struct InteractionHub {
     trigger_detector: Arc<TriggerDetector>,
     scheduler: RwLock<TaskScheduler>,
     allowed_tokens: RwLock<Vec<String>>,
-    global_time_budget: Duration,
-    checkpoint_interval: Duration,
 }
 
 impl InteractionHub {
@@ -30,8 +28,6 @@ impl InteractionHub {
             trigger_detector: Arc::new(TriggerDetector::default()),
             scheduler: RwLock::new(TaskScheduler::default()),
             allowed_tokens: RwLock::new(Vec::new()),
-            global_time_budget: Duration::from_secs(8 * 60 * 60),
-            checkpoint_interval: Duration::from_secs(60),
         }
     }
 
@@ -68,11 +64,22 @@ impl InteractionHub {
         }
 
         let priority = self.memory.get_priority(id);
-        self
-            .scheduler
-            .write()
-            .unwrap()
-            .enqueue(id.to_string(), input.to_string(), priority);
+        let avg_time = self.memory.average_time_ms(id).unwrap_or(0);
+        let queue = if avg_time < 100 {
+            Queue::Fast
+        } else if avg_time < 1000 {
+            Queue::Standard
+        } else {
+            Queue::Long
+        };
+        self.scheduler.write().unwrap().enqueue(
+            queue,
+            id.to_string(),
+            input.to_string(),
+            priority,
+            None,
+            vec![id.to_string()],
+        );
 
         let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
         let node = self.registry.get_analysis_node(&task_id)?;
@@ -84,7 +91,8 @@ impl InteractionHub {
         let checkpoint_mem = self.memory.clone();
         let checkpoint_id = id.to_string();
         let checkpoint_cancel = cancel_token.clone();
-        let mut interval_timer = interval(self.checkpoint_interval);
+        let cfg = self.scheduler.read().unwrap().config.clone();
+        let mut interval_timer = interval(Duration::from_millis(cfg.checkpoint_interval_ms));
         tokio::spawn(async move {
             loop {
                 interval_timer.tick().await;
@@ -97,7 +105,7 @@ impl InteractionHub {
         });
 
         tokio::select! {
-            _ = sleep(self.global_time_budget) => {
+            _ = sleep(Duration::from_millis(cfg.global_time_budget)) => {
                 cancel_token.cancel();
                 let mut r = AnalysisResult::new(id, "", vec![]);
                 r.status = NodeStatus::Error;
