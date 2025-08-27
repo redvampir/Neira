@@ -19,8 +19,7 @@ fn load_template(path: &Path) -> Result<NodeTemplate, String> {
                 serde_yaml::from_str(&content).map_err(|e| format!("invalid YAML: {e}"))?;
             serde_json::to_value(yaml).map_err(|e| format!("YAML to JSON: {e}"))?
         }
-        _ => serde_json::from_str(&content)
-            .map_err(|e| format!("invalid JSON: {e}"))?,
+        _ => serde_json::from_str(&content).map_err(|e| format!("invalid JSON: {e}"))?,
     };
     validate_template(&value).map_err(|errs| errs.join(", "))?;
     serde_json::from_value(value).map_err(|e| format!("deserialize NodeTemplate: {e}"))
@@ -48,14 +47,8 @@ impl NodeRegistry {
             if path.is_file() {
                 match load_template(&path) {
                     Ok(tpl) => {
-                        paths
-                            .write()
-                            .unwrap()
-                            .insert(path.clone(), tpl.id.clone());
-                        nodes
-                            .write()
-                            .unwrap()
-                            .insert(tpl.id.clone(), tpl);
+                        paths.write().unwrap().insert(path.clone(), tpl.id.clone());
+                        nodes.write().unwrap().insert(tpl.id.clone(), tpl);
                     }
                     Err(e) => error!("{}", e),
                 }
@@ -73,9 +66,7 @@ impl NodeRegistry {
                         }
                         match event.kind {
                             EventKind::Remove(_) => {
-                                if let Some(id) =
-                                    paths_w.write().unwrap().remove(&path)
-                                {
+                                if let Some(id) = paths_w.write().unwrap().remove(&path) {
                                     nodes_w.write().unwrap().remove(&id);
                                     info!("Removed node {}", id);
                                 }
@@ -121,10 +112,7 @@ impl NodeRegistry {
             .write()
             .unwrap()
             .insert(path.to_path_buf(), tpl.id.clone());
-        self.nodes
-            .write()
-            .unwrap()
-            .insert(tpl.id.clone(), tpl);
+        self.nodes.write().unwrap().insert(tpl.id.clone(), tpl);
         Ok(())
     }
 
@@ -133,4 +121,3 @@ impl NodeRegistry {
         self.nodes.read().unwrap().get(id).cloned()
     }
 }
-

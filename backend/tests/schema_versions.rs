@@ -20,6 +20,7 @@ fn load_multiple_schema_versions() {
 
     let v1 = json!({
         "id": "n1",
+        "version": "0.1.0",
         "analysis_type": "a",
         "metadata": {"schema": "1.0.0"}
     });
@@ -27,6 +28,7 @@ fn load_multiple_schema_versions() {
 
     let v2 = json!({
         "id": "n2",
+        "version": "0.1.0",
         "analysis_type": "a",
         "metadata": {"schema": "2.0.0"}
     });

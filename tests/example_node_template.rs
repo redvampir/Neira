@@ -6,6 +6,7 @@ use std::path::Path;
 fn example_node_template_validates() {
     let example = json!({
         "id": "example-node",
+        "version": "0.1.0",
         "analysis_type": "text",
         "links": ["node-a", "node-b"],
         "confidence_threshold": 0.75,
