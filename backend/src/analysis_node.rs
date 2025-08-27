@@ -70,6 +70,7 @@ impl AnalysisResult {
                 content: s,
             })
             .collect::<Vec<_>>();
+
         let quality_metrics = QualityMetrics::compute(&reasoning_chain);
         let uncertainty_score = quality_metrics.credibility.map(|c| 1.0 - c);
         AnalysisResult {
@@ -110,3 +111,4 @@ pub trait AnalysisNode {
     fn analyze(&self, input: &str) -> AnalysisResult;
     fn explain(&self) -> String;
 }
+
