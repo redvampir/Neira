@@ -9,6 +9,7 @@ fn generate_validate_deserialize_template() {
 
     let template = NodeTemplate {
         id: "generated-node".to_string(),
+        version: "0.1.0".to_string(),
         analysis_type: "text".to_string(),
         links: vec!["a".to_string(), "b".to_string()],
         confidence_threshold: Some(0.5),
@@ -24,6 +25,7 @@ fn generate_validate_deserialize_template() {
     let parsed: NodeTemplate = serde_json::from_value(value).expect("deserialize NodeTemplate");
 
     assert_eq!(parsed.id, template.id);
+    assert_eq!(parsed.version, template.version);
     assert_eq!(parsed.analysis_type, template.analysis_type);
     assert_eq!(parsed.links, template.links);
     assert_eq!(parsed.confidence_threshold, template.confidence_threshold);

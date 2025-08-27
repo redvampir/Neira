@@ -2,9 +2,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "NodeTemplate",
   "type": "object",
-  "required": ["id", "analysis_type", "metadata"],
+  "required": ["id", "version", "analysis_type", "metadata"],
   "properties": {
     "id": {
+      "type": "string"
+    },
+    "version": {
       "type": "string"
     },
     "analysis_type": {

@@ -60,6 +60,7 @@ fn run() -> Result<(), String> {
 
     let template = NodeTemplate {
         id: id.unwrap_or_default(),
+        version: "0.1.0".to_string(),
         analysis_type: analysis_type.unwrap_or_default(),
         links,
         confidence_threshold,

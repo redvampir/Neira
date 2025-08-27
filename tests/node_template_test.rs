@@ -6,6 +6,7 @@ use std::path::Path;
 fn valid_template_is_accepted() {
     let value = json!({
         "id": "valid-node",
+        "version": "0.1.0",
         "analysis_type": "text",
         "links": ["a", "b"],
         "confidence_threshold": 0.5,
@@ -69,6 +70,7 @@ fn invalid_links_type_fails() {
             .expect("load schema");
     let value = json!({
         "id": "node",
+        "version": "0.1.0",
         "analysis_type": "text",
         "links": "not-an-array",
         "metadata": {"schema": "1.0.0"}
@@ -90,6 +92,7 @@ fn invalid_confidence_threshold_type_fails() {
             .expect("load schema");
     let value = json!({
         "id": "node",
+        "version": "0.1.0",
         "analysis_type": "text",
         "confidence_threshold": "high",
         "metadata": {"schema": "1.0.0"}
@@ -111,6 +114,7 @@ fn empty_id_is_handled() {
             .expect("load schema");
     let value = json!({
         "id": "",
+        "version": "0.1.0",
         "analysis_type": "text",
         "metadata": {"schema": "1.0.0"}
     });
@@ -128,6 +132,7 @@ fn explicit_path_loading_works() {
         .expect("load schema");
     let value = json!({
         "id": "explicit",
+        "version": "0.1.0",
         "analysis_type": "text",
         "metadata": {"schema": "1.0.0"}
     });
@@ -141,6 +146,7 @@ fn explicit_path_loading_works() {
 fn unknown_schema_version_errors() {
     let value = json!({
         "id": "node",
+        "version": "0.1.0",
         "analysis_type": "text",
         "metadata": {"schema": "9.9.9"}
     });

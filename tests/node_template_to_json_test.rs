@@ -9,6 +9,7 @@ fn to_json_produces_valid_structure() {
 
     let template = NodeTemplate {
         id: "node-1".to_string(),
+        version: "0.1.0".to_string(),
         analysis_type: "text".to_string(),
         links: vec!["a".to_string(), "b".to_string()],
         confidence_threshold: Some(0.8),
