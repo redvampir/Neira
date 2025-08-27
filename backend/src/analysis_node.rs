@@ -71,6 +71,7 @@ impl AnalysisResult {
                 content: s,
             })
             .collect::<Vec<_>>();
+
         let quality_metrics = QualityMetrics::compute(&reasoning_chain);
         let uncertainty_score = quality_metrics.credibility.map(|c| 1.0 - c);
         AnalysisResult {
@@ -87,6 +88,8 @@ impl AnalysisResult {
             },
         }
     }
+}
+
 
     pub fn add_step(&mut self, step: impl Into<String>) {
         self.reasoning_chain.push(ReasoningStep {

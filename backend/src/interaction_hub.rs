@@ -75,6 +75,7 @@ impl InteractionHub {
             quality,
             usage,
         );
+
         let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
         let node = self.registry.get_analysis_node(&task_id)?;
         let cancel = cancel_token.clone();
