@@ -33,6 +33,14 @@
     "testEnvironment": "node",
     "testMatch": [
       "**/tests/**/*.test.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/cargo/",
+      "<rootDir>/rust/",
+      "<rootDir>/binutils-gdb/",
+      "<rootDir>/llvm-project/",
+      "<rootDir>/nasm/"
     ]
   },
   "lint-staged": {

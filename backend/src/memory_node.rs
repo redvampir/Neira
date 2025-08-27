@@ -1,8 +1,14 @@
 use std::collections::HashMap;
-use std::sync::RwLock;
+use std::num::NonZeroUsize;
+use std::sync::{Arc, RwLock};
+
+use lru::LruCache;
 
 use chrono::{DateTime, Utc};
+use tokio::spawn;
+
 use crate::analysis_node::{AnalysisResult, QualityMetrics, ReasoningStep};
+use crate::task_scheduler::compute_priority;
 
 #[derive(Debug, Clone, Default)]
 pub struct UsageStats {
@@ -14,6 +20,11 @@ pub struct UsageStats {
 pub struct TimeMetrics {
     pub total_duration_ms: u128,
     pub count: u64,
+    pub smoothed_duration_ms: f64,
+    pub min_ms: Option<u128>,
+    pub max_ms: Option<u128>,
+    pub median_ms: Option<u128>,
+    durations: Vec<u128>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,12 +34,14 @@ pub struct MemoryRecord {
     pub reasoning_chain: Vec<ReasoningStep>,
     pub usage: UsageStats,
     pub time: TimeMetrics,
+    pub priority: u8,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MemoryNode {
     records: RwLock<Vec<MemoryRecord>>,
     checkpoints: RwLock<HashMap<String, AnalysisResult>>,
+    preload_cache: RwLock<LruCache<String, Vec<MemoryRecord>>>,
 }
 
 impl MemoryNode {
@@ -36,7 +49,13 @@ impl MemoryNode {
         Self {
             records: RwLock::new(Vec::new()),
             checkpoints: RwLock::new(HashMap::new()),
+            preload_cache: RwLock::new(LruCache::new(NonZeroUsize::new(128).unwrap())),
         }
+    }
+
+    pub fn set_cache_capacity(&self, capacity: usize) {
+        *self.preload_cache.write().unwrap() =
+            LruCache::new(NonZeroUsize::new(capacity.max(1)).unwrap());
     }
 
     pub fn push_metrics(&self, result: &AnalysisResult) {
@@ -51,6 +70,7 @@ impl MemoryNode {
                 reasoning_chain: result.reasoning_chain.clone(),
                 usage: UsageStats::default(),
                 time: TimeMetrics::default(),
+                priority: 0,
             });
         }
     }
@@ -72,9 +92,16 @@ impl MemoryNode {
     }
 
     pub fn preload_by_trigger(&self, triggers: &[String]) -> Vec<MemoryRecord> {
-        let mut records = self.records.write().unwrap();
+        let mut key = triggers.to_vec();
+        key.sort();
+        let cache_key = key.join("|");
+        if let Some(records) = self.preload_cache.write().unwrap().get(&cache_key).cloned() {
+            return records;
+        }
+
+        let mut records_lock = self.records.write().unwrap();
         let mut matched = Vec::new();
-        for rec in records.iter_mut() {
+        for rec in records_lock.iter_mut() {
             let hit = triggers.iter().any(|t| {
                 rec.id.contains(t)
                     || rec
@@ -88,6 +115,10 @@ impl MemoryNode {
                 matched.push(rec.clone());
             }
         }
+        self.preload_cache
+            .write()
+            .unwrap()
+            .put(cache_key, matched.clone());
         matched
     }
 
@@ -96,6 +127,18 @@ impl MemoryNode {
         if let Some(rec) = records.iter_mut().find(|r| r.id == id) {
             rec.time.total_duration_ms += duration_ms;
             rec.time.count += 1;
+            let alpha = 0.3;
+            rec.time.smoothed_duration_ms = if rec.time.count == 1 {
+                duration_ms as f64
+            } else {
+                alpha * duration_ms as f64 + (1.0 - alpha) * rec.time.smoothed_duration_ms
+            };
+            rec.time.min_ms = Some(rec.time.min_ms.map_or(duration_ms, |m| m.min(duration_ms)));
+            rec.time.max_ms = Some(rec.time.max_ms.map_or(duration_ms, |m| m.max(duration_ms)));
+            rec.time.durations.push(duration_ms);
+            let mut ds = rec.time.durations.clone();
+            ds.sort();
+            rec.time.median_ms = ds.get(ds.len() / 2).cloned();
         }
     }
 
@@ -127,10 +170,51 @@ impl MemoryNode {
             .find(|r| r.id == id)
             .and_then(|r| {
                 if r.time.count > 0 {
-                    Some(r.time.total_duration_ms / r.time.count as u128)
+                    Some(r.time.smoothed_duration_ms.round() as u128)
                 } else {
                     None
                 }
             })
+    }
+
+    pub fn time_distribution(&self, id: &str) -> Option<(u128, u128, u128)> {
+        self.records
+            .read()
+            .unwrap()
+            .iter()
+            .find(|r| r.id == id)
+            .and_then(|r| match (r.time.min_ms, r.time.median_ms, r.time.max_ms) {
+                (Some(min), Some(med), Some(max)) => Some((min, med, max)),
+                _ => None,
+            })
+    }
+
+    pub fn get_priority(&self, id: &str) -> u8 {
+        self.records
+            .read()
+            .unwrap()
+            .iter()
+            .find(|r| r.id == id)
+            .map(|r| r.priority)
+            .unwrap_or(0)
+    }
+
+    fn recalc_priority(&self, id: &str) {
+        let mut records = self.records.write().unwrap();
+        if let Some(rec) = records.iter_mut().find(|r| r.id == id) {
+            rec.priority = compute_priority(&rec.quality_metrics, &rec.usage);
+        }
+    }
+
+    pub fn recalc_priority_async(self: Arc<Self>, id: String) {
+        spawn(async move {
+            self.recalc_priority(&id);
+        });
+    }
+}
+
+impl Default for MemoryNode {
+    fn default() -> Self {
+        Self::new()
     }
 }
