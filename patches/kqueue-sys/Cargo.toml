@@ -1,0 +1,8 @@
+[package]
+name = "kqueue-sys"
+version = "1.0.4"
+edition = "2021"
+
+[dependencies]
+bitflags = "2.9.3"
+libc = "0.2"
