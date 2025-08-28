@@ -1,9 +1,8 @@
-use async_trait::async_trait;
-use tracing::info;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
+use async_trait::async_trait;
 use chrono::Utc;
 use std::time::Instant;
-
+use tracing::info;
 
 /// Узел для простого чата.
 #[async_trait]
@@ -83,7 +82,7 @@ impl ChatNode for EchoChatNode {
         }
 
         let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
-        metrics::histogram!("chat_node_request_duration_ms", elapsed_ms);
+        metrics::histogram!("chat_node_request_duration_ms").record(elapsed_ms);
         info!(chat_id=%chat_id, session_id=%sid_log, duration_ms=elapsed_ms, "chat response: {}", response);
         response
     }
