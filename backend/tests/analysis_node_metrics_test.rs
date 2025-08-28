@@ -1,5 +1,6 @@
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
 use backend::interaction_hub::InteractionHub;
+use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use std::sync::Arc;
@@ -29,7 +30,8 @@ async fn interaction_hub_records_analysis_metric() {
     let registry = Arc::new(NodeRegistry::new(tmp.path()).expect("registry"));
     registry.register_analysis_node(Arc::new(TestAnalysisNode));
     let memory = Arc::new(MemoryNode::new());
-    let hub = InteractionHub::new(registry, memory);
+    let (metrics, _rx) = MetricsCollectorNode::channel();
+    let hub = InteractionHub::new(registry, memory, metrics);
     hub.add_auth_token("token");
     let cancel = CancellationToken::new();
     let _ = hub

@@ -18,6 +18,7 @@ use tokio::net::TcpListener;
 use tracing::{error, info};
 
 use backend::action::chat_node::EchoChatNode;
+use backend::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use backend::action_node::PreloadAction;
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
 use backend::context::context_storage::FileContextStorage;
@@ -798,7 +799,13 @@ async fn main() {
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
-    let hub = Arc::new(InteractionHub::new(registry.clone(), memory.clone()));
+    let (metrics, mut metrics_rx) = MetricsCollectorNode::channel();
+    let hub = Arc::new(InteractionHub::new(registry.clone(), memory.clone(), metrics));
+    tokio::spawn(async move {
+        while let Some(record) = metrics_rx.recv().await {
+            info!(id=%record.id, "metrics forwarded");
+        }
+    });
     hub.add_auth_token("secret");
     hub.add_trigger_keyword("echo");
     registry.register_action_node(Arc::new(PreloadAction::default()));

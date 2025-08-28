@@ -97,7 +97,8 @@ impl MemoryNode {
         key.sort();
         let cache_key = key.join("|");
         if let Some(records) = self.preload_cache.write().unwrap().get(&cache_key).cloned() {
-            metrics::histogram!("memory_node_preload_duration_ms", start.elapsed().as_secs_f64() * 1000.0);
+            metrics::histogram!("memory_node_preload_duration_ms")
+                .record(start.elapsed().as_secs_f64() * 1000.0);
             return records;
         }
 
@@ -121,7 +122,8 @@ impl MemoryNode {
             .write()
             .unwrap()
             .put(cache_key, matched.clone());
-        metrics::histogram!("memory_node_preload_duration_ms", start.elapsed().as_secs_f64() * 1000.0);
+        metrics::histogram!("memory_node_preload_duration_ms")
+            .record(start.elapsed().as_secs_f64() * 1000.0);
         matched
     }
 

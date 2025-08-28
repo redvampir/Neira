@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
 use backend::interaction_hub::InteractionHub;
+use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use tokio_util::sync::CancellationToken;
@@ -28,7 +29,8 @@ async fn hub_tracks_time_metrics() {
     let registry = Arc::new(NodeRegistry::new(dir.path()).unwrap());
     registry.register_analysis_node(Arc::new(SleepNode));
     let memory = Arc::new(MemoryNode::new());
-    let hub = InteractionHub::new(registry.clone(), memory.clone());
+    let (metrics, _rx) = MetricsCollectorNode::channel();
+    let hub = InteractionHub::new(registry.clone(), memory.clone(), metrics);
     hub.add_auth_token("t");
     let token = CancellationToken::new();
     hub.analyze("sleep", "", "t", &token).await.unwrap();

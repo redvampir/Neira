@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
+use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -20,6 +21,7 @@ use crate::trigger_detector::TriggerDetector;
 pub struct InteractionHub {
     pub registry: Arc<NodeRegistry>,
     pub memory: Arc<MemoryNode>,
+    metrics: Arc<MetricsCollectorNode>,
     trigger_detector: Arc<TriggerDetector>,
     scheduler: RwLock<TaskScheduler>,
     allowed_tokens: RwLock<Vec<String>>,
@@ -45,7 +47,11 @@ pub struct ChatOutput {
 }
 
 impl InteractionHub {
-    pub fn new(registry: Arc<NodeRegistry>, memory: Arc<MemoryNode>) -> Self {
+    pub fn new(
+        registry: Arc<NodeRegistry>,
+        memory: Arc<MemoryNode>,
+        metrics: Arc<MetricsCollectorNode>,
+    ) -> Self {
         let rate_limit_per_min = std::env::var("CHAT_RATE_LIMIT_PER_MIN")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -73,9 +79,11 @@ impl InteractionHub {
         let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
+        registry.register_action_node(metrics.clone());
         Self {
             registry,
             memory,
+            metrics,
             trigger_detector: Arc::new(TriggerDetector::default()),
             scheduler: RwLock::new(TaskScheduler::default()),
             allowed_tokens: RwLock::new(Vec::new()),
@@ -412,12 +420,17 @@ impl InteractionHub {
                         self.memory.save_checkpoint(id, &result);
                     } else {
                         self.memory.push_metrics(&result);
+                        self.metrics.record(MetricsRecord {
+                            id: result.id.clone(),
+                            metrics: result.quality_metrics.clone(),
+                        });
                         self.memory.update_time(id, elapsed);
                         let mem = self.memory.clone();
                         let rid = id.to_string();
                         mem.recalc_priority_async(rid);
                     }
-                    metrics::histogram!("analysis_node_request_duration_ms", elapsed as f64);
+                    metrics::histogram!("analysis_node_request_duration_ms")
+                        .record(elapsed as f64);
                     info!(analysis_id=%id, duration_ms=elapsed, "analysis completed");
                     Some(result)
                 } else {
