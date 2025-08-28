@@ -8,6 +8,7 @@ use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use tokio_util::sync::CancellationToken;
+use metrics_exporter_prometheus::PrometheusBuilder;
 
 struct SleepNode;
 
@@ -26,6 +27,7 @@ impl AnalysisNode for SleepNode {
 
 #[tokio::test]
 async fn hub_tracks_time_metrics() {
+    let handle = PrometheusBuilder::new().install_recorder().unwrap();
     let dir = tempfile::tempdir().unwrap();
     let registry = Arc::new(NodeRegistry::new(dir.path()).unwrap());
     registry.register_analysis_node(Arc::new(SleepNode));
@@ -39,4 +41,6 @@ async fn hub_tracks_time_metrics() {
     hub.analyze("sleep", "", "t", &token).await.unwrap();
     let avg = memory.average_time_ms("sleep").unwrap();
     assert!(avg >= 10);
+    let metrics = handle.render();
+    assert!(metrics.contains("analysis_requests_total"));
 }

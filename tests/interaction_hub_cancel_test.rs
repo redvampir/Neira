@@ -7,6 +7,7 @@ use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use tokio_util::sync::CancellationToken;
+use metrics_exporter_prometheus::PrometheusBuilder;
 
 struct CancelNode;
 
@@ -41,6 +42,7 @@ impl AnalysisNode for CancelNode {
 
 #[tokio::test]
 async fn interaction_hub_saves_checkpoint_on_cancel() {
+    let handle = PrometheusBuilder::new().install_recorder().unwrap();
     let dir = tempfile::tempdir().unwrap();
     let registry = Arc::new(NodeRegistry::new(dir.path()).unwrap());
     registry.register_analysis_node(Arc::new(CancelNode));
@@ -57,4 +59,7 @@ async fn interaction_hub_saves_checkpoint_on_cancel() {
         .unwrap();
     assert_eq!(result.status, NodeStatus::Error);
     assert!(memory.load_checkpoint("cancel.node").is_some());
+    let metrics = handle.render();
+    assert!(metrics.contains("analysis_requests_total"));
+    assert!(metrics.contains("analysis_errors_total"));
 }

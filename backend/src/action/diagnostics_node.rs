@@ -51,9 +51,11 @@ impl DiagnosticsNode {
         let node_clone = node.clone();
         tokio::spawn(async move {
             while let Some(record) = rx.recv().await {
+                metrics::counter!("diagnostics_node_requests_total").increment(1);
                 // Простое правило: низкая достоверность считается ошибкой.
                 if let Some(cred) = record.metrics.credibility {
                     if cred < 0.5 {
+                        metrics::counter!("diagnostics_node_errors_total").increment(1);
                         let count = node_clone.error_count.fetch_add(1, Ordering::SeqCst) + 1;
                         if count >= node_clone.error_threshold {
                             warn!(id=%record.id, count, "credibility below threshold");

@@ -165,6 +165,7 @@ impl ScriptedTrainingNode {
     async fn run_step(&self, client: &reqwest::Client, base_env: &std::collections::HashMap<String, String>, step: &ScriptStep) -> Result<(), String> {
         let datasets = step.dataset.clone().unwrap_or_else(|| vec![serde_json::json!({})]);
         for row in datasets {
+            metrics::counter!("scripted_training_node_requests_total").increment(1);
             // Build env: script/env + row fields
             let mut env = base_env.clone();
             if let Some(obj) = row.as_object() {
@@ -220,7 +221,10 @@ impl ScriptedTrainingNode {
                         tokio::time::sleep(Duration::from_millis(wait)).await;
                         continue;
                     }
-                    Err(e) => return Err(e),
+                    Err(e) => {
+                        metrics::counter!("scripted_training_node_errors_total").increment(1);
+                        return Err(e);
+                    }
                 }
             }
 

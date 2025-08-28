@@ -88,7 +88,12 @@ impl MemoryNode {
     }
 
     pub fn load_checkpoint(&self, id: &str) -> Option<AnalysisResult> {
-        self.checkpoints.read().unwrap().get(id).cloned()
+        metrics::counter!("memory_node_requests_total").increment(1);
+        let res = self.checkpoints.read().unwrap().get(id).cloned();
+        if res.is_none() {
+            metrics::counter!("memory_node_errors_total").increment(1);
+        }
+        res
     }
 
     pub fn preload_by_trigger(&self, triggers: &[String]) -> Vec<MemoryRecord> {

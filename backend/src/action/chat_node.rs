@@ -35,30 +35,38 @@ impl ChatNode for EchoChatNode {
         input: &str,
         storage: &dyn ContextStorage,
     ) -> String {
+        metrics::counter!("chat_node_requests_total").increment(1);
         let start = Instant::now();
         let sid_log = session_id.as_deref().unwrap_or("<none>");
         info!(chat_id=%chat_id, session_id=%sid_log, "chat request: {}", input);
 
         // Если задан session_id, подгружаем контекст диалога
         if let Some(ref sid) = session_id {
-            let _ = storage.load_session(chat_id, sid);
+            if storage.load_session(chat_id, sid).is_err() {
+                metrics::counter!("chat_node_errors_total").increment(1);
+            }
         }
 
         // Save user message
         if let Some(ref sid) = session_id {
-            let _ = storage.save_message(
-                chat_id,
-                sid,
-                &ChatMessage {
-                    role: Role::User,
-                    content: input.to_string(),
-                    timestamp_ms: Utc::now().timestamp_millis(),
-                    source: Some("user".into()),
-                    message_id: None,
-                    thread_id: None,
-                    parent_id: None,
-                },
-            );
+            if storage
+                .save_message(
+                    chat_id,
+                    sid,
+                    &ChatMessage {
+                        role: Role::User,
+                        content: input.to_string(),
+                        timestamp_ms: Utc::now().timestamp_millis(),
+                        source: Some("user".into()),
+                        message_id: None,
+                        thread_id: None,
+                        parent_id: None,
+                    },
+                )
+                .is_err()
+            {
+                metrics::counter!("chat_node_errors_total").increment(1);
+            }
         }
 
         // Echo logic
@@ -66,19 +74,24 @@ impl ChatNode for EchoChatNode {
 
         // Save assistant response
         if let Some(ref sid) = session_id {
-            let _ = storage.save_message(
-                chat_id,
-                sid,
-                &ChatMessage {
-                    role: Role::Assistant,
-                    content: response.clone(),
-                    timestamp_ms: Utc::now().timestamp_millis(),
-                    source: Some("assistant".into()),
-                    message_id: None,
-                    thread_id: None,
-                    parent_id: None,
-                },
-            );
+            if storage
+                .save_message(
+                    chat_id,
+                    sid,
+                    &ChatMessage {
+                        role: Role::Assistant,
+                        content: response.clone(),
+                        timestamp_ms: Utc::now().timestamp_millis(),
+                        source: Some("assistant".into()),
+                        message_id: None,
+                        thread_id: None,
+                        parent_id: None,
+                    },
+                )
+                .is_err()
+            {
+                metrics::counter!("chat_node_errors_total").increment(1);
+            }
         }
 
         let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;

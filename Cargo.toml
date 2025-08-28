@@ -15,6 +15,7 @@ serde_yaml = "0.9"
 tempfile = "3"
 tokio-util = "0.7"
 tokio = { version = "1", features = ["full"] }
+metrics-exporter-prometheus = { version = "0.17", default-features = false }
 
 [package.metadata]
 rustflags = ["-Dwarnings"]
