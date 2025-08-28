@@ -9,3 +9,4 @@ pub mod node_registry;
 pub mod node_template;
 pub mod task_scheduler;
 pub mod trigger_detector;
+pub mod system;
