@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
+use crate::action::diagnostics_node::DiagnosticsNode;
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -22,6 +23,7 @@ pub struct InteractionHub {
     pub registry: Arc<NodeRegistry>,
     pub memory: Arc<MemoryNode>,
     metrics: Arc<MetricsCollectorNode>,
+    diagnostics: Arc<DiagnosticsNode>,
     trigger_detector: Arc<TriggerDetector>,
     scheduler: RwLock<TaskScheduler>,
     allowed_tokens: RwLock<Vec<String>>,
@@ -51,6 +53,7 @@ impl InteractionHub {
         registry: Arc<NodeRegistry>,
         memory: Arc<MemoryNode>,
         metrics: Arc<MetricsCollectorNode>,
+        diagnostics: Arc<DiagnosticsNode>,
     ) -> Self {
         let rate_limit_per_min = std::env::var("CHAT_RATE_LIMIT_PER_MIN")
             .ok()
@@ -80,10 +83,12 @@ impl InteractionHub {
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
         registry.register_action_node(metrics.clone());
+        registry.register_action_node(diagnostics.clone());
         Self {
             registry,
             memory,
             metrics,
+            diagnostics,
             trigger_detector: Arc::new(TriggerDetector::default()),
             scheduler: RwLock::new(TaskScheduler::default()),
             allowed_tokens: RwLock::new(Vec::new()),
