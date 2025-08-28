@@ -101,9 +101,17 @@ impl MemoryNode {
         let mut key = triggers.to_vec();
         key.sort();
         let cache_key = key.join("|");
-        if let Some(records) = self.preload_cache.write().unwrap().get(&cache_key).cloned() {
-            metrics::histogram!("memory_node_preload_duration_ms")
-                .record(start.elapsed().as_secs_f64() * 1000.0);
+        if let Some(records) = self
+            .preload_cache
+            .write()
+            .unwrap()
+            .get(&cache_key)
+            .cloned()
+        {
+            let elapsed = start.elapsed().as_secs_f64() * 1000.0;
+            metrics::histogram!("memory_node_preload_duration_ms").record(elapsed);
+            metrics::histogram!("memory_node_preload_duration_ms_p95").record(elapsed);
+            metrics::histogram!("memory_node_preload_duration_ms_p99").record(elapsed);
             return records;
         }
 
@@ -127,8 +135,10 @@ impl MemoryNode {
             .write()
             .unwrap()
             .put(cache_key, matched.clone());
-        metrics::histogram!("memory_node_preload_duration_ms")
-            .record(start.elapsed().as_secs_f64() * 1000.0);
+        let elapsed = start.elapsed().as_secs_f64() * 1000.0;
+        metrics::histogram!("memory_node_preload_duration_ms").record(elapsed);
+        metrics::histogram!("memory_node_preload_duration_ms_p95").record(elapsed);
+        metrics::histogram!("memory_node_preload_duration_ms_p99").record(elapsed);
         matched
     }
 
