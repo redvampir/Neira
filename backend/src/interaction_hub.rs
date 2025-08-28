@@ -1,11 +1,11 @@
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
+use crate::action::diagnostics_node::DiagnosticsNode;
+use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
-use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
-use crate::action::diagnostics_node::DiagnosticsNode;
-use crate::system::host_metrics::HostMetrics;
+use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher};
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -88,6 +88,13 @@ impl InteractionHub {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(30_000);
+        let io_watcher_enabled = std::env::var("IO_WATCHER_ENABLED")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
+        let io_watcher_threshold_ms = std::env::var("IO_WATCHER_THRESHOLD_MS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(100);
 
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
@@ -110,7 +117,7 @@ impl InteractionHub {
         };
 
         // Spawn host metrics polling loop
-        let mut host_metrics = HostMetrics::new(metrics);
+        let mut host_metrics = HostMetrics::new(metrics.clone());
         tokio::spawn(async move {
             let mut interval_timer = interval(Duration::from_millis(host_metrics_interval_ms));
             loop {
@@ -118,6 +125,14 @@ impl InteractionHub {
                 host_metrics.poll();
             }
         });
+
+        // Optionally spawn IO watcher
+        if io_watcher_enabled {
+            let watcher = IoWatcher::new(metrics, io_watcher_threshold_ms);
+            tokio::spawn(async move {
+                watcher.run().await;
+            });
+        }
 
         hub
     }
@@ -276,13 +291,10 @@ impl InteractionHub {
         // Metrics for incoming message
         // metrics could be recorded here via `metrics` crate
 
-        let node = self
-            .registry
-            .get_chat_node(node_id)
-            .ok_or_else(|| {
-                metrics::counter!("chat_errors_total").increment(1);
-                "chat node not found".to_string()
-            })?;
+        let node = self.registry.get_chat_node(node_id).ok_or_else(|| {
+            metrics::counter!("chat_errors_total").increment(1);
+            "chat node not found".to_string()
+        })?;
 
         if let Some(req_id) = &request_id {
             let cache_key = format!(

@@ -11,6 +11,8 @@ Backend environment variables
 - MASK_ROLES: comma-separated roles to mask: user,assistant,system (default: user)
 - CHAT_RATE_LIMIT_PER_MIN: max chat requests per minute per key (default: 120)
 - CHAT_RATE_KEY: rate limit key, either "auth" or "chat" (default: auth)
+- IO_WATCHER_ENABLED: enable keyboard/display latency watcher (default: false)
+- IO_WATCHER_THRESHOLD_MS: latency threshold in ms for triggering diagnostics (default: 100)
 
 How to use
 - Create a .env file in repo root or `backend/` and set variables.
@@ -28,4 +30,6 @@ MASK_REGEX=\b\d{16}\b;secret\w+
 MASK_ROLES=user,assistant
 CHAT_RATE_LIMIT_PER_MIN=60
 CHAT_RATE_KEY=auth
+IO_WATCHER_ENABLED=false
+IO_WATCHER_THRESHOLD_MS=100
 
