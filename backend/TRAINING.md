@@ -1,0 +1,77 @@
+# Документация по обучению (русский)
+
+## Назначение
+
+«Сценарный узел обучения» позволяет запускать заранее описанные тест‑сценарии обучения/валидации Neira без риска галлюцинаций: сценарии задают чёткие шаги (HTTP‑запросы), ожидания и проверки. Результаты сохраняются в историю (NDJSON), собирается прогресс, формируется JUnit/HTML отчёт.
+
+## Где лежит код
+
+- Узел: `backend/src/action/scripted_training_node.rs`
+- Роуты API/стрима: `backend/src/http/training_routes.rs`
+- Инициализация: `backend/src/main.rs`
+- Пример сценария: `examples/training_script.yaml`
+- История и отчёты: `CONTEXT_DIR` (по умолчанию `context/`), файлы в `context/training/`
+
+## Формат сценария (YAML)
+
+Корень:
+- `name`: строка
+- `vars`: карта ключ→значение (базовые переменные сценария)
+- `steps`: список шагов
+
+Шаг:
+- `method`: `GET` | `POST` | `PUT` | `PATCH` | `DELETE` (по умолчанию `GET`)
+- `url`: строка (поддержка `${VAR}`, `${FILE:/path}`)
+- `headers`: карта заголовков (значения тоже с подстановкой переменных)
+- `body`: JSON (любой), строки внутри — тоже с подстановкой
+- `expect_status`: ожидаемый HTTP‑статус
+- `expect_contains`: ожидаемая подстрока в тексте ответа
+- `assertions`: список проверок JSONPath
+  - `path`: JSONPath (например, `$.json.price`)
+  - `equals` | `contains` | `gt` | `lt`: один или несколько предикатов
+- `dataset`: массив объектов — параметризация шага; поля из объекта доступны как `${key}`
+- `timeout_ms`: таймаут шага
+- `pre_hook` | `post_hook`: хук (`sleep_ms` | `set_env` | `shell`), `shell` работает только при `TRAINING_ALLOW_SHELL=true` и не в `dry_run`
+- `retry`: `{ attempts, backoff_ms }`: повторы с задержкой
+
+## Подстановки
+
+- `${VAR}`: берётся из `vars` или окружения (env)
+- `${FILE:/path}` / `${VAR_FILE:/path}`: читается содержимое файла (без переноса)
+- Подстановки работают в `url`/`headers`/`body`/`expect_contains`; в JSON — рекурсивно для строковых значений.
+
+## Запуск
+
+- UI: `http://127.0.0.1:3000/training`, кнопка `Run`
+- Из чата: сообщение `train script="examples/training_script.yaml" dry=true`
+- Через API: `POST /api/neira/training/run` `{ script, dry_run }`
+
+## Прогресс и история
+
+- Прогресс в `TRAINING_PROGRESS` (по умолчанию `context/training/progress.json`), поле `last_completed`.
+- История шагов — NDJSON в `context/training/run-YYYYMMDD.ndjson`
+- SSE‑стрим: `/api/neira/training/stream` — можно читать на UI или подключить `EventSource`.
+
+## Отчёты
+
+- JUnit XML: `context/training/report.xml`
+- HTML: `context/training/report.html` (есть ссылки на snippets при падениях)
+
+## Переменные окружения
+
+- `TRAINING_SCRIPT`: путь к сценарию (по умолчанию `examples/training_script.yaml`)
+- `TRAINING_PROGRESS`: путь к файлу прогресса (`context/training/progress.json`)
+- `TRAINING_DRY_RUN`: `true|false` — «сухой» прогон, без внешних вызовов и шелл‑хуков
+- `TRAINING_ALLOW_SHELL`: `true|false` — разрешить shell‑хуки
+- `TRAINING_INTERVAL_MS`: периодический автозапуск (мс)
+- `CONTEXT_DIR`: директория хранения истории/отчётов
+
+## Лучшие практики
+
+- Хранить секреты в файлах и подставлять через `${FILE:/secret/token}`, а не в `.env`.
+- Для нестабильных эндпоинтов добавлять `retry` и увеличивать `timeout_ms`.
+- Все проверяемые значения оформлять `assertions` с JSONPath — это уменьшает ложные «зелёные».
+- Использовать `dataset` для многократных прогонов одного шага с разными входными данными.
+- Включать `dry_run` при отладке сценария (быстро проверять подстановки/структуру).
+- Для автообучения выставить `TRAINING_INTERVAL_MS` и наблюдать стрим/отчёты.
+

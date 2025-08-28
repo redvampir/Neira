@@ -18,6 +18,7 @@
 - [Практическое руководство](docs/guides/practical-guide.md)
 - [Глоссарий](docs/meta/glossary.md)
 - [FAQ](docs/meta/faq.md)
+- [Документация по обучению (сценарный узел)](backend/TRAINING.md)
 - [Загрузка обучающих данных](docs/guides/training.md)
 - [CI/CD и деплой](docs/legacy/deployment.md)
 - [Веб-интерфейс обучения](docs/guides/web-interface.md)

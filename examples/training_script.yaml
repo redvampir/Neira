@@ -1,0 +1,14 @@
+name: "Sample Training Script"
+description: "Fetch public endpoints and validate content"
+steps:
+  - method: GET
+    url: "https://example.org/"
+    expect_status: 200
+    expect_contains: "Example Domain"
+    timeout_ms: 8000
+
+  - method: GET
+    url: "https://httpbin.org/get"
+    expect_status: 200
+    timeout_ms: 8000
+

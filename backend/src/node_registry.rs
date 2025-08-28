@@ -8,6 +8,7 @@ use serde_json::Value;
 use tracing::{error, info};
 
 use crate::action::chat_node::ChatNode;
+use crate::action::scripted_training_node::ScriptedTrainingNode;
 use crate::action_node::ActionNode;
 use crate::analysis_node::AnalysisNode;
 use crate::node_template::{validate_template, NodeTemplate};
@@ -112,6 +113,11 @@ impl NodeRegistry {
             chat_nodes,
             _watcher: watcher,
         })
+    }
+
+    pub fn register_scripted_training_node(&self) {
+        self.register_action_node(Arc::new(ScriptedTrainingNode::default()));
+        info!("Registered scripted training node");
     }
 
     /// Регистрация или обновление узла из файла.
