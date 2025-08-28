@@ -41,5 +41,22 @@ async fn interaction_hub_records_analysis_metric() {
         .await
         .expect("analysis");
     let records = data.lock().unwrap();
-    assert!(records.iter().any(|(n, _)| n == "analysis_node_request_duration_ms"), "no histogram recorded");
+    assert!(
+        records
+            .iter()
+            .any(|(n, _)| n == "analysis_node_request_duration_ms"),
+        "no histogram recorded"
+    );
+    assert!(
+        records
+            .iter()
+            .any(|(n, _)| n == "analysis_node_request_duration_ms_p95"),
+        "no p95 histogram recorded"
+    );
+    assert!(
+        records
+            .iter()
+            .any(|(n, _)| n == "analysis_node_request_duration_ms_p99"),
+        "no p99 histogram recorded"
+    );
 }

@@ -448,6 +448,10 @@ impl InteractionHub {
                     }
                     metrics::histogram!("analysis_node_request_duration_ms")
                         .record(elapsed as f64);
+                    metrics::histogram!("analysis_node_request_duration_ms_p95")
+                        .record(elapsed as f64);
+                    metrics::histogram!("analysis_node_request_duration_ms_p99")
+                        .record(elapsed as f64);
                     info!(analysis_id=%id, duration_ms=elapsed, "analysis completed");
                     Some(result)
                 } else {

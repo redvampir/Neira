@@ -57,4 +57,16 @@ async fn chat_node_records_duration_metric() {
         records.iter().any(|(n, _)| n == "chat_node_request_duration_ms"),
         "no histogram recorded"
     );
+    assert!(
+        records
+            .iter()
+            .any(|(n, _)| n == "chat_node_request_duration_ms_p95"),
+        "no p95 histogram recorded"
+    );
+    assert!(
+        records
+            .iter()
+            .any(|(n, _)| n == "chat_node_request_duration_ms_p99"),
+        "no p99 histogram recorded"
+    );
 }
