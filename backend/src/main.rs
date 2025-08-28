@@ -116,8 +116,6 @@ async fn main() {
     hub.add_auth_token("secret");
     hub.add_trigger_keyword("echo");
     registry.register_action_node(Arc::new(PreloadAction::default()));
-}
-
     // Пример узла анализа
     struct EchoNode;
     impl AnalysisNode for EchoNode {
