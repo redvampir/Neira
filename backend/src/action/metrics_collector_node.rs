@@ -28,7 +28,11 @@ impl MetricsCollectorNode {
 
     /// Отправляет запись метрик для дальнейшей обработки.
     pub fn record(&self, record: MetricsRecord) {
-        let _ = self.tx.send(record);
+        if self.tx.send(record).is_err() {
+            metrics::counter!("metrics_collector_node_errors_total").increment(1);
+        } else {
+            metrics::counter!("metrics_collector_node_requests_total").increment(1);
+        }
     }
 }
 

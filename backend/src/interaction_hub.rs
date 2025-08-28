@@ -132,10 +132,13 @@ impl InteractionHub {
         persist: bool,
         request_id: Option<String>,
     ) -> Result<ChatOutput, String> {
+        metrics::counter!("chat_requests_total").increment(1);
         if !self.authorize(auth) {
+            metrics::counter!("chat_errors_total").increment(1);
             return Err("unauthorized".into());
         }
         if message.trim().is_empty() {
+            metrics::counter!("chat_errors_total").increment(1);
             return Err("empty message".into());
         }
 
@@ -160,6 +163,7 @@ impl InteractionHub {
                 *entry = (now_min, 0);
             }
             if entry.1 >= self.rate_limit_per_min {
+                metrics::counter!("chat_errors_total").increment(1);
                 return Err("rate limited".into());
             }
             entry.1 += 1;
@@ -254,7 +258,10 @@ impl InteractionHub {
         let node = self
             .registry
             .get_chat_node(node_id)
-            .ok_or_else(|| "chat node not found".to_string())?;
+            .ok_or_else(|| {
+                metrics::counter!("chat_errors_total").increment(1);
+                "chat node not found".to_string()
+            })?;
 
         if let Some(req_id) = &request_id {
             let cache_key = format!(
@@ -289,6 +296,7 @@ impl InteractionHub {
         }
 
         if persist && session_id.is_none() && self.persist_require_session_id {
+            metrics::counter!("chat_errors_total").increment(1);
             return Err("session_id required for persist".into());
         }
 
@@ -309,7 +317,6 @@ impl InteractionHub {
             session_id
         };
 
-        metrics::counter!("chat_requests_total").increment(1);
         let t0 = Instant::now();
 
         let response = node
@@ -352,7 +359,9 @@ impl InteractionHub {
         auth: &str,
         cancel_token: &CancellationToken,
     ) -> Option<AnalysisResult> {
+        metrics::counter!("analysis_requests_total").increment(1);
         if !self.authorize(auth) {
+            metrics::counter!("analysis_errors_total").increment(1);
             return None;
         }
 
@@ -408,6 +417,7 @@ impl InteractionHub {
                 let mut r = AnalysisResult::new(id, "", vec![]);
                 r.status = NodeStatus::Error;
                 self.memory.save_checkpoint(id, &r);
+                metrics::counter!("analysis_errors_total").increment(1);
                 info!("analysis {} timed out", id);
                 Some(r)
             }
@@ -415,6 +425,7 @@ impl InteractionHub {
                 let mut r = AnalysisResult::new(id, "", vec![]);
                 r.status = NodeStatus::Error;
                 self.memory.save_checkpoint(id, &r);
+                metrics::counter!("analysis_errors_total").increment(1);
                 info!("analysis {} cancelled", id);
                 Some(r)
             }
@@ -422,6 +433,7 @@ impl InteractionHub {
                 if let Ok(result) = res {
                     let elapsed = start.elapsed().as_millis();
                     if result.status == NodeStatus::Error {
+                        metrics::counter!("analysis_errors_total").increment(1);
                         self.memory.save_checkpoint(id, &result);
                     } else {
                         self.memory.push_metrics(&result);
@@ -439,6 +451,7 @@ impl InteractionHub {
                     info!(analysis_id=%id, duration_ms=elapsed, "analysis completed");
                     Some(result)
                 } else {
+                    metrics::counter!("analysis_errors_total").increment(1);
                     None
                 }
             }
