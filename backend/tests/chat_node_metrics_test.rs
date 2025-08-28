@@ -13,13 +13,13 @@ impl Recorder for TestRecorder {
     fn describe_gauge(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
     fn describe_histogram(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
 
-    fn register_counter(&self, _key: &Key) -> Counter {
+    fn register_counter(&self, _key: &Key, _: &metrics::Metadata<'_>) -> Counter {
         Counter::noop()
     }
-    fn register_gauge(&self, _key: &Key) -> Gauge {
+    fn register_gauge(&self, _key: &Key, _: &metrics::Metadata<'_>) -> Gauge {
         Gauge::noop()
     }
-    fn register_histogram(&self, key: &Key) -> Histogram {
+    fn register_histogram(&self, key: &Key, _: &metrics::Metadata<'_>) -> Histogram {
         let name = key.name().to_string();
         let data = self.data.clone();
         let hist = TestHistogram { name, data };
@@ -45,7 +45,7 @@ async fn chat_node_records_duration_metric() {
 
     let data = Arc::new(Mutex::new(Vec::new()));
     let recorder = TestRecorder { data: data.clone() };
-    metrics::set_boxed_recorder(Box::new(recorder)).expect("set recorder");
+    metrics::set_global_recorder(recorder).expect("set recorder");
 
     let node = EchoChatNode::default();
     let storage = FileContextStorage::new(tmp.path().join("context"));
@@ -53,5 +53,10 @@ async fn chat_node_records_duration_metric() {
     assert_eq!(resp, "hi");
 
     let records = data.lock().unwrap();
-    assert!(records.iter().any(|(n, _)| n == "chat_node_request_duration_ms"), "no histogram recorded");
+    assert!(
+        records
+            .iter()
+            .any(|(n, _)| n == "chat_node_request_duration_ms"),
+        "no histogram recorded"
+    );
 }

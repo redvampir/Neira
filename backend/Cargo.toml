@@ -22,7 +22,7 @@ tracing-appender = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe
 serde_yaml = "0.9"
 notify = { version = "8.2", default-features = false }
 semver = "1"
-metrics-exporter-prometheus = "0.17"
+metrics-exporter-prometheus = { version = "0.17", default-features = false, features = ["http-listener"] }
 regex = "1"
 fs2 = "0.4"
 flate2 = { version = "1", default-features = false, features = ["zlib"] }
@@ -31,12 +31,12 @@ chrono = { version = "0.4", features = ["serde", "alloc"] }
 tokio-util = "0.7"
 lru = "0.12"
 async-trait = "0.1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls"] }
 jsonpath_lib = "0.3"
 async-stream = "0.3"
 tokio-stream = "0.1"
 futures-core = "0.3"
-metrics = "0.21"
+metrics = "0.24"
 
 [dev-dependencies]
 tempfile = "3"
@@ -48,3 +48,4 @@ thiserror-impl = { git = "https://github.com/dtolnay/thiserror", tag = "2.0.16" 
 tracing = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d" }
 tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d" }
 tracing-subscriber = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d" }
+jsonschema-valid = { path = "../patches/jsonschema-valid" }

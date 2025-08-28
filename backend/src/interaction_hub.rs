@@ -1,15 +1,15 @@
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
+use crate::context::context_storage::ContextStorage;
+use crate::idempotent_store::IdempotentStore;
+use lru::LruCache;
+use std::num::NonZeroUsize;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::task::spawn_blocking;
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 use tracing::info;
-use lru::LruCache;
-use std::num::NonZeroUsize;
-use std::sync::atomic::{AtomicU64, Ordering};
-use crate::context::context_storage::ContextStorage;
-use crate::idempotent_store::IdempotentStore;
 
 use crate::analysis_node::{AnalysisResult, NodeStatus};
 use crate::memory_node::MemoryNode;
@@ -32,13 +32,24 @@ pub struct InteractionHub {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-enum RateKeyMode { Auth, Chat, Session }
+enum RateKeyMode {
+    Auth,
+    Chat,
+    Session,
+}
 
-pub struct ChatOutput { pub response: String, pub session_id: Option<String>, pub idempotent: bool }
+pub struct ChatOutput {
+    pub response: String,
+    pub session_id: Option<String>,
+    pub idempotent: bool,
+}
 
 impl InteractionHub {
     pub fn new(registry: Arc<NodeRegistry>, memory: Arc<MemoryNode>) -> Self {
-        let rate_limit_per_min = std::env::var("CHAT_RATE_LIMIT_PER_MIN").ok().and_then(|v| v.parse().ok()).unwrap_or(120);
+        let rate_limit_per_min = std::env::var("CHAT_RATE_LIMIT_PER_MIN")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(120);
         let rate_key = std::env::var("CHAT_RATE_KEY").unwrap_or_else(|_| "auth".into());
         let rate_key_mode = match rate_key.to_lowercase().as_str() {
             "auth" => RateKeyMode::Auth,
@@ -46,13 +57,22 @@ impl InteractionHub {
             "session" => RateKeyMode::Session,
             _ => RateKeyMode::Auth,
         };
-        let idem_persist = std::env::var("IDEMPOTENT_PERSIST").map(|v| v=="1" || v.eq_ignore_ascii_case("true")).unwrap_or(false);
+        let idem_persist = std::env::var("IDEMPOTENT_PERSIST")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
         let idem = if idem_persist {
             let dir = std::env::var("IDEMPOTENT_STORE_DIR").unwrap_or_else(|_| "context".into());
-            let ttl = std::env::var("IDEMPOTENT_TTL_SECS").ok().and_then(|v| v.parse().ok()).unwrap_or(86_400);
+            let ttl = std::env::var("IDEMPOTENT_TTL_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(86_400);
             Some(IdempotentStore::new(dir, ttl))
-        } else { None };
-        let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID").map(|v| v=="1" || v.eq_ignore_ascii_case("true")).unwrap_or(false);
+        } else {
+            None
+        };
+        let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(false);
         Self {
             registry,
             memory,
@@ -80,7 +100,9 @@ impl InteractionHub {
             .any(|t| t == token)
     }
 
-    pub fn check_auth(&self, token: &str) -> bool { self.authorize(token) }
+    pub fn check_auth(&self, token: &str) -> bool {
+        self.authorize(token)
+    }
 
     pub fn add_trigger_keyword(&self, keyword: impl Into<String>) {
         self.trigger_detector.add_keyword(keyword.into());
@@ -108,9 +130,16 @@ impl InteractionHub {
         let key = match self.rate_key_mode {
             RateKeyMode::Auth => format!("auth:{}", auth),
             RateKeyMode::Chat => format!("chat:{}", chat_id),
-            RateKeyMode::Session => match &session_id { Some(s) => format!("session:{}:{}", chat_id, s), None => format!("chat:{}", chat_id) },
+            RateKeyMode::Session => match &session_id {
+                Some(s) => format!("session:{}:{}", chat_id, s),
+                None => format!("chat:{}", chat_id),
+            },
         };
-        let now_min = (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()) / 60;
+        let now_min = (std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs())
+            / 60;
         {
             let mut map = self.rate.write().unwrap();
             let entry = map.entry(key).or_insert((now_min, 0));
@@ -128,38 +157,75 @@ impl InteractionHub {
         if message.to_lowercase().starts_with("train") {
             triggers.push("train".into());
             // parse key=value with quotes
-            fn parse_kv(input: &str) -> Vec<(String,String)> {
+            fn parse_kv(input: &str) -> Vec<(String, String)> {
                 let mut out = Vec::new();
                 let mut key = String::new();
                 let mut val = String::new();
-                let mut in_key = true; let mut in_val = false; let mut quote: Option<char> = None;
+                let mut in_key = true;
+                let mut in_val = false;
+                let mut quote: Option<char> = None;
                 let mut it = input.chars().peekable();
                 while let Some(ch) = it.next() {
                     if in_key {
-                        if ch.is_whitespace() { continue; }
+                        if ch.is_whitespace() {
+                            continue;
+                        }
                         key.push(ch);
                         // read until '='
-                        while let Some(c2) = it.next() { if c2 == '=' { in_key = false; in_val = true; break; } else { key.push(c2); } }
+                        while let Some(c2) = it.next() {
+                            if c2 == '=' {
+                                in_key = false;
+                                in_val = true;
+                                break;
+                            } else {
+                                key.push(c2);
+                            }
+                        }
                     }
                     if in_val {
                         // skip possible spaces
-                        while let Some(' ') = it.peek().copied() { it.next(); }
+                        while let Some(' ') = it.peek().copied() {
+                            it.next();
+                        }
                         // detect quote
-                        if let Some(c) = it.peek().copied() { if c=='"' || c=='\'' { quote = Some(c); it.next(); } }
+                        if let Some(c) = it.peek().copied() {
+                            if c == '"' || c == '\'' {
+                                quote = Some(c);
+                                it.next();
+                            }
+                        }
                         while let Some(c2) = it.next() {
-                            if let Some(q) = quote { if c2 == q { break; } } else if c2.is_whitespace() { break; }
+                            if let Some(q) = quote {
+                                if c2 == q {
+                                    break;
+                                }
+                            } else if c2.is_whitespace() {
+                                break;
+                            }
                             val.push(c2);
                         }
                         out.push((key.trim().to_string(), val.clone()));
-                        key.clear(); val.clear(); in_key = true; in_val = false; quote=None;
+                        key.clear();
+                        val.clear();
+                        in_key = true;
+                        in_val = false;
+                        quote = None;
                     }
                 }
                 out
             }
-            for (k,v) in parse_kv(&message[5..]) { // after 'train'
+            for (k, v) in parse_kv(&message[5..]) {
+                // after 'train'
                 match k.to_lowercase().as_str() {
                     "script" => std::env::set_var("TRAINING_SCRIPT", v),
-                    "dry_run" | "dry" => std::env::set_var("TRAINING_DRY_RUN", if v.eq_ignore_ascii_case("true")||v=="1"{"true"}else{"false"}),
+                    "dry_run" | "dry" => std::env::set_var(
+                        "TRAINING_DRY_RUN",
+                        if v.eq_ignore_ascii_case("true") || v == "1" {
+                            "true"
+                        } else {
+                            "false"
+                        },
+                    ),
                     _ => {}
                 }
             }
@@ -178,17 +244,33 @@ impl InteractionHub {
             .ok_or_else(|| "chat node not found".to_string())?;
 
         if let Some(req_id) = &request_id {
-            let cache_key = format!("{}|{}|{}", chat_id, session_id.clone().unwrap_or_else(||"<none>".into()), req_id);
+            let cache_key = format!(
+                "{}|{}|{}",
+                chat_id,
+                session_id.clone().unwrap_or_else(|| "<none>".into()),
+                req_id
+            );
             if let Some(resp) = self.requests.write().unwrap().get(&cache_key).cloned() {
-                metrics::increment_counter!("requests_idempotent_hits");
-                return Ok(ChatOutput { response: resp, session_id: session_id.clone(), idempotent: true });
+                metrics::counter!("requests_idempotent_hits").increment(1);
+                return Ok(ChatOutput {
+                    response: resp,
+                    session_id: session_id.clone(),
+                    idempotent: true,
+                });
             }
             if let Some(store) = &self.idem {
                 if let Some(resp) = store.get(&cache_key) {
-                    metrics::increment_counter!("requests_idempotent_hits");
+                    metrics::counter!("requests_idempotent_hits").increment(1);
                     // also warm LRU
-                    self.requests.write().unwrap().put(cache_key.clone(), resp.clone());
-                    return Ok(ChatOutput { response: resp, session_id: session_id.clone(), idempotent: true });
+                    self.requests
+                        .write()
+                        .unwrap()
+                        .put(cache_key.clone(), resp.clone());
+                    return Ok(ChatOutput {
+                        response: resp,
+                        session_id: session_id.clone(),
+                        idempotent: true,
+                    });
                 }
             }
         }
@@ -199,35 +281,55 @@ impl InteractionHub {
 
         let sid_effective = if persist {
             Some(session_id.unwrap_or_else(|| {
-                metrics::increment_counter!("sessions_created_total");
-                metrics::increment_gauge!("sessions_active", 1.0);
+                metrics::counter!("sessions_created_total").increment(1);
+                metrics::gauge!("sessions_active").increment(1.0);
                 format!(
                     "auto-{}-{:x}",
-                    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis(),
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_millis(),
                     NEXT_ID.fetch_add(1, Ordering::Relaxed)
                 )
             }))
-        } else { session_id };
+        } else {
+            session_id
+        };
 
-        metrics::increment_counter!("chat_requests_total");
+        metrics::counter!("chat_requests_total").increment(1);
         let t0 = Instant::now();
 
         let response = node
             .chat(chat_id, sid_effective.clone(), message, storage)
             .await;
 
-        metrics::histogram!("chat_response_time_ms", (t0.elapsed().as_micros() as f64)/1000.0);
+        metrics::histogram!("chat_response_time_ms")
+            .record((t0.elapsed().as_micros() as f64) / 1000.0);
 
         if let Some(req_id) = &request_id {
-            let key = format!("{}|{}|{}", chat_id, sid_effective.clone().unwrap_or_else(||"<none>".into()), req_id);
-            self.requests.write().unwrap().put(key.clone(), response.clone());
-            if let Some(store) = &self.idem { store.put(&key, &response); }
+            let key = format!(
+                "{}|{}|{}",
+                chat_id,
+                sid_effective.clone().unwrap_or_else(|| "<none>".into()),
+                req_id
+            );
+            self.requests
+                .write()
+                .unwrap()
+                .put(key.clone(), response.clone());
+            if let Some(store) = &self.idem {
+                store.put(&key, &response);
+            }
         }
 
         // Metrics for response
         // metrics could be recorded here via `metrics` crate
 
-        Ok(ChatOutput { response, session_id: sid_effective, idempotent: false })
+        Ok(ChatOutput {
+            response,
+            session_id: sid_effective,
+            idempotent: false,
+        })
     }
 
     pub async fn analyze(
