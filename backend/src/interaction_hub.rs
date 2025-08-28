@@ -5,6 +5,7 @@ use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::action::diagnostics_node::DiagnosticsNode;
+use crate::system::host_metrics::HostMetrics;
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -33,6 +34,7 @@ pub struct InteractionHub {
     requests: RwLock<LruCache<String, String>>,
     idem: Option<IdempotentStore>,
     persist_require_session_id: bool,
+    _host_metrics_interval_ms: u64,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -82,12 +84,18 @@ impl InteractionHub {
         let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
+        let host_metrics_interval_ms = std::env::var("HOST_METRICS_INTERVAL_MS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(30_000);
+
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
-        Self {
+
+        let hub = Self {
             registry,
             memory,
-            metrics,
+            metrics: metrics.clone(),
             diagnostics,
             trigger_detector: Arc::new(TriggerDetector::default()),
             scheduler: RwLock::new(TaskScheduler::default()),
@@ -98,7 +106,20 @@ impl InteractionHub {
             requests: RwLock::new(LruCache::new(NonZeroUsize::new(10_000).unwrap())),
             idem,
             persist_require_session_id,
-        }
+            _host_metrics_interval_ms: host_metrics_interval_ms,
+        };
+
+        // Spawn host metrics polling loop
+        let mut host_metrics = HostMetrics::new(metrics);
+        tokio::spawn(async move {
+            let mut interval_timer = interval(Duration::from_millis(host_metrics_interval_ms));
+            loop {
+                interval_timer.tick().await;
+                host_metrics.poll();
+            }
+        });
+
+        hub
     }
 
     pub fn add_auth_token(&self, token: impl Into<String>) {
