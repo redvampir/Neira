@@ -1,0 +1,49 @@
+use metrics::{Counter, Gauge, Histogram, Key, KeyName, Recorder, SharedString, Unit};
+use std::sync::{Arc, Mutex, OnceLock};
+
+struct TestRecorder {
+    data: Arc<Mutex<Vec<(String, f64)>>>,
+}
+
+impl Recorder for TestRecorder {
+    fn describe_counter(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
+    fn describe_gauge(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
+    fn describe_histogram(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
+
+    fn register_counter(&self, _key: &Key) -> Counter {
+        Counter::noop()
+    }
+    fn register_gauge(&self, _key: &Key) -> Gauge {
+        Gauge::noop()
+    }
+    fn register_histogram(&self, key: &Key) -> Histogram {
+        let name = key.name().to_string();
+        let data = self.data.clone();
+        let hist = TestHistogram { name, data };
+        Histogram::from_arc(Arc::new(hist))
+    }
+}
+
+struct TestHistogram {
+    name: String,
+    data: Arc<Mutex<Vec<(String, f64)>>>,
+}
+
+impl metrics::HistogramFn for TestHistogram {
+    fn record(&self, value: f64) {
+        self.data.lock().unwrap().push((self.name.clone(), value));
+    }
+}
+
+static RECORDER: OnceLock<Arc<Mutex<Vec<(String, f64)>>>> = OnceLock::new();
+
+pub fn init_recorder() -> Arc<Mutex<Vec<(String, f64)>>> {
+    let data = RECORDER.get_or_init(|| {
+        let data = Arc::new(Mutex::new(Vec::new()));
+        let recorder = TestRecorder { data: data.clone() };
+        let _ = metrics::set_boxed_recorder(Box::new(recorder));
+        data
+    }).clone();
+    data.lock().unwrap().clear();
+    data
+}

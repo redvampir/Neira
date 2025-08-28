@@ -54,9 +54,7 @@ async fn chat_node_records_duration_metric() {
 
     let records = data.lock().unwrap();
     assert!(
-        records
-            .iter()
-            .any(|(n, _)| n == "chat_node_request_duration_ms"),
+        records.iter().any(|(n, _)| n == "chat_node_request_duration_ms"),
         "no histogram recorded"
     );
 }

@@ -417,7 +417,8 @@ impl InteractionHub {
                         let rid = id.to_string();
                         mem.recalc_priority_async(rid);
                     }
-                    info!("analysis {} completed", id);
+                    metrics::histogram!("analysis_node_request_duration_ms", elapsed as f64);
+                    info!(analysis_id=%id, duration_ms=elapsed, "analysis completed");
                     Some(result)
                 } else {
                     None

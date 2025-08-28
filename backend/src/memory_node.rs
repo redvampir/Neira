@@ -6,6 +6,7 @@ use lru::LruCache;
 
 use chrono::{DateTime, Utc};
 use tokio::spawn;
+use std::time::Instant;
 
 use crate::analysis_node::{AnalysisResult, QualityMetrics, ReasoningStep};
 use crate::task_scheduler::{compute_priority, Priority};
@@ -91,10 +92,12 @@ impl MemoryNode {
     }
 
     pub fn preload_by_trigger(&self, triggers: &[String]) -> Vec<MemoryRecord> {
+        let start = Instant::now();
         let mut key = triggers.to_vec();
         key.sort();
         let cache_key = key.join("|");
         if let Some(records) = self.preload_cache.write().unwrap().get(&cache_key).cloned() {
+            metrics::histogram!("memory_node_preload_duration_ms", start.elapsed().as_secs_f64() * 1000.0);
             return records;
         }
 
@@ -118,6 +121,7 @@ impl MemoryNode {
             .write()
             .unwrap()
             .put(cache_key, matched.clone());
+        metrics::histogram!("memory_node_preload_duration_ms", start.elapsed().as_secs_f64() * 1000.0);
         matched
     }
 
