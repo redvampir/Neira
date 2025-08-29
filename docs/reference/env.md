@@ -31,5 +31,19 @@
 | NERVOUS_SYSTEM_JSON_LOGS | bool | false | logging | JSON‑логи включить |
 | MASK_PRESETS_DIR | string | config/mask_presets | masking | Каталог пресетов масок |
 
-Примечание: значения по умолчанию сверены с кодом (backend/src/*). При расхождениях — источник истины этот файл.
+### Anti‑Idle System
+| Ключ | Тип | По умолчанию | Где используется | Влияние |
+|---|---|---|---|---|
+| IDLE_THRESHOLD_SECONDS | int | 30 | idle detection | Порог простоя (сек) |
+| DEEP_IDLE_THRESHOLD_MINUTES | int | 30 | idle detection | Глубокий простой (мин) |
+| IDLE_MICRO_TASK_MAX_DURATION | string | 10min | anti-idle limits | Максимум одной микрозадачи |
+| IDLE_SESSION_MAX_DURATION | string | 30min | anti-idle limits | Максимум одной сессии |
+| IDLE_DAILY_AUTONOMOUS_LIMIT | string | 4hours | anti-idle limits | Дневной лимит автономии |
+| IDLE_LEARNING_SESSION_LIMIT | string | 20min | learning | Лимит учебной сессии |
+| IDLE_MONEY_SESSION_LIMIT | string | 15min | income | Лимит «заработка» |
+| IDLE_REFLECTION_SESSION_LIMIT | string | 5min | reflection | Лимит размышлений |
+| IDLE_REQUIRE_APPROVAL_FOR_NEW_DOMAINS | bool | true | safety | Одобрение новых доменов задач |
+| IDLE_REPORT_FREQUENCY | enum | on_user_return | reporting | Частота отчётов |
+| IDLE_DETAILED_LOGS | bool | true | reporting | Детальные логи |
 
+Примечание: значения по умолчанию сверены с кодом (backend/src/*). При расхождениях — источник истины этот файл.

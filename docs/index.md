@@ -1,33 +1,85 @@
-# Документация Neira — Стартовая страница
+﻿<!-- neira:meta
+id: NEI-20250830-Docs-Index-Consolidation
+intent: docs
+summary: |
+  Обновлено центральное оглавление документации (DocMap): сгруппированы разделы, добавлены перекрёстные ссылки и ссылки на корневые инструкции ИИ‑агента.
+-->
 
-Добро пожаловать. Эта страница — карта проекта (DocMap) для быстрой навигации как для человека (владелец), так и для ассистента.
+# Neira — Документация (DocMap)
 
-- Быстрый обзор API: docs/backend-api.md
-- Переменные окружения (референс): docs/reference/env.md
-- Метрики (реестр): docs/reference/metrics.md
-- Способности и гейты: CAPABILITIES.md
-- Режимы автономии и принципы: AGENTS.md (разделы Vision & Autonomy, Autonomy Modes)
-- Рабочий процесс и мета‑комментарии: WORKFLOW.md, COMMENTING.md
-- Роли и взаимодействие: TEAMWORK.md
-- Код‑гайдлайны: CODING_GUIDELINES.md
-- Решения (ADR‑индекс): DECISIONS.md
-- Примеры запросов: docs/examples/curl.md
-- Глоссарий терминов: docs/meta/glossary.md
-- Справка по окружению бэкенда (историческая): backend/ENV.md
+Это центральная навигационная страница. Ниже — структурированное оглавление со ссылками на все основные документы.
 
-## DocMap — откуда истина
-- API: docs/backend-api.md (истина), README — только ссылка.
-- ENV: docs/reference/env.md (истина), backend/ENV.md — обзор и пример .env.
-- Метрики: docs/reference/metrics.md (истина), код — источник конкретных инкрементов.
-- Гейты способностей: CAPABILITIES.md (истина), ссылки из neira:meta.
+## Обзор и Инструкции (корень репозитория)
+- Начать здесь: ../AGENTS.md
+- Командная работа: ../TEAMWORK.md
+- Рабочий процесс: ../WORKFLOW.md
+- Комментарии и метаданные: ../COMMENTING.md
+- Покрытие neira:meta: ../META_COVERAGE.md
+- Код‑гайд: ../CODING_GUIDELINES.md
+- Архитектурные решения (ADR): ../DECISIONS.md
+- Способности/фичефлаги: ../CAPABILITIES.md
+- Журналирование/наблюдение: ../JOURNALING.md
 
-## Быстрый старт
-1) Посмотрите API и примеры curl.
-2) Настройте .env (см. docs/reference/env.md и backend/ENV.md).
-3) Запустите сервис и проверьте /metrics.
+## API
+- Обзор Backend API: api/backend.md
+- Эндпоинт Chat: api/chat.md
 
-## Термины (кратко)
-- Иммунная система: безопасный режим, карантин, интегрити.
-- Нервная система: метрики/пробы/алерты.
-- Гейт способности: переключатель locked/experimental/stable/deprecated.
-- Режимы автономии: explore / perform / safe‑mode.
+## Руководства (Guides)
+- Быстрый практический гид: guides/practical-guide.md
+- Интеграция с IDE: guides/ide-integration.md
+- Примеры использования (CLI/Web): guides/usage-example.md, guides/web-interface.md
+- Тестирование: guides/testing.md
+- Обучение и тренировка: guides/training.md
+- Деплой: guides/deployment.md
+
+## Примеры (Examples)
+- Примеры curl: examples/curl.md
+
+## Узлы (Nodes)
+- Action Nodes: nodes/action-nodes.md
+- Analysis Nodes: nodes/analysis-nodes.md
+- Memory Nodes: nodes/memory-nodes.md
+- Автозаполнение: nodes/automatic-population.md
+- API узла: nodes/node-api-guide.md
+- Жизненный цикл узла: nodes/node-lifecycle.md
+- Шаблон узла: nodes/node-template.md
+
+## Система (System)
+- Архитектура анализа: system/analysis-architecture.md
+- Низкоуровневый тулчейн: system/low-level-toolchain.md
+- Модули MVP: system/mvp-modules.md
+- Самообновляющаяся система: system/self-updating-system.md
+- Источники/политика: system/source-policy.md
+- Подсистемы поддержки: system/support-systems.md
+- Иммунная система: ../docs/immune_system.md
+- Устройство управления (governance): system/governance-structure.md
+
+## Дизайн (Design)
+- Anti‑Idle System: design/anti-idle-system.md
+- Орган‑системы: design/organ-systems.md
+- Runtime extensibility: design/runtime-extensibility.md
+
+## Справочник (Reference)
+- Переменные окружения: reference/env.md
+- Метрики: reference/metrics.md
+- Метрики узлов: ../docs/metrics_nodes.md
+
+## Метадокументы (Meta)
+- Глоссарий: meta/glossary.md
+- FAQ: meta/faq.md
+- Мотивация/видение: meta/motivation.md
+- Личность/персоналити: meta/personality.md
+- Вклад/CONTRIBUTING: meta/CONTRIBUTING.md
+
+## Дорожная карта
+- Roadmap: roadmap.md
+
+## Наследие (Legacy)
+- Примеры использования (исторические): legacy/usage-example.md
+- Деплой (исторический): legacy/deployment.md
+- Тестирование (историческое): legacy/testing.md
+
+
+## Дополнительно
+- Ядро личности (Persona Kernel): meta/persona-kernel.md
+- Метрики личности: reference/persona-metrics.md

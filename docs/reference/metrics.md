@@ -25,6 +25,31 @@
 | index_compact_runs | counter | ops | Compaction job | Запуски компактера |
 | sse_active | gauge | count | SSE stream | Активные SSE потоки |
 | safe_mode | gauge | 0/1 | Hub | Статус безопасного режима |
+| idle_state | gauge | 0..3 | Anti-Idle | Текущее состояние простоя |
+| idle_minutes_today | counter | min | Anti-Idle | Минуты простоя за день |
+| auto_tasks_started | counter | tasks | Anti-Idle | Запущено авто‑задач |
+| auto_tasks_completed | counter | tasks | Anti-Idle | Завершено авто‑задач |
+| auto_tasks_blocked | counter | tasks | Anti-Idle | Заблокировано SafetyController |
+| approvals_pending | gauge | count | Anti-Idle | Запросы на одобрение в очереди |
+| autonomous_time_spent_seconds | counter | s | Anti-Idle | Секунды автономной работы |
+| microtask_queue_depth | gauge | count | Anti-Idle | Глубина очереди микрозадач |
+
+## Связь с дорожной картой (Embryo / Stage 0–1)
+
+- Stage 0 (Core Stable) — базовые метрики, активны по умолчанию:
+  - chat_requests_total, chat_errors_total, chat_response_time_ms
+  - messages_saved, context_loads, context_misses, context_bytes_written, gz_rotate_count, index_compact_runs
+  - sessions_created_total, sessions_deleted_total, sessions_closed_total, sessions_active
+  - requests_idempotent_hits, sse_active, safe_mode
+
+- Stage 1 (Experimental Growth) — включаются при открытии соответствующих гейтов (см. CAPABILITIES.md):
+  - idle_state, idle_minutes_today, autonomous_time_spent_seconds
+  - auto_tasks_started, auto_tasks_completed, auto_tasks_blocked, microtask_queue_depth
+  - approvals_pending
+
+См. также:
+- Дорожная карта: docs/roadmap.md
+- Anti‑Idle System: docs/design/anti-idle-system.md
+- Способности и гейты: CAPABILITIES.md
 
 Примечание: именование согласовано с кодом (backend/src). При добавлении новых метрик — обновляйте эту таблицу.
-

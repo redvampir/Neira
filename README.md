@@ -1,4 +1,4 @@
-# Нейра — саморазвивающийся ИИ‑модуль
+﻿# Нейра — саморазвивающийся ИИ‑модуль
 
 
 
@@ -7,7 +7,7 @@ Assistant Quick Links
 - Teamwork: TEAMWORK.md
 - Workflow: WORKFLOW.md
 - Coding Guidelines: CODING_GUIDELINES.md
-- Backend API: docs/backend-api.md
+- Backend API: docs/api/backend.md
 
 Documentation Index
 - docs/index.md — карта документации (DocMap) для GitHub/IDE
@@ -34,7 +34,7 @@ Documentation Index
 - [CI/CD и деплой](docs/legacy/deployment.md)
 - [Веб-интерфейс обучения](docs/guides/web-interface.md)
 - [Тестирование Neira](docs/guides/testing.md)
-- [Дорожная карта Neira](docs/meta/roadmap.md)
+- [Дорожная карта Neira](docs/roadmap.md)
 - [Структура управления Нейры](docs/system/governance-structure.md)
 - [Мотивация и прогресс Нейры](docs/meta/motivation.md)
 - [Сбор и диагностика метрик](docs/metrics_nodes.md)
