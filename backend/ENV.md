@@ -13,6 +13,7 @@ Backend environment variables
 - CHAT_RATE_KEY: rate limit key, either "auth" or "chat" (default: auth)
 - IO_WATCHER_ENABLED: enable keyboard/display latency watcher (default: false)
 - IO_WATCHER_THRESHOLD_MS: latency threshold in ms for triggering diagnostics (default: 100)
+- NERVOUS_SYSTEM_ENABLED: enable Prometheus metrics and nervous system (default: true)
 
 How to use
 - Create a .env file in repo root or `backend/` and set variables.

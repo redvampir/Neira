@@ -22,6 +22,7 @@ use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::action_node::PreloadAction;
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
 use backend::interaction_hub::InteractionHub;
 use backend::memory_node::MemoryNode;
@@ -783,6 +784,7 @@ async fn masking_dry_run(
 #[tokio::main]
 async fn main() {
     let _ = dotenv();
+    let cfg = Config::from_env();
     let logs_dir = "logs";
     let _ = std::fs::create_dir_all(logs_dir);
 
@@ -854,17 +856,22 @@ async fn main() {
     }
 
     registry.register_analysis_node(Arc::new(EchoNode));
-
-    let handle = PrometheusBuilder::new()
-        .install_recorder()
-        .expect("metrics");
+    let metrics_handle = if cfg.nervous_system.enabled {
+        Some(
+            PrometheusBuilder::new()
+                .install_recorder()
+                .expect("metrics"),
+        )
+    } else {
+        None
+    };
 
     let state = AppState {
         hub: hub.clone(),
         storage: storage.clone(),
     };
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/", get(|| async { "Hello, world!" }))
         .route(
             "/training",
@@ -949,9 +956,11 @@ async fn main() {
         .route(
             "/api/neira/chat/:chat_id/:session_id/search",
             get(search_chat),
-        )
-        .route("/metrics", get(move || async move { handle.render() }))
-        .with_state(state);
+        );
+    if let Some(handle) = metrics_handle {
+        app = app.route("/metrics", get(move || async move { handle.render() }));
+    }
+    let app = app.with_state(state);
 
     let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
     // Optional periodic training
