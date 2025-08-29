@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-io-watcher
+intent: docs
+summary: |
+  Отслеживает задержки ввода-вывода и публикует метрики при превышении порога.
+*/
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 

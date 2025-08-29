@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-trigger-detector
+intent: docs
+summary: |
+  Выявляет ключевые слова и запускает микрорефлексы.
+*/
+
 use std::sync::RwLock;
 
 type ReflexAction = Box<dyn Fn() + Send + Sync>;

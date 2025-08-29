@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-diagnostics-node
+intent: docs
+summary: |
+  Анализирует поток метрик, фиксирует аномалии и уведомляет разработчика.
+*/
+
 use std::{
     collections::VecDeque,
     sync::{

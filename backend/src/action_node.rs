@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-action-node
+intent: docs
+summary: |
+  Базовый интерфейс узлов действий и стандартная реализация предзагрузки.
+*/
+
 use std::sync::Arc;
 
 use crate::memory_node::MemoryNode;

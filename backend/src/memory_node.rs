@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-memory-node
+intent: docs
+summary: |
+  Хранит результаты анализа и метаданные, поддерживает предзагрузку и приоритизацию.
+*/
+
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, RwLock};

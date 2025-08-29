@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-node-registry
+intent: docs
+summary: |
+  Отслеживает файлы шаблонов узлов и регистрирует реализации в системе.
+*/
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};

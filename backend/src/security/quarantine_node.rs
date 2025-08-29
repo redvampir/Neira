@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-quarantine-node
+intent: docs
+summary: |
+  Переводит подозрительные модули в карантин и активирует безопасный режим.
+*/
+
 use std::sync::Arc;
 
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};

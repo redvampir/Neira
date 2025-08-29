@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-host-metrics
+intent: docs
+summary: |
+  Собирает метрики хоста и пересылает их коллектору.
+*/
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
