@@ -4,6 +4,7 @@ use std::time::Duration;
 use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::config::Config;
 use backend::interaction_hub::InteractionHub;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
@@ -46,7 +47,8 @@ async fn hub_tracks_time_metrics() {
     let memory = Arc::new(MemoryNode::new());
     let (metrics, rx) = MetricsCollectorNode::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5, metrics.clone());
-    let hub = InteractionHub::new(registry.clone(), memory.clone(), metrics, diagnostics);
+    let cfg = Config::default();
+    let hub = InteractionHub::new(registry.clone(), memory.clone(), metrics, diagnostics, &cfg);
     hub.add_auth_token("t");
     let token = CancellationToken::new();
     hub.analyze("sleep", "", "t", &token).await.unwrap();
