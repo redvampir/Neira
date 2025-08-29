@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use sha2::{Digest, Sha256};
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::time::interval;
 use tracing::{error, info, warn};
 
@@ -16,11 +17,12 @@ pub struct IntegrityCheckerNode {
     config_path: PathBuf,
     interval_ms: u64,
     memory: Arc<MemoryNode>,
+    quarantine: UnboundedSender<String>,
 }
 
 impl IntegrityCheckerNode {
     /// Создаёт узел и запускает периодическую проверку.
-    pub fn new(memory: Arc<MemoryNode>) -> Arc<Self> {
+    pub fn new(memory: Arc<MemoryNode>, quarantine: UnboundedSender<String>) -> Arc<Self> {
         let config_path = std::env::var("INTEGRITY_CONFIG_PATH")
             .unwrap_or_else(|_| "config/integrity.json".into());
         let interval_ms = std::env::var("INTEGRITY_CHECK_INTERVAL_MS")
@@ -31,6 +33,7 @@ impl IntegrityCheckerNode {
             config_path: PathBuf::from(config_path),
             interval_ms,
             memory,
+            quarantine,
         });
         let node_clone = node.clone();
         tokio::spawn(async move {
@@ -78,6 +81,9 @@ impl IntegrityCheckerNode {
                 info!(file=%path.display(), "integrity ok");
             } else {
                 warn!(file=%path.display(), expected=%expected, actual=%actual, "integrity mismatch");
+                let _ = self
+                    .quarantine
+                    .send(path.display().to_string());
             }
         }
         Ok(())
