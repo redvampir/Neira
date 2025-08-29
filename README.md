@@ -27,6 +27,17 @@
 - [Структура управления Нейры](docs/system/governance-structure.md)
 - [Мотивация и прогресс Нейры](docs/meta/motivation.md)
 - [Сбор и диагностика метрик](docs/metrics_nodes.md)
+- [Как отключить или ограничить мониторинг](docs/metrics_nodes.md#как-отключить-или-ограничить-мониторинг)
+
+Пример отключения мониторинга в `.env`:
+
+```
+NERVOUS_SYSTEM_ENABLED=false
+PROBES_HOST_METRICS_ENABLED=false
+PROBES_IO_WATCHER_ENABLED=false
+```
+
+Подробнее см. [Как отключить или ограничить мониторинг](docs/metrics_nodes.md#как-отключить-или-ограничить-мониторинг).
 
 ## Оглавление
 
