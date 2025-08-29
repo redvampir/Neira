@@ -5,6 +5,7 @@ use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::context::context_storage::FileContextStorage;
 use backend::interaction_hub::InteractionHub;
+use backend::config::Config;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 
@@ -15,7 +16,8 @@ async fn chat_hub_rejects_empty_message() {
     let memory = Arc::new(MemoryNode::new());
     let (metrics, rx) = MetricsCollectorNode::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5, metrics.clone());
-    let hub = InteractionHub::new(registry.clone(), memory, metrics, diagnostics);
+    let cfg = Config::default();
+    let hub = InteractionHub::new(registry.clone(), memory, metrics, diagnostics, &cfg);
     hub.add_auth_token("secret");
     registry.register_chat_node(Arc::new(EchoChatNode::default()));
 

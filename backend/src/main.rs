@@ -810,6 +810,7 @@ async fn main() {
         memory.clone(),
         metrics,
         diagnostics,
+        &cfg,
     ));
     hub.add_auth_token("secret");
     hub.add_trigger_keyword("echo");

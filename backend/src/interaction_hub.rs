@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use crate::action::diagnostics_node::DiagnosticsNode;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
+use crate::config::Config;
 use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
 use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
@@ -55,6 +56,7 @@ impl InteractionHub {
         memory: Arc<MemoryNode>,
         metrics: Arc<MetricsCollectorNode>,
         diagnostics: Arc<DiagnosticsNode>,
+        config: &Config,
     ) -> Self {
         let rate_limit_per_min = std::env::var("CHAT_RATE_LIMIT_PER_MIN")
             .ok()
@@ -83,13 +85,18 @@ impl InteractionHub {
         let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
-        let io_watcher_enabled = std::env::var("IO_WATCHER_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
         let io_watcher_threshold_ms = std::env::var("IO_WATCHER_THRESHOLD_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(100);
+        let host_metrics_enabled = config
+            .probes
+            .get("host_metrics")
+            .map_or(true, |p| p.enabled);
+        let io_watcher_enabled = config
+            .probes
+            .get("io_watcher")
+            .map_or(false, |p| p.enabled);
 
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
@@ -111,10 +118,12 @@ impl InteractionHub {
         };
 
         // Spawn host metrics polling loop
-        let mut host_metrics = HostMetrics::new(metrics.clone());
-        tokio::spawn(async move {
-            host_metrics.start().await;
-        });
+        if host_metrics_enabled {
+            let mut host_metrics = HostMetrics::new(metrics.clone());
+            tokio::spawn(async move {
+                host_metrics.start().await;
+            });
+        }
 
         // Optionally spawn IO watcher
         if io_watcher_enabled {
