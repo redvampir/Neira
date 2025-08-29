@@ -11,6 +11,7 @@ use crate::action::chat_node::ChatNode;
 use crate::action::scripted_training_node::ScriptedTrainingNode;
 use crate::action_node::ActionNode;
 use crate::analysis_node::AnalysisNode;
+use crate::memory_node::MemoryNode;
 use crate::node_template::{validate_template, NodeTemplate};
 
 /// Загружает `NodeTemplate` из файла JSON или YAML.
@@ -118,6 +119,11 @@ impl NodeRegistry {
     pub fn register_scripted_training_node(&self) {
         self.register_action_node(Arc::new(ScriptedTrainingNode::default()));
         info!("Registered scripted training node");
+    }
+
+    pub fn register_init_node(&self, node: Arc<dyn ActionNode>, memory: &Arc<MemoryNode>) {
+        node.preload(&[], memory);
+        self.action_nodes.write().unwrap().insert(0, node);
     }
 
     /// Регистрация или обновление узла из файла.
