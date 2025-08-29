@@ -47,22 +47,34 @@ impl IntegrityCheckerNode {
     }
 
     fn check_once(&self) -> Result<(), String> {
-        let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let cfg_path = base.join(&self.config_path);
+        let base = match std::env::var("INTEGRITY_ROOT") {
+            Ok(p) => PathBuf::from(p),
+            Err(_) => std::env::current_dir().map_err(|e| format!("current_dir: {e}"))?,
+        };
+        let cfg_path = if self.config_path.is_absolute() {
+            self.config_path.clone()
+        } else {
+            base.join(&self.config_path)
+        };
         let data = fs::read_to_string(&cfg_path)
             .map_err(|e| format!("read {}: {e}", cfg_path.display()))?;
         let map: HashMap<String, String> = serde_json::from_str(&data)
             .map_err(|e| format!("parse {}: {e}", cfg_path.display()))?;
         for (rel, expected) in map.iter() {
-            let path = base.join(rel);
+            let rel_path = PathBuf::from(rel);
+            let path = if rel_path.is_absolute() {
+                rel_path
+            } else {
+                base.join(rel_path)
+            };
             let bytes = fs::read(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
             let mut hasher = Sha256::new();
             hasher.update(bytes);
             let actual = format!("{:x}", hasher.finalize());
             if &actual == expected {
-                info!(file=%rel, "integrity ok");
+                info!(file=%path.display(), "integrity ok");
             } else {
-                warn!(file=%rel, expected=%expected, actual=%actual, "integrity mismatch");
+                warn!(file=%path.display(), expected=%expected, actual=%actual, "integrity mismatch");
             }
         }
         Ok(())
