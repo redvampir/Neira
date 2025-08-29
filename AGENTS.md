@@ -1,8 +1,8 @@
 <!-- neira:meta
-id: NEI-20250829-181300-meta-coverage-link
+id: NEI-20250829-183000-repo-guidelines
 intent: docs
 summary: |
-  Добавлена ссылка на META_COVERAGE.md.
+  Добавлены правила оформления кода, структуры каталогов и тестирования.
 -->
 
 # Neira Assistant Operating Guide — START HERE
@@ -70,6 +70,25 @@ Comments & Language
 - Short block for minor changes: keep only `id`, `intent`, `summary`; full template needed for endpoints, env, schemas, etc. Examples in [COMMENTING.md](COMMENTING.md).
 - Handover: short Russian summary — what, why, how to verify.
 - Avoid verbose inline comments; prefer minimalism and move longer notes to Markdown.
+
+Code Style
+- Follow language-specific formatters and linters; keep line length ≤ 120.
+- Rust: use `rustfmt` and `clippy`.
+- TypeScript/JavaScript: use `prettier` and `eslint` with project configs.
+- Python: follow [PEP8](https://peps.python.org/pep-0008/) using `black`/`flake8` where applicable.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+Directory Structure
+- Place runtime code in `src/`, `backend/`, or `frontend/` depending on component.
+- Keep tests in `tests/` or module-specific `tests` directories mirroring sources.
+- Store documentation in `docs/` and schemas in `schemas/`.
+
+Testing
+- Provide tests for new features; mirror source layout.
+- Run `cargo test` for Rust crates.
+- Run `npm test` for Node/TypeScript packages.
+- Run `pytest` for Python modules when present.
+- Ensure linters and tests pass before committing.
 
 Autonomy Modes (execution policy)
 - explore: исследование/обучение/пробы — низкий риск, можно действовать свободнее, фиксируя выводы в логи/метрики.
