@@ -54,6 +54,12 @@ impl MemoryNode {
         }
     }
 
+    pub fn base_path(&self) -> String {
+        std::env::current_dir()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|_| ".".into())
+    }
+
     pub fn set_cache_capacity(&self, capacity: usize) {
         *self.preload_cache.write().unwrap() =
             LruCache::new(NonZeroUsize::new(capacity.max(1)).unwrap());

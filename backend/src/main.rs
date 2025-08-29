@@ -28,6 +28,7 @@ use backend::interaction_hub::InteractionHub;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use backend::node_template::NodeTemplate;
+use backend::security::init_config_node::InitConfigNode;
 mod http {
     pub mod training_routes;
 }
@@ -818,6 +819,7 @@ async fn main() {
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
+    registry.register_init_node(Arc::new(InitConfigNode::new()), &memory);
     let (metrics, metrics_rx) = MetricsCollectorNode::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(metrics_rx, 5, metrics.clone());
     let hub = Arc::new(InteractionHub::new(
