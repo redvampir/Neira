@@ -13,7 +13,7 @@ pub struct Config {
 /// Settings for the nervous system subsystem.
 #[derive(Debug, Clone, Deserialize)]
 pub struct NervousSystemConfig {
-    /// Enables metrics collection and the `/metrics` endpoint when `true`.
+    /// Enables metrics collection and the /metrics endpoint when true.
     #[serde(default = "default_enabled")]
     pub enabled: bool,
 }
@@ -46,9 +46,14 @@ impl Config {
         let enabled = std::env::var("NERVOUS_SYSTEM_ENABLED")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(true);
+
         let host_metrics_enabled = std::env::var("PROBES_HOST_METRICS_ENABLED")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(true);
+
+        // Новое решение: сначала читаем PROBES_IO_WATCHER_ENABLED,
+        // при ошибке — проверяем legacy-переменную IO_WATCHER_ENABLED,
+        // по умолчанию выключено (false).
         let io_watcher_enabled = std::env::var("PROBES_IO_WATCHER_ENABLED")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or_else(|_| {
@@ -56,6 +61,7 @@ impl Config {
                     .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
                     .unwrap_or(false)
             });
+
         let mut probes = HashMap::new();
         probes.insert(
             "host_metrics".to_string(),
@@ -69,6 +75,7 @@ impl Config {
                 enabled: io_watcher_enabled,
             },
         );
+
         Self {
             nervous_system: NervousSystemConfig { enabled },
             probes,
