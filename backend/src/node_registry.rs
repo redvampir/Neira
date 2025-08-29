@@ -21,17 +21,23 @@ use crate::analysis_node::AnalysisNode;
 use crate::memory_node::MemoryNode;
 use crate::node_template::{validate_template, NodeTemplate};
 
+/* neira:meta
+id: NEI-20241010-154500-load-template
+intent: refactor
+summary: |
+  Упростил определение формата шаблона через `if let` вместо `match`.
+*/
 /// Загружает `NodeTemplate` из файла JSON или YAML.
 fn load_template(path: &Path) -> Result<NodeTemplate, String> {
     let content =
         fs::read_to_string(path).map_err(|e| format!("failed to read {}: {e}", path.display()))?;
-    let value: Value = match path.extension().and_then(|s| s.to_str()) {
-        Some("yaml") | Some("yml") => {
-            let yaml: serde_yaml::Value =
-                serde_yaml::from_str(&content).map_err(|e| format!("invalid YAML: {e}"))?;
-            serde_json::to_value(yaml).map_err(|e| format!("YAML to JSON: {e}"))?
-        }
-        _ => serde_json::from_str(&content).map_err(|e| format!("invalid JSON: {e}"))?,
+    let value: Value = if let Some("yaml") | Some("yml") = path.extension().and_then(|s| s.to_str())
+    {
+        let yaml: serde_yaml::Value =
+            serde_yaml::from_str(&content).map_err(|e| format!("invalid YAML: {e}"))?;
+        serde_json::to_value(yaml).map_err(|e| format!("YAML to JSON: {e}"))?
+    } else {
+        serde_json::from_str(&content).map_err(|e| format!("invalid JSON: {e}"))?
     };
     validate_template(&value).map_err(|errs| errs.join(", "))?;
     serde_json::from_value(value).map_err(|e| format!("deserialize NodeTemplate: {e}"))
