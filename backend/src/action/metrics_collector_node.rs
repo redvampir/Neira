@@ -17,8 +17,8 @@ pub struct MetricsRecord {
 /// Узел, который принимает записи метрик и пересылает их как сообщения через канал.
 pub struct MetricsCollectorNode {
     tx: UnboundedSender<MetricsRecord>,
-    fast_interval_ms: u64,
-    slow_interval_ms: u64,
+    normal_interval_ms: u64,
+    low_interval_ms: u64,
     current_interval_ms: AtomicU64,
 }
 
@@ -26,20 +26,20 @@ impl MetricsCollectorNode {
     /// Создаёт узел и возвращает связанный с ним приёмник для сообщений.
     pub fn channel() -> (Arc<Self>, UnboundedReceiver<MetricsRecord>) {
         let (tx, rx) = unbounded_channel();
-        let fast = std::env::var("METRICS_FAST_INTERVAL_MS")
+        let normal = std::env::var("METRICS_NORMAL_INTERVAL_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(1_000);
-        let slow = std::env::var("METRICS_SLOW_INTERVAL_MS")
+        let low = std::env::var("METRICS_LOW_INTERVAL_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(30_000);
         (
             Arc::new(Self {
                 tx,
-                fast_interval_ms: fast,
-                slow_interval_ms: slow,
-                current_interval_ms: AtomicU64::new(slow),
+                normal_interval_ms: normal,
+                low_interval_ms: low,
+                current_interval_ms: AtomicU64::new(normal),
             }),
             rx,
         )
@@ -59,18 +59,18 @@ impl MetricsCollectorNode {
         self.current_interval_ms.load(Ordering::SeqCst)
     }
 
-    /// Переключает коллектор в «быстрый» режим.
-    pub fn set_fast(&self) {
+    /// Переключает коллектор в режим «normal».
+    pub fn set_normal(&self) {
         self
             .current_interval_ms
-            .store(self.fast_interval_ms, Ordering::SeqCst);
+            .store(self.normal_interval_ms, Ordering::SeqCst);
     }
 
-    /// Переключает коллектор в «медленный» режим.
-    pub fn set_slow(&self) {
+    /// Переключает коллектор в режим «low».
+    pub fn set_low(&self) {
         self
             .current_interval_ms
-            .store(self.slow_interval_ms, Ordering::SeqCst);
+            .store(self.low_interval_ms, Ordering::SeqCst);
     }
 }
 
