@@ -7,6 +7,7 @@ use crate::config::Config;
 use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
+use crate::security::quarantine_node::QuarantineNode;
 use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
 use lru::LruCache;
 use std::num::NonZeroUsize;
@@ -100,8 +101,12 @@ impl InteractionHub {
 
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
-        registry.register_action_node(Arc::new(crate::system::base_path_resolver::BasePathResolverNode::new()));
-        registry.register_action_node(IntegrityCheckerNode::new(memory.clone()));
+        registry.register_action_node(Arc::new(
+            crate::system::base_path_resolver::BasePathResolverNode::new(),
+        ));
+        let (quarantine, quarantine_tx, _dev_rx) = QuarantineNode::new();
+        registry.register_action_node(quarantine);
+        registry.register_action_node(IntegrityCheckerNode::new(memory.clone(), quarantine_tx));
 
         let hub = Self {
             registry,
