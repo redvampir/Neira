@@ -10,7 +10,7 @@ use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProb
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
-use tokio::task::spawn_blocking;
+use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 use tracing::info;
@@ -35,6 +35,8 @@ pub struct InteractionHub {
     requests: RwLock<LruCache<String, String>>,
     idem: Option<IdempotentStore>,
     persist_require_session_id: bool,
+    probe_handles: RwLock<std::collections::HashMap<String, JoinHandle<()>>>,
+    io_watcher_threshold_ms: u64,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -93,10 +95,7 @@ impl InteractionHub {
             .probes
             .get("host_metrics")
             .map_or(true, |p| p.enabled);
-        let io_watcher_enabled = config
-            .probes
-            .get("io_watcher")
-            .map_or(false, |p| p.enabled);
+        let io_watcher_enabled = config.probes.get("io_watcher").map_or(false, |p| p.enabled);
 
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
@@ -115,25 +114,57 @@ impl InteractionHub {
             requests: RwLock::new(LruCache::new(NonZeroUsize::new(10_000).unwrap())),
             idem,
             persist_require_session_id,
+            probe_handles: RwLock::new(std::collections::HashMap::new()),
+            io_watcher_threshold_ms,
         };
 
         // Spawn host metrics polling loop
         if host_metrics_enabled {
-            let mut host_metrics = HostMetrics::new(metrics.clone());
-            tokio::spawn(async move {
+            let mut host_metrics = HostMetrics::new(hub.metrics.clone());
+            let handle = tokio::spawn(async move {
                 host_metrics.start().await;
             });
+            hub.probe_handles
+                .write()
+                .unwrap()
+                .insert("host_metrics".into(), handle);
         }
 
         // Optionally spawn IO watcher
         if io_watcher_enabled {
-            let mut watcher = IoWatcher::new(metrics, io_watcher_threshold_ms);
-            tokio::spawn(async move {
+            let mut watcher = IoWatcher::new(hub.metrics.clone(), io_watcher_threshold_ms);
+            let handle = tokio::spawn(async move {
                 watcher.start().await;
             });
+            hub.probe_handles
+                .write()
+                .unwrap()
+                .insert("io_watcher".into(), handle);
         }
 
         hub
+    }
+
+    pub fn toggle_probe(&self, name: &str) -> Result<bool, String> {
+        let mut probes = self.probe_handles.write().unwrap();
+        if let Some(handle) = probes.remove(name) {
+            handle.abort();
+            return Ok(false);
+        }
+        let handle = match name {
+            "host_metrics" => {
+                let mut probe = HostMetrics::new(self.metrics.clone());
+                tokio::spawn(async move { probe.start().await })
+            }
+            "io_watcher" => {
+                let mut watcher =
+                    IoWatcher::new(self.metrics.clone(), self.io_watcher_threshold_ms);
+                tokio::spawn(async move { watcher.start().await })
+            }
+            _ => return Err(format!("unknown probe {name}")),
+        };
+        probes.insert(name.to_string(), handle);
+        Ok(true)
     }
 
     pub fn add_auth_token(&self, token: impl Into<String>) {
