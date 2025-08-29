@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind};
+use async_trait::async_trait;
+use tokio::time::{sleep, Duration};
+use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::analysis_node::QualityMetrics;
+use super::SystemProbe;
 
 /// Collects host level metrics and forwards them to the metrics system.
 pub struct HostMetrics {
@@ -22,8 +25,20 @@ impl HostMetrics {
         Self { sys, collector }
     }
 
+}
+
+#[async_trait]
+impl SystemProbe for HostMetrics {
+    async fn start(&mut self) {
+        loop {
+            let ms = self.collector.get_interval_ms();
+            sleep(Duration::from_millis(ms)).await;
+            self.collect();
+        }
+    }
+
     /// Refresh metrics and publish them via `metrics::gauge!` and `MetricsCollectorNode`.
-    pub fn poll(&mut self) {
+    fn collect(&mut self) {
         self.sys.refresh_cpu();
         self.sys.refresh_memory();
 
