@@ -14,7 +14,7 @@ dotenvy = "0.15"
 jsonschema-valid = "0.5.2"
 once_cell = "1"
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] } # direct file logging without tracing-appender
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] } # direct file logging without tracing-appender
 
 
 tracing-appender = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d", package = "tracing-appender" }

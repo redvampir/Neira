@@ -133,11 +133,14 @@ pub fn mask_preview(
 pub fn load_mask_preset(name: &str) -> Result<Vec<String>, String> {
     let dir = std::env::var("MASK_PRESETS_DIR").unwrap_or_else(|_| "config/mask_presets".into());
     let path = std::path::Path::new(&dir).join(format!("{}.txt", name));
-    let data = std::fs::read_to_string(&path).map_err(|e| format!("read {}: {}", path.display(), e))?;
+    let data =
+        std::fs::read_to_string(&path).map_err(|e| format!("read {}: {}", path.display(), e))?;
     let mut out = Vec::new();
     for line in data.lines() {
         let lt = line.trim();
-        if lt.is_empty() || lt.starts_with('#') { continue; }
+        if lt.is_empty() || lt.starts_with('#') {
+            continue;
+        }
         out.push(lt.to_string());
     }
     Ok(out)
@@ -225,21 +228,6 @@ impl FileContextStorage {
                 cfg,
                 tx: None,
             }
-        }
-    }
-
-    fn session_path(&self, chat_id: &str, session_id: &str) -> PathBuf {
-        let dir = self.root.join(chat_id);
-        if self.cfg.daily_rotation {
-            let date = format!(
-                "{:04}{:02}{:02}",
-                Utc::now().year(),
-                Utc::now().month(),
-                Utc::now().day()
-            );
-            dir.join(format!("{}-{}.ndjson", session_id, date))
-        } else {
-            dir.join(format!("{}.ndjson", session_id))
         }
     }
 }
@@ -365,21 +353,6 @@ impl FileContextStorage {
         });
         Ok(())
     }
-    fn extract_keywords(content: &str) -> Vec<String> {
-        content
-            .split(|c: char| !c.is_alphanumeric())
-            .filter_map(|w| {
-                let lw = w.to_lowercase();
-                if lw.len() >= 4 {
-                    Some(lw)
-                } else {
-                    None
-                }
-            })
-            .take(16)
-            .collect()
-    }
-
     pub fn mask_content_custom(content: &str, custom: &[Regex]) -> String {
         let mut s = content.to_string();
         // Mask emails
@@ -455,7 +428,7 @@ fn write_one(
     cfg: &Config,
     chat: &str,
     sess: &str,
-    mut msg: ChatMessage,
+    msg: ChatMessage,
 ) -> Result<(), String> {
     let dir = root.join(chat);
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;

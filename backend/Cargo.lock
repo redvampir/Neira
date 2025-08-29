@@ -2015,6 +2015,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-serde"
+version = "0.2.0"
+source = "git+https://github.com/tokio-rs/tracing?rev=f71cebe41e4c12735b1d19ca804428d4ff7d905d#f71cebe41e4c12735b1d19ca804428d4ff7d905d"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.19"
 source = "git+https://github.com/tokio-rs/tracing?rev=f71cebe41e4c12735b1d19ca804428d4ff7d905d#f71cebe41e4c12735b1d19ca804428d4ff7d905d"
@@ -2023,12 +2032,15 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex-automata",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-serde",
 ]
 
 [[package]]
