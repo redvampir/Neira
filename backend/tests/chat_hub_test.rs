@@ -14,7 +14,7 @@ async fn chat_hub_rejects_empty_message() {
     let registry = Arc::new(NodeRegistry::new(templates_dir.path()).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5);
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5, metrics.clone());
     let hub = InteractionHub::new(registry.clone(), memory, metrics, diagnostics);
     hub.add_auth_token("secret");
     registry.register_chat_node(Arc::new(EchoChatNode::default()));

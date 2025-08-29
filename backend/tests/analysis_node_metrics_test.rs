@@ -44,7 +44,7 @@ async fn interaction_hub_records_analysis_metric() {
     registry.register_analysis_node(Arc::new(TestAnalysisNode));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5);
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5, metrics.clone());
     let hub = InteractionHub::new(registry, memory, metrics, diagnostics);
     hub.add_auth_token("token");
     let cancel = CancellationToken::new();
