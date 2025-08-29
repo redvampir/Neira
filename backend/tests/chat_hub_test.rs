@@ -3,9 +3,9 @@ use std::sync::Arc;
 use backend::action::chat_node::EchoChatNode;
 use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::action::metrics_collector_node::MetricsCollectorNode;
+use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
 use backend::interaction_hub::InteractionHub;
-use backend::config::Config;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 
@@ -34,7 +34,17 @@ async fn chat_hub_rejects_empty_message() {
             "secret",
             false,
             None,
+            None,
+            None,
         )
         .await;
     assert!(res.is_err());
 }
+
+/* neira:meta
+id: NEI-20250227-chat-hub-test-update
+intent: tests
+summary: |
+  Обновлен вызов `InteractionHub::chat` в тесте в соответствии с новым
+  интерфейсом (добавлены `source` и `thread_id`).
+*/
