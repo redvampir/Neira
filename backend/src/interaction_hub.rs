@@ -5,7 +5,7 @@ use crate::action::diagnostics_node::DiagnosticsNode;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
-use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher};
+use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -112,20 +112,15 @@ impl InteractionHub {
 
         // Spawn host metrics polling loop
         let mut host_metrics = HostMetrics::new(metrics.clone());
-        let metrics_poll = metrics.clone();
         tokio::spawn(async move {
-            loop {
-                let ms = metrics_poll.get_interval_ms();
-                sleep(Duration::from_millis(ms)).await;
-                host_metrics.poll();
-            }
+            host_metrics.start().await;
         });
 
         // Optionally spawn IO watcher
         if io_watcher_enabled {
-            let watcher = IoWatcher::new(metrics, io_watcher_threshold_ms);
+            let mut watcher = IoWatcher::new(metrics, io_watcher_threshold_ms);
             tokio::spawn(async move {
-                watcher.run().await;
+                watcher.start().await;
             });
         }
 

@@ -1,10 +1,12 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::analysis_node::QualityMetrics;
+use super::SystemProbe;
 
 /// Watches keyboard input and display output latency and reports delays
 /// to the diagnostics system.
@@ -49,9 +51,11 @@ impl IoWatcher {
             self.emit_delay("display");
         }
     }
+}
 
-    /// Continuously watches stdin/stdout and records latencies.
-    pub async fn run(self) {
+#[async_trait]
+impl SystemProbe for IoWatcher {
+    async fn start(&mut self) {
         let mut stdin = tokio::io::stdin();
         let mut stdout = tokio::io::stdout();
         let mut buf = [0u8; 1];
@@ -72,4 +76,6 @@ impl IoWatcher {
             }
         }
     }
+
+    fn collect(&mut self) {}
 }

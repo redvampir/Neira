@@ -435,3 +435,29 @@ scp target/release/neira user@server:/opt/neira
 ```
 
 Подробнее см. [docs/legacy/deployment.md](docs/legacy/deployment.md).
+
+## Подключение пользовательского плагина
+
+Neira поддерживает пользовательские системные плагины. Для интеграции
+нужно реализовать трейt [`SystemProbe`](backend/src/system/mod.rs) и
+запустить его в фоне:
+
+```rust
+use neira::system::SystemProbe;
+
+struct CustomProbe;
+
+#[async_trait::async_trait]
+impl SystemProbe for CustomProbe {
+    async fn start(&mut self) {
+        // фоновый цикл мониторинга
+    }
+
+    fn collect(&mut self) {
+        // сбор и публикация метрик
+    }
+}
+
+let mut probe = CustomProbe;
+tokio::spawn(async move { probe.start().await; });
+```
