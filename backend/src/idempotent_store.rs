@@ -57,3 +57,26 @@ impl IdempotentStore {
 fn now_secs() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()
 }
+/* neira:meta
+id: NEI-20250829-setup-meta-idem
+intent: docs
+scope: backend/idempotency
+summary: |
+  Персистентное хранилище идемпотентных ответов (JSONL + TTL). Используется InteractionHub
+  для выдачи повторных ответов по request_id, переживает рестарт.
+links:
+  - docs/reference/env.md
+metrics:
+  - requests_idempotent_hits
+env:
+  - IDEMPOTENT_PERSIST
+  - IDEMPOTENT_STORE_DIR
+  - IDEMPOTENT_TTL_SECS
+risks: low
+safe_mode:
+  affects_write: false
+  requires_admin: false
+i18n:
+  reviewer_note: |
+    Простая JSONL‑реализация; при росте — заменить на KV/SQLite. Следить за TTL.
+*/

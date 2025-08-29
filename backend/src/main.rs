@@ -167,7 +167,7 @@ async fn chat_request(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(mut req): Json<ChatRequest>,
-) -> Result<Json<ChatResponse>, (axum::http::StatusCode, String)> {
+) -> Result<(axum::http::HeaderMap, Json<ChatResponse>), (axum::http::StatusCode, String)> {
     if req.auth.trim().is_empty() {
         if let Some(h) = auth_from_headers(&headers) {
             req.auth = h;
@@ -185,15 +185,44 @@ async fn chat_request(
             &req.auth,
             req.persist,
             req.request_id.clone(),
+            req.source.clone(),
+            req.thread_id.clone(),
         )
         .await
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e))?;
-    Ok(Json(ChatResponse {
-        response: out.response,
-        used_context,
-        session_id: out.session_id,
-        idempotent: out.idempotent,
-    }))
+    let (limit, remaining, used, key) = state
+        .hub
+        .rate_info(&req.auth, &req.chat_id, req.session_id.as_deref());
+    let mut h = axum::http::HeaderMap::new();
+    h.insert(
+        "X-RateLimit-Limit",
+        axum::http::HeaderValue::from_str(&limit.to_string()).unwrap(),
+    );
+    h.insert(
+        "X-RateLimit-Remaining",
+        axum::http::HeaderValue::from_str(&remaining.to_string()).unwrap(),
+    );
+    h.insert(
+        "X-RateLimit-Used",
+        axum::http::HeaderValue::from_str(&used.to_string()).unwrap(),
+    );
+    h.insert(
+        "X-RateLimit-Window",
+        axum::http::HeaderValue::from_static("minute"),
+    );
+    h.insert(
+        "X-RateLimit-Key",
+        axum::http::HeaderValue::from_str(&key).unwrap(),
+    );
+    Ok((
+        h,
+        Json(ChatResponse {
+            response: out.response,
+            used_context,
+            session_id: out.session_id,
+            idempotent: out.idempotent,
+        }),
+    ))
 }
 
 async fn get_chat_index(
@@ -352,9 +381,8 @@ async fn new_session(
             req.auth = h;
         }
     }
-    if !state.hub.check_auth(&req.auth) {
-        return Err(axum::http::StatusCode::UNAUTHORIZED);
-    }
+    if !state.hub.check_auth(&req.auth) { return Err(axum::http::StatusCode::UNAUTHORIZED); }
+    if !state.hub.check_scope(&req.auth, backend::interaction_hub::Scope::Write) { return Err(axum::http::StatusCode::FORBIDDEN); }
     let id = gen_session_id(req.prefix.as_deref());
     metrics::counter!("sessions_created_total").increment(1);
     metrics::gauge!("sessions_active").increment(1.0);
@@ -377,9 +405,8 @@ async fn delete_session(
             q.auth = h;
         }
     }
-    if !state.hub.check_auth(&q.auth) {
-        return Err((axum::http::StatusCode::UNAUTHORIZED, "unauthorized".into()));
-    }
+    if !state.hub.check_auth(&q.auth) { return Err((axum::http::StatusCode::UNAUTHORIZED, "unauthorized".into())); }
+    if !state.hub.check_scope(&q.auth, backend::interaction_hub::Scope::Write) { return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into())); }
     let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
     let dir = std::path::Path::new(&base).join(&chat_id);
     if let Ok(rd) = std::fs::read_dir(&dir) {
@@ -412,6 +439,7 @@ async fn delete_session(
         }
     }
     metrics::counter!("sessions_deleted_total").increment(1);
+    metrics::counter!("sessions_closed_total").increment(1);
     metrics::gauge!("sessions_active").decrement(1.0);
     Ok(())
 }
@@ -433,9 +461,8 @@ async fn rename_session(
             req.auth = h;
         }
     }
-    if !state.hub.check_auth(&req.auth) {
-        return Err((axum::http::StatusCode::UNAUTHORIZED, "unauthorized".into()));
-    }
+    if !state.hub.check_auth(&req.auth) { return Err((axum::http::StatusCode::UNAUTHORIZED, "unauthorized".into())); }
+    if !state.hub.check_scope(&req.auth, backend::interaction_hub::Scope::Write) { return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into())); }
     if req.new_session_id.trim().is_empty() {
         return Err((
             axum::http::StatusCode::BAD_REQUEST,
@@ -501,9 +528,16 @@ async fn chat_stream(
             &req.auth,
             req.persist,
             req.request_id.clone(),
+            req.source.clone(),
+            req.thread_id.clone(),
         )
         .await
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e))?;
+    let (limit, remaining, used, key) = state.hub.rate_info(&req.auth, &req.chat_id, req.session_id.as_deref());
+    let cancel = tokio_util::sync::CancellationToken::new();
+    if let Some(ref sid) = req.session_id { state.hub.register_stream_cancel(&req.chat_id, sid, cancel.clone()); }
+    metrics::gauge!("sse_active").increment(1.0);
+    let warn_after_ms = std::env::var("SSE_WARN_AFTER_MS").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(60_000);
     let stream = stream! {
         use std::time::Instant;
         // first send metadata event
@@ -513,6 +547,7 @@ async fn chat_stream(
             "idempotent": out.idempotent,
             "source": req.source,
             "thread_id": req.thread_id,
+            "rate_limit": {"limit": limit, "remaining": remaining, "used": used, "window": "minute", "key": key},
         });
         yield Ok(Event::default().event("meta").data(meta.to_string()));
         // then stream chunked response by words
@@ -520,6 +555,7 @@ async fn chat_stream(
         let mut chars = 0usize;
         let start = Instant::now();
         for w in out.response.split_whitespace() {
+            if cancel.is_cancelled() { break; }
             yield Ok(Event::default().event("message").data(w.to_string()));
             sent += 1;
             chars += w.len();
@@ -535,8 +571,31 @@ async fn chat_stream(
         let prog = serde_json::json!({"tokens": sent, "tokens_per_sec": tps, "partial_len": chars});
         yield Ok(Event::default().event("progress").data(prog.to_string()));
         yield Ok(Event::default().event("done").data("true"));
+        metrics::gauge!("sse_active").decrement(1.0);
+        if (elapsed * 1000.0) as u64 > warn_after_ms { tracing::warn!(duration_ms=(elapsed*1000.0) as u64, chat_id=%req.chat_id, session_id=%req.session_id.clone().unwrap_or_default(), "sse stream slow"); }
     };
     Ok(Sse::new(stream))
+}
+
+#[derive(serde::Deserialize)]
+struct CancelStream { auth: String, chat_id: String, session_id: String }
+
+async fn cancel_stream(
+    State(state): State<AppState>,
+    Json(req): Json<CancelStream>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    if !state.hub.check_auth(&req.auth) {
+        return Err(axum::http::StatusCode::UNAUTHORIZED);
+    }
+    if !state
+        .hub
+        .check_scope(&req.auth, backend::interaction_hub::Scope::Write)
+    {
+        return Err(axum::http::StatusCode::FORBIDDEN);
+    }
+    let ok = state.hub.cancel_stream(&req.chat_id, &req.session_id);
+    if ok { metrics::counter!("sse_cancellations_total").increment(1); }
+    Ok(Json(serde_json::json!({"cancelled": ok})))
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -548,6 +607,10 @@ struct SearchQuery {
     prefix: bool,
     since_id: Option<u64>,
     after_ts: Option<i64>,
+    offset: Option<usize>,
+    limit: Option<usize>,
+    role: Option<String>,
+    sort: Option<String>,
 }
 
 async fn search_chat(
@@ -557,6 +620,7 @@ async fn search_chat(
     let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
     let dir = std::path::Path::new(&base).join(&chat_id);
     let mut out = String::new();
+    let mut matches: Vec<(i64, String)> = Vec::new();
     let q = params.q.clone();
     let regex = if params.regex {
         regex::Regex::new(&q).map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.to_string()))?
@@ -619,14 +683,40 @@ async fn search_chat(
                     if !ok {
                         continue;
                     }
-                    let hay = if params.prefix { lt } else { lt };
-                    if regex.is_match(hay) {
-                        out.push_str(lt);
-                        out.push('\n');
+                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(lt) {
+                        // role filter
+                        if let Some(ref want) = params.role {
+                            let vr = v.get("role").and_then(|x| x.as_str()).unwrap_or("");
+                            let ok_role = match want.as_str() {
+                                "user" => vr.eq_ignore_ascii_case("user"),
+                                "assistant" => vr.eq_ignore_ascii_case("assistant"),
+                                _ => true,
+                            };
+                            if !ok_role { continue; }
+                        }
+                        let text_ok = v.get("content").and_then(|x| x.as_str()).map(|text| {
+                            (params.prefix && text.starts_with(&q)) || (!params.prefix && regex.is_match(text))
+                        }).unwrap_or(false);
+                        if text_ok {
+                            let ts = v.get("timestamp_ms").and_then(|x| x.as_i64()).unwrap_or(0);
+                            matches.push((ts, lt.to_string()));
+                        }
                     }
                 }
             }
         }
+    }
+    // sort by timestamp
+    let asc = !matches!(params.sort.as_deref(), Some("desc"));
+    matches.sort_by_key(|(ts, _)| *ts);
+    if !asc { matches.reverse(); }
+    let offset = params.offset.unwrap_or(0);
+    let limit = params.limit.unwrap_or(usize::MAX);
+    for (i, (_ts, line)) in matches.into_iter().enumerate() {
+        if i < offset { continue; }
+        if i >= offset + limit { break; }
+        out.push_str(&line);
+        out.push('\n');
     }
     let mut headers = axum::http::HeaderMap::new();
     headers.insert(
@@ -691,8 +781,13 @@ async fn export_chat(
 async fn import_chat(
     State(state): State<AppState>,
     Path((chat_id, session_id)): Path<(String, String)>,
+    headers: HeaderMap,
+    axum::extract::Query(mut q): axum::extract::Query<AuthQuery>,
     body: String,
 ) -> Result<(), (axum::http::StatusCode, String)> {
+    if q.auth.trim().is_empty() { if let Some(h) = auth_from_headers(&headers) { q.auth = h; } }
+    if !state.hub.check_auth(&q.auth) { return Err((axum::http::StatusCode::UNAUTHORIZED, "unauthorized".into())); }
+    if !state.hub.check_scope(&q.auth, backend::interaction_hub::Scope::Write) { return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into())); }
     let mut msgs = Vec::new();
     for line in body.lines() {
         if line.trim().is_empty() {
@@ -721,6 +816,7 @@ struct MaskingUpdate {
     enabled: Option<bool>,
     regex: Option<Vec<String>>,
     roles: Option<Vec<String>>,
+    preset: Option<String>,
 }
 
 async fn update_masking(
@@ -736,7 +832,21 @@ async fn update_masking(
     if !state.hub.check_auth(&req.auth) {
         return Err((axum::http::StatusCode::UNAUTHORIZED, "unauthorized".into()));
     }
-    set_runtime_mask_config(req.enabled, req.regex, req.roles)
+    if !state
+        .hub
+        .check_scope(&req.auth, backend::interaction_hub::Scope::Admin)
+    {
+        return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into()));
+    }
+    let mut regexes = req.regex;
+    if regexes.is_none() {
+        if let Some(name) = req.preset.as_deref() {
+            let list = backend::context::context_storage::load_mask_preset(name)
+                .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e))?;
+            regexes = Some(list);
+        }
+    }
+    set_runtime_mask_config(req.enabled, regexes, req.roles)
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e))?;
     Ok(Json(serde_json::json!({"status":"ok"})))
 }
@@ -807,12 +917,17 @@ async fn main() {
 
     let file_appender = tracing_appender::rolling::daily(logs_dir, "backend.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-    tracing_subscriber::fmt()
+    let json_logs = std::env::var("NERVOUS_SYSTEM_JSON_LOGS").map(|v| v=="1" || v.eq_ignore_ascii_case("true")).unwrap_or(false);
+    let fmt_builder = tracing_subscriber::fmt()
         .with_writer(non_blocking)
         .with_ansi(false)
         .with_target(false)
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .init();
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env());
+    if json_logs {
+        fmt_builder.json().init();
+    } else {
+        fmt_builder.init();
+    }
 
     let templates_dir =
         std::env::var("NODE_TEMPLATES_DIR").unwrap_or_else(|_| "./templates".into());
@@ -838,6 +953,24 @@ async fn main() {
 
     // Context storage
     let storage = Arc::new(FileContextStorage::new("context"));
+    // Initialize sessions_active gauge by reading index.json files
+    {
+        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+        let mut total = 0u64;
+        if let Ok(rd) = std::fs::read_dir(&base) {
+            for e in rd.flatten() {
+                let p = e.path().join("index.json");
+                if p.exists() {
+                    if let Ok(s) = std::fs::read_to_string(&p) {
+                        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s) {
+                            if let Some(obj) = v.as_object() { total += obj.len() as u64; }
+                        }
+                    }
+                }
+            }
+        }
+        metrics::gauge!("sessions_active").set(total as f64);
+    }
     // Пример узла анализа
     struct EchoNode;
     impl AnalysisNode for EchoNode {
@@ -975,11 +1108,57 @@ async fn main() {
         .route(
             "/api/neira/chat/:chat_id/:session_id/search",
             get(search_chat),
+        )
+        .route(
+            "/api/neira/chat/stream/cancel",
+            post(cancel_stream),
         );
     if let Some(handle) = metrics_handle {
         app = app.route("/metrics", get(move || async move { handle.render() }));
     }
     let app = app.with_state(state);
+
+    // Index compaction job (keywords TTL cleanup)
+    let compact_every_ms = std::env::var("INDEX_COMPACT_INTERVAL_MS").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(300_000);
+    if compact_every_ms > 0 {
+        tokio::spawn(async move {
+            let ttl_days: i64 = std::env::var("INDEX_KW_TTL_DAYS").ok().and_then(|v| v.parse().ok()).unwrap_or(90);
+            let ttl_ms = ttl_days.max(0) as i64 * 86_400_000;
+            loop {
+                tokio::time::sleep(std::time::Duration::from_millis(compact_every_ms)).await;
+                let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+                if let Ok(rd) = std::fs::read_dir(&base) {
+                    for e in rd.flatten() {
+                        let idx = e.path().join("index.json");
+                        if !idx.exists() { continue; }
+                        if let Ok(s) = std::fs::read_to_string(&idx) {
+                            if let Ok(mut v) = serde_json::from_str::<serde_json::Value>(&s) {
+                                let now_ms = chrono::Utc::now().timestamp_millis();
+                                if let Some(map) = v.as_object_mut() {
+                                    let mut changed = false;
+                                    for (_, entry) in map.iter_mut() {
+                                        if let Some(obj) = entry.as_object_mut() {
+                                            if let Some(ts) = obj.get("kw_updated_ms").and_then(|x| x.as_i64()) {
+                                                if ttl_ms > 0 && now_ms.saturating_sub(ts) > ttl_ms {
+                                                    obj.insert("keywords".into(), serde_json::Value::Array(Vec::new()));
+                                                    obj.insert("kw_updated_ms".into(), serde_json::json!(now_ms));
+                                                    changed = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if changed {
+                                        let _ = std::fs::write(&idx, serde_json::to_string_pretty(&v).unwrap_or_else(|_| s.clone()));
+                                        metrics::counter!("index_compact_runs").increment(1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
     let listener = TcpListener::bind("127.0.0.1:3000").await.unwrap();
     // Optional periodic training
@@ -1004,3 +1183,49 @@ async fn main() {
         error!("server error: {err}");
     }
 }
+/* neira:meta
+id: NEI-20250829-setup-meta-main
+intent: docs
+scope: backend/http
+summary: |
+  Точки входа HTTP (API), SSE с прогрессом и отменой, маскирование с пресетами,
+  поиск по content с фильтрами и пагинацией, rate-limit заголовки, скоупы токенов.
+links:
+  - docs/backend-api.md
+  - docs/reference/env.md
+  - docs/reference/metrics.md
+  - CAPABILITIES.md
+env:
+  - NERVOUS_SYSTEM_ENABLED
+  - NERVOUS_SYSTEM_JSON_LOGS
+  - INDEX_KW_TTL_DAYS
+  - INDEX_COMPACT_INTERVAL_MS
+  - SSE_WARN_AFTER_MS
+  - PERSIST_REQUIRE_SESSION_ID
+  - MASK_PRESETS_DIR
+  - CHAT_RATE_LIMIT_PER_MIN
+  - CHAT_RATE_KEY
+endpoints:
+  - POST /api/neira/chat
+  - POST /api/neira/chat/stream
+  - POST /api/neira/chat/stream/cancel
+  - GET /api/neira/chat/:chat_id/:session_id/search
+  - POST /api/neira/context/masking
+  - GET /api/neira/context/masking/config
+  - POST /api/neira/context/masking/dry_run
+  - GET /metrics
+metrics:
+  - sse_active
+  - sessions_active
+  - sessions_autocreated_total
+  - sessions_closed_total
+  - requests_idempotent_hits
+  - index_compact_runs
+risks: low
+safe_mode:
+  affects_write: true
+  requires_admin: true
+i18n:
+  reviewer_note: |
+    Основной API и политики. При изменениях обновляй референсы и список метрик/флагов.
+*/

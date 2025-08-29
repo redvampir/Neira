@@ -1,5 +1,16 @@
 # Нейра — саморазвивающийся ИИ‑модуль
 
+
+
+Assistant Quick Links
+- Start Here: AGENTS.md
+- Teamwork: TEAMWORK.md
+- Workflow: WORKFLOW.md
+- Coding Guidelines: CODING_GUIDELINES.md
+- Backend API: docs/backend-api.md
+
+Documentation Index
+- docs/index.md — карта документации (DocMap) для GitHub/IDE
 ## Навигация
 
 - [Узлы действий](docs/nodes/action-nodes.md)
@@ -489,3 +500,4 @@ impl SystemProbe for CustomProbe {
 let mut probe = CustomProbe;
 tokio::spawn(async move { probe.start().await; });
 ```
+[Backend API Quick Reference](docs/backend-api.md)

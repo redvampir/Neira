@@ -1,5 +1,9 @@
 Backend environment variables
 
+Note
+- Источником истины по переменным окружения является `docs/reference/env.md`.
+- Этот файл сохраняет обзор и пример `.env`, но при расхождениях доверяйте справочнику.
+
 - CONTEXT_DIR: base dir for chat history (default: context)
 - CONTEXT_MAX_LINES: max lines kept in a file before trimming (default: 500)
 - CONTEXT_MAX_BYTES: max bytes per file before trimming (default: 1_000_000)
@@ -18,6 +22,23 @@ Backend environment variables
 - INTEGRITY_ROOT: base dir for integrity config and files (default: current working directory; set explicitly if the service runs outside `backend/`)
 - INTEGRITY_CONFIG_PATH: path to integrity config file relative to INTEGRITY_ROOT or absolute (default: config/integrity.json)
 - INTEGRITY_CHECK_INTERVAL_MS: integrity check interval in ms (default: 60000)
+
+Idempotency and persist policy
+- IDEMPOTENT_PERSIST: enable persistent idempotency storage for request_id (default: false)
+- IDEMPOTENT_STORE_DIR: dir for idempotent store file (default: context)
+- IDEMPOTENT_TTL_SECS: TTL seconds for cached responses (default: 86400)
+- PERSIST_REQUIRE_SESSION_ID: if true, disallow persist=true without session_id (default: false)
+
+Index maintenance
+- INDEX_KW_TTL_DAYS: TTL days for keywords in index.json before compaction (default: 90)
+- INDEX_COMPACT_INTERVAL_MS: interval for background compaction job (default: 300000)
+
+SSE and logging
+- SSE_WARN_AFTER_MS: warn if a single SSE stream exceeds this duration (default: 60000)
+- NERVOUS_SYSTEM_JSON_LOGS: enable JSON logs for structured logging (default: false)
+
+Masking presets
+- MASK_PRESETS_DIR: directory with regex preset files named <preset>.txt (default: config/mask_presets)
 
 ## Автоматическое определение `INTEGRITY_ROOT`
 
@@ -46,4 +67,12 @@ CHAT_RATE_LIMIT_PER_MIN=60
 CHAT_RATE_KEY=auth
 PROBES_IO_WATCHER_ENABLED=false
 IO_WATCHER_THRESHOLD_MS=100
-
+IDEMPOTENT_PERSIST=true
+IDEMPOTENT_STORE_DIR=./context
+IDEMPOTENT_TTL_SECS=86400
+PERSIST_REQUIRE_SESSION_ID=false
+INDEX_KW_TTL_DAYS=90
+INDEX_COMPACT_INTERVAL_MS=300000
+SSE_WARN_AFTER_MS=60000
+NERVOUS_SYSTEM_JSON_LOGS=false
+MASK_PRESETS_DIR=./config/mask_presets

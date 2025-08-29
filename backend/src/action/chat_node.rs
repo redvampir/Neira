@@ -47,27 +47,7 @@ impl ChatNode for EchoChatNode {
             }
         }
 
-        // Save user message
-        if let Some(ref sid) = session_id {
-            if storage
-                .save_message(
-                    chat_id,
-                    sid,
-                    &ChatMessage {
-                        role: Role::User,
-                        content: input.to_string(),
-                        timestamp_ms: Utc::now().timestamp_millis(),
-                        source: Some("user".into()),
-                        message_id: None,
-                        thread_id: None,
-                        parent_id: None,
-                    },
-                )
-                .is_err()
-            {
-                metrics::counter!("chat_node_errors_total").increment(1);
-            }
-        }
+        // User message is saved upstream in InteractionHub to avoid duplicates
 
         // Echo logic
         let response = input.to_string();
@@ -114,3 +94,24 @@ impl Default for EchoChatNode {
         Self
     }
 }
+/* neira:meta
+id: NEI-20250829-setup-meta-chatnode
+intent: docs
+scope: backend/chat-node
+summary: |
+  EchoChatNode: простая отражающая нода. Входящее user‑сообщение сохраняется в InteractionHub,
+  чтобы избежать дублей; здесь сохраняется ответ ассистента.
+links:
+  - docs/backend-api.md
+metrics:
+  - chat_node_requests_total
+  - chat_node_errors_total
+  - chat_node_request_duration_ms
+risks: low
+safe_mode:
+  affects_write: true
+  requires_admin: false
+i18n:
+  reviewer_note: |
+    Держи этот узел минимальным; он хорош как дефолт и для проверок SSE/поиска.
+*/

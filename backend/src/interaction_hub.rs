@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use crate::action::diagnostics_node::DiagnosticsNode;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::config::Config;
-use crate::context::context_storage::ContextStorage;
+use crate::context::context_storage::{ContextStorage, ChatMessage, Role};
 use crate::idempotent_store::IdempotentStore;
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::security::quarantine_node::QuarantineNode;
@@ -24,6 +24,12 @@ use crate::node_registry::NodeRegistry;
 use crate::task_scheduler::{Queue, TaskScheduler};
 use crate::trigger_detector::TriggerDetector;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Scope { Read, Write, Admin }
+
+#[derive(Clone, Debug)]
+struct TokenInfo { scopes: Vec<Scope> }
+
 pub struct InteractionHub {
     pub registry: Arc<NodeRegistry>,
     pub memory: Arc<MemoryNode>,
@@ -31,7 +37,7 @@ pub struct InteractionHub {
     diagnostics: Arc<DiagnosticsNode>,
     trigger_detector: Arc<TriggerDetector>,
     scheduler: RwLock<TaskScheduler>,
-    allowed_tokens: RwLock<Vec<String>>,
+    allowed_tokens: RwLock<std::collections::HashMap<String, TokenInfo>>,
     rate: RwLock<std::collections::HashMap<String, (u64, u32)>>,
     rate_limit_per_min: u32,
     rate_key_mode: RateKeyMode,
@@ -41,6 +47,7 @@ pub struct InteractionHub {
     probe_handles: RwLock<std::collections::HashMap<String, JoinHandle<()>>>,
     io_watcher_threshold_ms: u64,
     safe_mode: Arc<SafeModeController>,
+    cancels: RwLock<std::collections::HashMap<(String, String), tokio_util::sync::CancellationToken>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -118,7 +125,7 @@ impl InteractionHub {
             diagnostics,
             trigger_detector: Arc::new(TriggerDetector::default()),
             scheduler: RwLock::new(TaskScheduler::default()),
-            allowed_tokens: RwLock::new(Vec::new()),
+            allowed_tokens: RwLock::new(std::collections::HashMap::new()),
             rate: RwLock::new(std::collections::HashMap::new()),
             rate_limit_per_min,
             rate_key_mode,
@@ -128,6 +135,7 @@ impl InteractionHub {
             probe_handles: RwLock::new(std::collections::HashMap::new()),
             io_watcher_threshold_ms,
             safe_mode,
+            cancels: RwLock::new(std::collections::HashMap::new()),
         };
 
         // Spawn host metrics polling loop
@@ -180,19 +188,34 @@ impl InteractionHub {
     }
 
     pub fn add_auth_token(&self, token: impl Into<String>) {
-        self.allowed_tokens.write().unwrap().push(token.into());
+        // backwards compatible: full scopes
+        self.add_token_with_scopes(token, &[Scope::Read, Scope::Write, Scope::Admin]);
+    }
+
+    pub fn add_token_with_scopes(&self, token: impl Into<String>, scopes: &[Scope]) {
+        let t = token.into();
+        self.allowed_tokens
+            .write()
+            .unwrap()
+            .insert(t, TokenInfo { scopes: scopes.to_vec() });
     }
 
     fn authorize(&self, token: &str) -> bool {
-        self.allowed_tokens
-            .read()
-            .unwrap()
-            .iter()
-            .any(|t| t == token)
+        self.allowed_tokens.read().unwrap().contains_key(token)
     }
 
     pub fn check_auth(&self, token: &str) -> bool {
         self.authorize(token)
+    }
+
+    pub fn check_scope(&self, token: &str, scope: Scope) -> bool {
+        if let Some(info) = self.allowed_tokens.read().unwrap().get(token) {
+            if scope == Scope::Write && self.safe_mode.is_safe_mode() {
+                // in safe mode only admin can write
+                return info.scopes.contains(&Scope::Admin);
+            }
+            info.scopes.contains(&scope) || info.scopes.contains(&Scope::Admin)
+        } else { false }
     }
 
     pub fn add_trigger_keyword(&self, keyword: impl Into<String>) {
@@ -209,11 +232,20 @@ impl InteractionHub {
         auth: &str,
         persist: bool,
         request_id: Option<String>,
+        source: Option<String>,
+        thread_id: Option<String>,
     ) -> Result<ChatOutput, String> {
         metrics::counter!("chat_requests_total").increment(1);
         if !self.authorize(auth) {
             metrics::counter!("chat_errors_total").increment(1);
             return Err("unauthorized".into());
+        }
+        // export safe mode status as gauge 0/1 for nervous system
+        metrics::gauge!("safe_mode").set(if self.safe_mode.is_safe_mode() { 1.0 } else { 0.0 });
+        let will_write = persist || session_id.is_some();
+        if will_write && !self.check_scope(auth, Scope::Write) {
+            metrics::counter!("chat_errors_total").increment(1);
+            return Err("forbidden: write scope required".into());
         }
         if message.trim().is_empty() {
             metrics::counter!("chat_errors_total").increment(1);
@@ -234,7 +266,7 @@ impl InteractionHub {
             .unwrap()
             .as_secs())
             / 60;
-        {
+        let remaining = {
             let mut map = self.rate.write().unwrap();
             let entry = map.entry(key).or_insert((now_min, 0));
             if entry.0 != now_min {
@@ -245,7 +277,8 @@ impl InteractionHub {
                 return Err("rate limited".into());
             }
             entry.1 += 1;
-        }
+            self.rate_limit_per_min.saturating_sub(entry.1)
+        };
 
         // Parse training command like: "train script=... dry_run=true"
         let mut triggers = self.trigger_detector.detect(message);
@@ -379,6 +412,7 @@ impl InteractionHub {
             Some(session_id.unwrap_or_else(|| {
                 metrics::counter!("sessions_created_total").increment(1);
                 metrics::gauge!("sessions_active").increment(1.0);
+                metrics::counter!("sessions_autocreated_total").increment(1);
                 format!(
                     "auto-{}-{:x}",
                     std::time::SystemTime::now()
@@ -391,6 +425,29 @@ impl InteractionHub {
         } else {
             session_id
         };
+
+        // Save incoming user message when writing to a session
+        if let Some(ref sid) = sid_effective {
+            let msg = ChatMessage {
+                role: Role::User,
+                content: message.to_string(),
+                timestamp_ms: (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()) as i64,
+                source: Some(source.clone().unwrap_or_else(|| "user".into())),
+                message_id: None,
+                thread_id: thread_id.clone(),
+                parent_id: None,
+            };
+            let _ = storage.save_message(chat_id, sid, &msg);
+            tracing::info!(
+                safe_mode = self.safe_mode.is_safe_mode(),
+                chat_id = %chat_id,
+                session_id = %sid,
+                source = %msg.source.clone().unwrap_or_default(),
+                thread_id = %msg.thread_id.clone().unwrap_or_default(),
+                trace_id = %request_id.clone().unwrap_or_else(|| "<none>".into()),
+                "user message saved"
+            );
+        }
 
         let t0 = Instant::now();
 
@@ -420,6 +477,7 @@ impl InteractionHub {
         // Metrics for response
         // metrics could be recorded here via `metrics` crate
 
+        tracing::info!(rate_limit=self.rate_limit_per_min, rate_remaining=%remaining, "chat rate updated");
         Ok(ChatOutput {
             response,
             session_id: sid_effective,
@@ -543,6 +601,92 @@ impl InteractionHub {
         }
         self.memory.load_checkpoint(id)
     }
+
+    pub fn rate_info(
+        &self,
+        auth: &str,
+        chat_id: &str,
+        session_id: Option<&str>,
+    ) -> (u32, u32, u32, String) {
+        let key = match self.rate_key_mode {
+            RateKeyMode::Auth => format!("auth:{}", auth),
+            RateKeyMode::Chat => format!("chat:{}", chat_id),
+            RateKeyMode::Session => match session_id {
+                Some(s) => format!("session:{}:{}", chat_id, s),
+                None => format!("chat:{}", chat_id),
+            },
+        };
+        let now_min = (std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs())
+            / 60;
+        let used = if let Some((minute, count)) = self.rate.read().unwrap().get(&key) {
+            if *minute == now_min { *count } else { 0 }
+        } else { 0 } as u32;
+        let limit = self.rate_limit_per_min;
+        let remaining = limit.saturating_sub(used);
+        (limit, remaining, used, key)
+    }
+
+    // SSE cancellation registry
+    pub fn register_stream_cancel(
+        &self,
+        chat_id: &str,
+        session_id: &str,
+        token: tokio_util::sync::CancellationToken,
+    ) {
+        self.cancels
+            .write()
+            .unwrap()
+            .insert((chat_id.to_string(), session_id.to_string()), token);
+    }
+
+    pub fn cancel_stream(&self, chat_id: &str, session_id: &str) -> bool {
+        if let Some(tok) = self
+            .cancels
+            .write()
+            .unwrap()
+            .remove(&(chat_id.to_string(), session_id.to_string()))
+        {
+            tok.cancel();
+            return true;
+        }
+        false
+    }
 }
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+/* neira:meta
+id: NEI-20250829-setup-meta-hub
+intent: docs
+scope: backend/hub
+summary: |
+  Политики чата: скоупы read/write/admin, idempotency (LRU+file TTL), rate-limit с ключом,
+  safe-mode (write=admin), сохранение входящего user-сообщения с метаданными (source/thread_id).
+links:
+  - docs/backend-api.md
+  - docs/reference/env.md
+  - docs/reference/metrics.md
+env:
+  - CHAT_RATE_LIMIT_PER_MIN
+  - CHAT_RATE_KEY
+  - IDEMPOTENT_PERSIST
+  - IDEMPOTENT_STORE_DIR
+  - IDEMPOTENT_TTL_SECS
+  - PERSIST_REQUIRE_SESSION_ID
+metrics:
+  - chat_requests_total
+  - chat_errors_total
+  - chat_response_time_ms
+  - safe_mode
+  - sessions_autocreated_total
+  - requests_idempotent_hits
+risks: low
+safe_mode:
+  affects_write: true
+  requires_admin: true
+i18n:
+  reviewer_note: |
+    Центр координации политик и лимитов. Следить за скоупами и idempotency.
+*/

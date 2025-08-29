@@ -130,6 +130,19 @@ pub fn mask_preview(
     Ok(FileContextStorage::mask_content_custom(text, &regexes))
 }
 
+pub fn load_mask_preset(name: &str) -> Result<Vec<String>, String> {
+    let dir = std::env::var("MASK_PRESETS_DIR").unwrap_or_else(|_| "config/mask_presets".into());
+    let path = std::path::Path::new(&dir).join(format!("{}.txt", name));
+    let data = std::fs::read_to_string(&path).map_err(|e| format!("read {}: {}", path.display(), e))?;
+    let mut out = Vec::new();
+    for line in data.lines() {
+        let lt = line.trim();
+        if lt.is_empty() || lt.starts_with('#') { continue; }
+        out.push(lt.to_string());
+    }
+    Ok(out)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ChatMessage {
     pub role: Role,
@@ -667,3 +680,39 @@ fn super_keywords(content: &str) -> Vec<String> {
         .take(16)
         .collect()
 }
+/* neira:meta
+id: NEI-20250829-setup-meta-storage
+intent: docs
+scope: backend/storage
+summary: |
+  Файловое хранилище контекста (ndjson + дневная ротация + gzip), индекс index.json,
+  TTL ключевых слов, маскирование (runtime + пресеты), буферизация записи, импорта.
+links:
+  - docs/reference/env.md
+  - docs/reference/metrics.md
+env:
+  - CONTEXT_DIR
+  - CONTEXT_MAX_LINES
+  - CONTEXT_MAX_BYTES
+  - CONTEXT_DAILY_ROTATION
+  - CONTEXT_ARCHIVE_GZ
+  - CONTEXT_FLUSH_MS
+  - MASK_PII
+  - MASK_REGEX
+  - MASK_ROLES
+  - INDEX_KW_TTL_DAYS
+  - MASK_PRESETS_DIR
+metrics:
+  - messages_saved
+  - context_loads
+  - context_misses
+  - context_bytes_written
+  - gz_rotate_count
+risks: low
+safe_mode:
+  affects_write: true
+  requires_admin: false
+i18n:
+  reviewer_note: |
+    Важные файлы и индекс. Не забывай обновлять ENV‑референс при добавлении флагов.
+*/
