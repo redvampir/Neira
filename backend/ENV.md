@@ -15,7 +15,7 @@ Backend environment variables
 - NERVOUS_SYSTEM_ENABLED: enable Prometheus metrics and nervous system (default: true)
 - PROBES_HOST_METRICS_ENABLED: enable host metrics collection (default: true)
 - PROBES_IO_WATCHER_ENABLED: enable keyboard/display latency watcher (default: false, deprecated alias: IO_WATCHER_ENABLED)
-- INTEGRITY_ROOT: base dir for integrity config and files (default: current working directory)
+- INTEGRITY_ROOT: base dir for integrity config and files (default: current working directory; set explicitly if the service runs outside `backend/`)
 - INTEGRITY_CONFIG_PATH: path to integrity config file relative to INTEGRITY_ROOT or absolute (default: config/integrity.json)
 - INTEGRITY_CHECK_INTERVAL_MS: integrity check interval in ms (default: 60000)
 
