@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
+use backend::action::diagnostics_node::DiagnosticsNode;
+use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
 use backend::interaction_hub::InteractionHub;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
-use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
-use tokio_util::sync::CancellationToken;
 use metrics_exporter_prometheus::PrometheusBuilder;
+use tokio_util::sync::CancellationToken;
 
 struct CancelNode;
 
@@ -48,15 +48,12 @@ async fn interaction_hub_saves_checkpoint_on_cancel() {
     registry.register_analysis_node(Arc::new(CancelNode));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx) = DiagnosticsNode::new(rx, 5);
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5);
     let hub = InteractionHub::new(registry.clone(), memory.clone(), metrics, diagnostics);
     hub.add_auth_token("t");
     let token = CancellationToken::new();
     token.cancel();
-    let result = hub
-        .analyze("cancel.node", "", "t", &token)
-        .await
-        .unwrap();
+    let result = hub.analyze("cancel.node", "", "t", &token).await.unwrap();
     assert_eq!(result.status, NodeStatus::Error);
     assert!(memory.load_checkpoint("cancel.node").is_some());
     let metrics = handle.render();

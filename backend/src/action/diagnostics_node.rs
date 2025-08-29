@@ -46,10 +46,7 @@ pub fn detect_anomaly(values: &[f32]) -> Option<Alert> {
     if (*last - mean).abs() > 3.0 * std_dev {
         warn!(value = *last, mean, std_dev, "anomaly detected");
         Some(Alert {
-            message: format!(
-                "value {} deviates from mean {} by more than 3σ",
-                last, mean
-            ),
+            message: format!("value {} deviates from mean {} by more than 3σ", last, mean),
         })
     } else {
         None
@@ -64,6 +61,7 @@ pub struct DiagnosticsNode {
     error_count: Arc<AtomicU32>,
     notify: UnboundedSender<DeveloperRequest>,
     attempt_fix: Arc<dyn Fn() -> bool + Send + Sync>,
+    alert: UnboundedSender<Alert>,
 }
 
 impl DiagnosticsNode {
@@ -71,7 +69,11 @@ impl DiagnosticsNode {
     pub fn new(
         rx: UnboundedReceiver<MetricsRecord>,
         error_threshold: u32,
-    ) -> (Arc<Self>, UnboundedReceiver<DeveloperRequest>) {
+    ) -> (
+        Arc<Self>,
+        UnboundedReceiver<DeveloperRequest>,
+        UnboundedReceiver<Alert>,
+    ) {
         Self::new_with_fix(rx, error_threshold, Arc::new(|| true))
     }
 
@@ -80,20 +82,32 @@ impl DiagnosticsNode {
         mut rx: UnboundedReceiver<MetricsRecord>,
         error_threshold: u32,
         attempt_fix: Arc<dyn Fn() -> bool + Send + Sync>,
-    ) -> (Arc<Self>, UnboundedReceiver<DeveloperRequest>) {
+    ) -> (
+        Arc<Self>,
+        UnboundedReceiver<DeveloperRequest>,
+        UnboundedReceiver<Alert>,
+    ) {
         let (notify_tx, notify_rx) = unbounded_channel();
+        let (alert_tx, alert_rx) = unbounded_channel();
         let node = Arc::new(Self {
             error_threshold,
             error_count: Arc::new(AtomicU32::new(0)),
             notify: notify_tx,
             attempt_fix,
+            alert: alert_tx,
         });
         let node_clone = node.clone();
         tokio::spawn(async move {
+            let mut history: Vec<f32> = Vec::new();
             while let Some(record) = rx.recv().await {
                 metrics::counter!("diagnostics_node_requests_total").increment(1);
                 // Простое правило: низкая достоверность считается ошибкой.
                 if let Some(cred) = record.metrics.credibility {
+                    history.push(cred);
+                    if let Some(alert) = detect_anomaly(&history) {
+                        warn!(id=%record.id, message=%alert.message, "publishing alert");
+                        let _ = node_clone.alert.send(alert);
+                    }
                     if cred < 0.5 {
                         metrics::counter!("diagnostics_node_errors_total").increment(1);
                         let count = node_clone.error_count.fetch_add(1, Ordering::SeqCst) + 1;
@@ -115,7 +129,7 @@ impl DiagnosticsNode {
                 }
             }
         });
-        (node, notify_rx)
+        (node, notify_rx, alert_rx)
     }
 }
 

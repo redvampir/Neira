@@ -9,7 +9,7 @@ use tokio::time::{sleep, Duration};
 #[tokio::test]
 async fn diagnostics_attempts_fix_success() {
     let (tx, rx) = unbounded_channel();
-    let (_node, mut dev_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| true));
+    let (_node, mut dev_rx, _alert_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| true));
 
     tx.send(MetricsRecord {
         id: "m1".into(),
@@ -27,7 +27,7 @@ async fn diagnostics_attempts_fix_success() {
 #[tokio::test]
 async fn diagnostics_emits_developer_request_on_failed_fix() {
     let (tx, rx) = unbounded_channel();
-    let (_node, mut dev_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| false));
+    let (_node, mut dev_rx, _alert_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| false));
 
     tx.send(MetricsRecord {
         id: "m2".into(),
@@ -44,4 +44,3 @@ async fn diagnostics_emits_developer_request_on_failed_fix() {
         .expect("developer request");
     assert!(req.description.contains("credibility below threshold"));
 }
-
