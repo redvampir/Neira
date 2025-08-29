@@ -784,7 +784,12 @@ async fn masking_dry_run(
 async fn toggle_probe(
     State(state): State<AppState>,
     Path(name): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+    let token = auth_from_headers(&headers).unwrap_or_default();
+    if !state.hub.check_auth(&token) {
+        return Err((axum::http::StatusCode::UNAUTHORIZED, "unauthorized".into()));
+    }
     let enabled = state
         .hub
         .toggle_probe(&name)
