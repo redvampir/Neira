@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-180333-frontend-main
+intent: docs
+summary: |
+  Пример простого PWA с формой и обработкой сообщений.
+*/
+
 /* global navigator, window, document, fetch, console */
 import './style.css';
 
