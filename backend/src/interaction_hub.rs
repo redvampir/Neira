@@ -8,6 +8,7 @@ use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::security::quarantine_node::QuarantineNode;
+use crate::security::safe_mode_controller::SafeModeController;
 use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
 use lru::LruCache;
 use std::num::NonZeroUsize;
@@ -39,6 +40,7 @@ pub struct InteractionHub {
     persist_require_session_id: bool,
     probe_handles: RwLock<std::collections::HashMap<String, JoinHandle<()>>>,
     io_watcher_threshold_ms: u64,
+    safe_mode: Arc<SafeModeController>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -104,7 +106,8 @@ impl InteractionHub {
         registry.register_action_node(Arc::new(
             crate::system::base_path_resolver::BasePathResolverNode::new(),
         ));
-        let (quarantine, quarantine_tx, _dev_rx) = QuarantineNode::new();
+        let safe_mode = SafeModeController::new();
+        let (quarantine, quarantine_tx, _dev_rx) = QuarantineNode::new(safe_mode.clone());
         registry.register_action_node(quarantine);
         registry.register_action_node(IntegrityCheckerNode::new(memory.clone(), quarantine_tx));
 
@@ -124,6 +127,7 @@ impl InteractionHub {
             persist_require_session_id,
             probe_handles: RwLock::new(std::collections::HashMap::new()),
             io_watcher_threshold_ms,
+            safe_mode,
         };
 
         // Spawn host metrics polling loop
