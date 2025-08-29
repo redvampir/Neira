@@ -5,6 +5,7 @@ pub mod interaction_hub;
 pub mod idempotent_store;
 pub mod memory_node;
 pub mod context;
+pub mod config;
 pub mod node_registry;
 pub mod node_template;
 pub mod task_scheduler;
