@@ -781,6 +781,17 @@ async fn masking_dry_run(
     Ok(Json(MaskingDryRunResult { masked }))
 }
 
+async fn toggle_probe(
+    State(state): State<AppState>,
+    Path(name): Path<String>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+    let enabled = state
+        .hub
+        .toggle_probe(&name)
+        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e))?;
+    Ok(Json(serde_json::json!({ "enabled": enabled })))
+}
+
 #[tokio::main]
 async fn main() {
     let _ = dotenv();
@@ -803,8 +814,7 @@ async fn main() {
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, metrics_rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) =
-        DiagnosticsNode::new(metrics_rx, 5, metrics.clone());
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(metrics_rx, 5, metrics.clone());
     let hub = Arc::new(InteractionHub::new(
         registry.clone(),
         memory.clone(),
@@ -923,6 +933,7 @@ async fn main() {
             get(masking_config_view),
         )
         .route("/api/neira/context/masking/dry_run", post(masking_dry_run))
+        .route("/api/neira/probes/:name/toggle", post(toggle_probe))
         .route(
             "/context/*path",
             get(|Path(path): Path<String>| async move {
