@@ -59,6 +59,7 @@ Sizing & Structure
 
 Comments & Language
 - neira:meta blocks with YAML keys in English, free text in Russian.
+- Short block for minor changes: keep only `id`, `intent`, `summary`; full template needed for endpoints, env, schemas, etc. Examples in [COMMENTING.md](COMMENTING.md).
 - Handover: short Russian summary — what, why, how to verify.
 - Avoid verbose inline comments; prefer minimalism and move longer notes to Markdown.
 
