@@ -6,6 +6,7 @@ use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord}
 use crate::config::Config;
 use crate::context::context_storage::ContextStorage;
 use crate::idempotent_store::IdempotentStore;
+use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
 use lru::LruCache;
 use std::num::NonZeroUsize;
@@ -99,6 +100,7 @@ impl InteractionHub {
 
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
+        registry.register_action_node(IntegrityCheckerNode::new());
 
         let hub = Self {
             registry,
