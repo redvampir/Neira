@@ -8,7 +8,8 @@ use backend::system::io_watcher::IoWatcher;
 #[tokio::test]
 async fn io_watcher_triggers_diagnostics_on_delay() {
     let (metrics, rx) = MetricsCollectorNode::channel();
-    let (_diag, mut dev_rx, _alert_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| false));
+    let (_diag, mut dev_rx, _alert_rx) =
+        DiagnosticsNode::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| false));
 
     let watcher = IoWatcher::new(metrics, 1);
     watcher.record_keyboard_latency(Duration::from_millis(5));
@@ -23,7 +24,8 @@ async fn io_watcher_triggers_diagnostics_on_delay() {
 #[tokio::test]
 async fn io_watcher_ignores_small_latency() {
     let (metrics, rx) = MetricsCollectorNode::channel();
-    let (_diag, mut dev_rx, _alert_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| false));
+    let (_diag, mut dev_rx, _alert_rx) =
+        DiagnosticsNode::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| false));
 
     let watcher = IoWatcher::new(metrics, 100);
     watcher.record_keyboard_latency(Duration::from_millis(10));

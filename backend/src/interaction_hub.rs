@@ -34,7 +34,6 @@ pub struct InteractionHub {
     requests: RwLock<LruCache<String, String>>,
     idem: Option<IdempotentStore>,
     persist_require_session_id: bool,
-    _host_metrics_interval_ms: u64,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -84,10 +83,6 @@ impl InteractionHub {
         let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
-        let host_metrics_interval_ms = std::env::var("HOST_METRICS_INTERVAL_MS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(30_000);
         let io_watcher_enabled = std::env::var("IO_WATCHER_ENABLED")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
@@ -113,15 +108,15 @@ impl InteractionHub {
             requests: RwLock::new(LruCache::new(NonZeroUsize::new(10_000).unwrap())),
             idem,
             persist_require_session_id,
-            _host_metrics_interval_ms: host_metrics_interval_ms,
         };
 
         // Spawn host metrics polling loop
         let mut host_metrics = HostMetrics::new(metrics.clone());
+        let metrics_poll = metrics.clone();
         tokio::spawn(async move {
-            let mut interval_timer = interval(Duration::from_millis(host_metrics_interval_ms));
             loop {
-                interval_timer.tick().await;
+                let ms = metrics_poll.get_interval_ms();
+                sleep(Duration::from_millis(ms)).await;
                 host_metrics.poll();
             }
         });

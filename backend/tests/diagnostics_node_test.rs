@@ -1,24 +1,23 @@
 use std::sync::Arc;
 
 use backend::action::diagnostics_node::DiagnosticsNode;
-use backend::action::metrics_collector_node::MetricsRecord;
+use backend::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use backend::analysis_node::QualityMetrics;
-use tokio::sync::mpsc::unbounded_channel;
 use tokio::time::{sleep, Duration};
 
 #[tokio::test]
 async fn diagnostics_attempts_fix_success() {
-    let (tx, rx) = unbounded_channel();
-    let (_node, mut dev_rx, _alert_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| true));
+    let (metrics, rx) = MetricsCollectorNode::channel();
+    let (_node, mut dev_rx, _alert_rx) =
+        DiagnosticsNode::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| true));
 
-    tx.send(MetricsRecord {
+    metrics.record(MetricsRecord {
         id: "m1".into(),
         metrics: QualityMetrics {
             credibility: Some(0.1),
             ..Default::default()
         },
-    })
-    .unwrap();
+    });
 
     sleep(Duration::from_millis(50)).await;
     assert!(dev_rx.try_recv().is_err(), "unexpected developer request");
@@ -26,17 +25,17 @@ async fn diagnostics_attempts_fix_success() {
 
 #[tokio::test]
 async fn diagnostics_emits_developer_request_on_failed_fix() {
-    let (tx, rx) = unbounded_channel();
-    let (_node, mut dev_rx, _alert_rx) = DiagnosticsNode::new_with_fix(rx, 1, Arc::new(|| false));
+    let (metrics, rx) = MetricsCollectorNode::channel();
+    let (_node, mut dev_rx, _alert_rx) =
+        DiagnosticsNode::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| false));
 
-    tx.send(MetricsRecord {
+    metrics.record(MetricsRecord {
         id: "m2".into(),
         metrics: QualityMetrics {
             credibility: Some(0.1),
             ..Default::default()
         },
-    })
-    .unwrap();
+    });
 
     let req = tokio::time::timeout(Duration::from_millis(100), dev_rx.recv())
         .await

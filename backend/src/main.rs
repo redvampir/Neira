@@ -801,7 +801,8 @@ async fn main() {
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, metrics_rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(metrics_rx, 5);
+    let (diagnostics, _dev_rx, _alert_rx) =
+        DiagnosticsNode::new(metrics_rx, 5, metrics.clone());
     let hub = Arc::new(InteractionHub::new(
         registry.clone(),
         memory.clone(),

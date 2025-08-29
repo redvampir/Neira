@@ -9,7 +9,7 @@ use std::{
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::warn;
 
-use crate::action::metrics_collector_node::MetricsRecord;
+use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::action_node::ActionNode;
 use crate::memory_node::MemoryNode;
 
@@ -68,6 +68,7 @@ pub struct DiagnosticsNode {
     notify: UnboundedSender<DeveloperRequest>,
     attempt_fix: Arc<dyn Fn() -> bool + Send + Sync>,
     alert: UnboundedSender<Alert>,
+    collector: Arc<MetricsCollectorNode>,
 }
 
 impl DiagnosticsNode {
@@ -75,18 +76,20 @@ impl DiagnosticsNode {
     pub fn new(
         rx: UnboundedReceiver<MetricsRecord>,
         error_threshold: u32,
+        collector: Arc<MetricsCollectorNode>,
     ) -> (
         Arc<Self>,
         UnboundedReceiver<DeveloperRequest>,
         UnboundedReceiver<Alert>,
     ) {
-        Self::new_with_fix(rx, error_threshold, Arc::new(|| true))
+        Self::new_with_fix(rx, error_threshold, collector, Arc::new(|| true))
     }
 
     /// Создаёт узел с настраиваемой функцией попытки исправления.
     pub fn new_with_fix(
         mut rx: UnboundedReceiver<MetricsRecord>,
         error_threshold: u32,
+        collector: Arc<MetricsCollectorNode>,
         attempt_fix: Arc<dyn Fn() -> bool + Send + Sync>,
     ) -> (
         Arc<Self>,
@@ -101,6 +104,7 @@ impl DiagnosticsNode {
             notify: notify_tx,
             attempt_fix,
             alert: alert_tx,
+            collector,
         });
         let node_clone = node.clone();
         tokio::spawn(async move {
@@ -117,12 +121,14 @@ impl DiagnosticsNode {
                     if let Some(alert) = detect_anomaly(&slice[..]) {
                         warn!(id=%record.id, message=%alert.message, "publishing alert");
                         let _ = node_clone.alert.send(alert);
+                        node_clone.collector.set_fast();
                     }
                     if cred < 0.5 {
                         metrics::counter!("diagnostics_node_errors_total").increment(1);
                         let count = node_clone.error_count.fetch_add(1, Ordering::SeqCst) + 1;
                         if count >= node_clone.error_threshold {
                             warn!(id=%record.id, count, "credibility below threshold");
+                            node_clone.collector.set_fast();
                             if !(node_clone.attempt_fix)() {
                                 let _ = node_clone.notify.send(DeveloperRequest {
                                     description: format!(
@@ -135,6 +141,7 @@ impl DiagnosticsNode {
                     } else {
                         // Сбрасываем счётчик при успешных записях.
                         node_clone.error_count.store(0, Ordering::SeqCst);
+                        node_clone.collector.set_slow();
                     }
                 }
             }
