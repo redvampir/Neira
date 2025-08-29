@@ -1,3 +1,10 @@
+<!-- neira:meta
+id: NEI-20250829-181300-meta-coverage-link
+intent: docs
+summary: |
+  Добавлена ссылка на META_COVERAGE.md.
+-->
+
 # Neira Assistant Operating Guide — START HERE
 
 Purpose
@@ -9,9 +16,10 @@ Order of Precedence
 2) TEAMWORK.md (roles, expectations, comms)
 3) WORKFLOW.md (how to execute tasks end-to-end)
 4) COMMENTING.md (neira:meta comments & metadata)
-5) CODING_GUIDELINES.md (style, scope, quality)
-6) DECISIONS.md (ADR index – architectural decisions)
-7) Project code comments and README/docs
+5) META_COVERAGE.md (meta block coverage levels)
+6) CODING_GUIDELINES.md (style, scope, quality)
+7) DECISIONS.md (ADR index – architectural decisions)
+8) Project code comments and README/docs
 
 Neira Vision & Autonomy (Core)
 - Neira — «живая программа»: не просто ИИ/нейросеть, а организм‑система, способная действовать сама, развиваться и сотрудничать с человеком как равный партнёр.
