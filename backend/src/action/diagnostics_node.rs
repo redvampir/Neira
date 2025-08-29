@@ -16,6 +16,46 @@ pub struct DeveloperRequest {
     pub description: String,
 }
 
+/// Событие, сигнализирующее об обнаружении аномалии в данных.
+#[derive(Debug, Clone)]
+pub struct Alert {
+    pub message: String,
+}
+
+/// Простая проверка на аномалию по правилу трёх сигм.
+///
+/// Принимает последовательность значений и возвращает `Alert`, если
+/// последнее значение отклоняется от среднего предыдущих значений
+/// более чем на три стандартных отклонения.
+pub fn detect_anomaly(values: &[f32]) -> Option<Alert> {
+    if values.len() < 2 {
+        return None;
+    }
+
+    let (last, rest) = values.split_last()?;
+    let mean = rest.iter().sum::<f32>() / rest.len() as f32;
+    let variance = rest
+        .iter()
+        .map(|v| {
+            let diff = *v - mean;
+            diff * diff
+        })
+        .sum::<f32>()
+        / rest.len() as f32;
+    let std_dev = variance.sqrt();
+    if (*last - mean).abs() > 3.0 * std_dev {
+        warn!(value = *last, mean, std_dev, "anomaly detected");
+        Some(Alert {
+            message: format!(
+                "value {} deviates from mean {} by more than 3σ",
+                last, mean
+            ),
+        })
+    } else {
+        None
+    }
+}
+
 /// Узел диагностики, который анализирует поступающие метрики
 /// и реагирует при превышении порогов.
 #[derive(Clone)]
