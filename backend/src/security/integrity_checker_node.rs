@@ -1,3 +1,14 @@
+/* neira:meta
+id: NEI-20250829-175425-integrity-checker
+intent: docs
+scope: backend/security
+summary: |
+  Проверяет контрольные суммы файлов и отправляет подозрительные в карантин.
+env:
+  - INTEGRITY_CONFIG_PATH
+  - INTEGRITY_CHECK_INTERVAL_MS
+*/
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;

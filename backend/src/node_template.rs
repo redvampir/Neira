@@ -1,3 +1,13 @@
+/* neira:meta
+id: NEI-20250829-175425-node-template
+intent: docs
+scope: backend/core
+summary: |
+  Загружает и валидирует шаблоны узлов по JSON‑схеме.
+env:
+  - NODE_TEMPLATE_SCHEMAS_DIR
+*/
+
 use jsonschema_valid::{self, Config};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};

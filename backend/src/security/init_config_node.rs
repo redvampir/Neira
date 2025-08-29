@@ -1,3 +1,13 @@
+/* neira:meta
+id: NEI-20250829-175425-init-config
+intent: docs
+scope: backend/security
+summary: |
+  Инициализирует переменные конфигурации, устанавливая INTEGRITY_ROOT.
+env:
+  - INTEGRITY_ROOT
+*/
+
 use std::sync::Arc;
 
 use crate::action_node::ActionNode;

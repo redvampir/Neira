@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-task-scheduler
+intent: docs
+summary: |
+  Планировщик задач с очередями по длительности и приоритетам.
+*/
+
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::time::Instant;

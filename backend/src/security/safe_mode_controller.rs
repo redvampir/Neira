@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-safe-mode
+intent: docs
+summary: |
+  Контролирует переход системы в безопасный режим.
+*/
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tracing::warn;

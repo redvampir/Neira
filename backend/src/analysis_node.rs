@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-analysis-node
+intent: docs
+summary: |
+  Общие структуры и интерфейсы для аналитических узлов.
+*/
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;

@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250829-175425-base-path-resolver
+intent: docs
+summary: |
+  Определяет базовый путь проекта и сохраняет его в памяти.
+*/
+
 use std::path::{PathBuf};
 use std::sync::Arc;
 
