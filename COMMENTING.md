@@ -1,5 +1,33 @@
 # Commenting & Metadata Guide (neira:meta)
 
+<!-- neira:meta
+id: NEI-20250829-174731-simplified-block
+intent: docs
+summary: |
+  Добавлен раздел упрощённого блока и уточнены критерии.
+-->
+
+Simplified block
+- Назначение: минимальный метаблок для некритичных правок.
+- Обязательные поля:
+  - `id`
+  - `intent`
+  - `summary`
+- Используйте при:
+  - косметических правках
+  - маленьких вспомогательных файлах
+  - примерах
+
+Пример минимального блока (Rust/JS/TS)
+```rust
+/* neira:meta
+id: NEI-YYYYMMDD-HHMMSS-example
+intent: docs
+summary: |
+  Короткое описание изменения.
+*/
+```
+
 Purpose
 - Provide lightweight, machine-readable metadata for significant changes.
 - Make it easy to scan and parse context by searching for a stable marker.
@@ -11,6 +39,7 @@ When to add
   - Data format/schema/migration
   - Security or performance critical changes
 - Skip for trivial refactors, typo fixes, formatting.
+- Упрощённый блок не освобождает от полного шаблона при существенных изменениях.
 
 Where to add
 - Prefer a single block per touched file (top of file) OR
