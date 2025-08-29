@@ -1,28 +1,40 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use backend::action::diagnostics_node::DiagnosticsNode;
+use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
 use backend::interaction_hub::InteractionHub;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
-use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
-use tokio_util::sync::CancellationToken;
 use metrics_exporter_prometheus::PrometheusBuilder;
+use tokio_util::sync::CancellationToken;
 
 struct SleepNode;
 
 impl AnalysisNode for SleepNode {
-    fn id(&self) -> &str { "sleep" }
-    fn analysis_type(&self) -> &str { "test" }
-    fn status(&self) -> NodeStatus { NodeStatus::Active }
-    fn links(&self) -> &[String] { &[] }
-    fn confidence_threshold(&self) -> f32 { 0.0 }
+    fn id(&self) -> &str {
+        "sleep"
+    }
+    fn analysis_type(&self) -> &str {
+        "test"
+    }
+    fn status(&self) -> NodeStatus {
+        NodeStatus::Active
+    }
+    fn links(&self) -> &[String] {
+        &[]
+    }
+    fn confidence_threshold(&self) -> f32 {
+        0.0
+    }
     fn analyze(&self, _input: &str, _cancel: &CancellationToken) -> AnalysisResult {
         std::thread::sleep(Duration::from_millis(10));
         AnalysisResult::new(self.id(), "done", vec![])
     }
-    fn explain(&self) -> String { String::new() }
+    fn explain(&self) -> String {
+        String::new()
+    }
 }
 
 #[tokio::test]
@@ -33,7 +45,7 @@ async fn hub_tracks_time_metrics() {
     registry.register_analysis_node(Arc::new(SleepNode));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx) = DiagnosticsNode::new(rx, 5);
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5);
     let hub = InteractionHub::new(registry.clone(), memory.clone(), metrics, diagnostics);
     hub.add_auth_token("t");
     let token = CancellationToken::new();

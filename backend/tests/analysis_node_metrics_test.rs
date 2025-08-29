@@ -1,7 +1,7 @@
+use backend::action::diagnostics_node::DiagnosticsNode;
+use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
 use backend::interaction_hub::InteractionHub;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
-use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use std::sync::Arc;
@@ -13,15 +13,27 @@ use common::init_recorder;
 struct TestAnalysisNode;
 
 impl AnalysisNode for TestAnalysisNode {
-    fn id(&self) -> &str { "test.analysis" }
-    fn analysis_type(&self) -> &str { "test" }
-    fn status(&self) -> NodeStatus { NodeStatus::Active }
-    fn links(&self) -> &[String] { &[] }
-    fn confidence_threshold(&self) -> f32 { 0.0 }
+    fn id(&self) -> &str {
+        "test.analysis"
+    }
+    fn analysis_type(&self) -> &str {
+        "test"
+    }
+    fn status(&self) -> NodeStatus {
+        NodeStatus::Active
+    }
+    fn links(&self) -> &[String] {
+        &[]
+    }
+    fn confidence_threshold(&self) -> f32 {
+        0.0
+    }
     fn analyze(&self, input: &str, _cancel: &CancellationToken) -> AnalysisResult {
         AnalysisResult::new(self.id(), input, vec![])
     }
-    fn explain(&self) -> String { "test".into() }
+    fn explain(&self) -> String {
+        "test".into()
+    }
 }
 
 #[tokio::test]
@@ -32,7 +44,7 @@ async fn interaction_hub_records_analysis_metric() {
     registry.register_analysis_node(Arc::new(TestAnalysisNode));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx) = DiagnosticsNode::new(rx, 5);
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5);
     let hub = InteractionHub::new(registry, memory, metrics, diagnostics);
     hub.add_auth_token("token");
     let cancel = CancellationToken::new();

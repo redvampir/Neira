@@ -18,8 +18,8 @@ use tokio::net::TcpListener;
 use tracing::{error, info};
 
 use backend::action::chat_node::EchoChatNode;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::action::diagnostics_node::DiagnosticsNode;
+use backend::action::metrics_collector_node::MetricsCollectorNode;
 use backend::action_node::PreloadAction;
 use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
 use backend::context::context_storage::FileContextStorage;
@@ -801,7 +801,7 @@ async fn main() {
     let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryNode::new());
     let (metrics, metrics_rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx) = DiagnosticsNode::new(metrics_rx, 5);
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(metrics_rx, 5);
     let hub = Arc::new(InteractionHub::new(
         registry.clone(),
         memory.clone(),
