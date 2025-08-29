@@ -19,6 +19,15 @@ Backend environment variables
 - INTEGRITY_CONFIG_PATH: path to integrity config file relative to INTEGRITY_ROOT or absolute (default: config/integrity.json)
 - INTEGRITY_CHECK_INTERVAL_MS: integrity check interval in ms (default: 60000)
 
+## Автоматическое определение `INTEGRITY_ROOT`
+
+Сервис пытается определить корневой каталог конфигурации автоматически. Узел
+[BasePathResolverNode](../docs/nodes/action-nodes.md#basepathresolvernode) поднимается от текущего
+исполняемого файла вверх по иерархии, пока не найдёт `config/integrity.json`, и сохраняет путь в память.
+Затем [InitConfigNode](../docs/nodes/action-nodes.md#initconfignode) устанавливает переменную
+`INTEGRITY_ROOT`, если она не задана вручную. Укажите её явно только при запуске вне репозитория или при нестандартной
+структуре каталогов.
+
 How to use
 - Create a .env file in repo root or `backend/` and set variables.
 - The app loads env via dotenv at startup; env vars override .env.
