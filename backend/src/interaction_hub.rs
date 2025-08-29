@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use crate::action::diagnostics_node::DiagnosticsNode;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::config::Config;
-use crate::context::context_storage::{ContextStorage, ChatMessage, Role};
+use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::idempotent_store::IdempotentStore;
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::security::quarantine_node::QuarantineNode;
@@ -25,16 +25,21 @@ use crate::task_scheduler::{Queue, TaskScheduler};
 use crate::trigger_detector::TriggerDetector;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Scope { Read, Write, Admin }
+pub enum Scope {
+    Read,
+    Write,
+    Admin,
+}
 
 #[derive(Clone, Debug)]
-struct TokenInfo { scopes: Vec<Scope> }
+struct TokenInfo {
+    scopes: Vec<Scope>,
+}
 
 pub struct InteractionHub {
     pub registry: Arc<NodeRegistry>,
     pub memory: Arc<MemoryNode>,
     metrics: Arc<MetricsCollectorNode>,
-    diagnostics: Arc<DiagnosticsNode>,
     trigger_detector: Arc<TriggerDetector>,
     scheduler: RwLock<TaskScheduler>,
     allowed_tokens: RwLock<std::collections::HashMap<String, TokenInfo>>,
@@ -47,7 +52,8 @@ pub struct InteractionHub {
     probe_handles: RwLock<std::collections::HashMap<String, JoinHandle<()>>>,
     io_watcher_threshold_ms: u64,
     safe_mode: Arc<SafeModeController>,
-    cancels: RwLock<std::collections::HashMap<(String, String), tokio_util::sync::CancellationToken>>,
+    cancels:
+        RwLock<std::collections::HashMap<(String, String), tokio_util::sync::CancellationToken>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -122,7 +128,6 @@ impl InteractionHub {
             registry,
             memory,
             metrics: metrics.clone(),
-            diagnostics,
             trigger_detector: Arc::new(TriggerDetector::default()),
             scheduler: RwLock::new(TaskScheduler::default()),
             allowed_tokens: RwLock::new(std::collections::HashMap::new()),
@@ -194,10 +199,12 @@ impl InteractionHub {
 
     pub fn add_token_with_scopes(&self, token: impl Into<String>, scopes: &[Scope]) {
         let t = token.into();
-        self.allowed_tokens
-            .write()
-            .unwrap()
-            .insert(t, TokenInfo { scopes: scopes.to_vec() });
+        self.allowed_tokens.write().unwrap().insert(
+            t,
+            TokenInfo {
+                scopes: scopes.to_vec(),
+            },
+        );
     }
 
     fn authorize(&self, token: &str) -> bool {
@@ -215,7 +222,9 @@ impl InteractionHub {
                 return info.scopes.contains(&Scope::Admin);
             }
             info.scopes.contains(&scope) || info.scopes.contains(&Scope::Admin)
-        } else { false }
+        } else {
+            false
+        }
     }
 
     pub fn add_trigger_keyword(&self, keyword: impl Into<String>) {
@@ -241,7 +250,11 @@ impl InteractionHub {
             return Err("unauthorized".into());
         }
         // export safe mode status as gauge 0/1 for nervous system
-        metrics::gauge!("safe_mode").set(if self.safe_mode.is_safe_mode() { 1.0 } else { 0.0 });
+        metrics::gauge!("safe_mode").set(if self.safe_mode.is_safe_mode() {
+            1.0
+        } else {
+            0.0
+        });
         let will_write = persist || session_id.is_some();
         if will_write && !self.check_scope(auth, Scope::Write) {
             metrics::counter!("chat_errors_total").increment(1);
@@ -431,7 +444,10 @@ impl InteractionHub {
             let msg = ChatMessage {
                 role: Role::User,
                 content: message.to_string(),
-                timestamp_ms: (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()) as i64,
+                timestamp_ms: (std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis()) as i64,
                 source: Some(source.clone().unwrap_or_else(|| "user".into())),
                 message_id: None,
                 thread_id: thread_id.clone(),
@@ -622,8 +638,14 @@ impl InteractionHub {
             .as_secs())
             / 60;
         let used = if let Some((minute, count)) = self.rate.read().unwrap().get(&key) {
-            if *minute == now_min { *count } else { 0 }
-        } else { 0 } as u32;
+            if *minute == now_min {
+                *count
+            } else {
+                0
+            }
+        } else {
+            0
+        } as u32;
         let limit = self.rate_limit_per_min;
         let remaining = limit.saturating_sub(used);
         (limit, remaining, used, key)
