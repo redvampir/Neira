@@ -1,6 +1,9 @@
-use std::sync::{
-    atomic::{AtomicU32, Ordering},
-    Arc,
+use std::{
+    collections::VecDeque,
+    sync::{
+        atomic::{AtomicU32, Ordering},
+        Arc,
+    },
 };
 
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -9,6 +12,9 @@ use tracing::warn;
 use crate::action::metrics_collector_node::MetricsRecord;
 use crate::action_node::ActionNode;
 use crate::memory_node::MemoryNode;
+
+/// Максимальный размер окна истории для анализа.
+pub const MAX_HISTORY: usize = 100;
 
 /// Запрос разработчику, отправляемый при невозможности устранить проблему автоматически.
 #[derive(Debug, Clone)]
@@ -98,13 +104,17 @@ impl DiagnosticsNode {
         });
         let node_clone = node.clone();
         tokio::spawn(async move {
-            let mut history: Vec<f32> = Vec::new();
+            let mut history: VecDeque<f32> = VecDeque::new();
             while let Some(record) = rx.recv().await {
                 metrics::counter!("diagnostics_node_requests_total").increment(1);
                 // Простое правило: низкая достоверность считается ошибкой.
                 if let Some(cred) = record.metrics.credibility {
-                    history.push(cred);
-                    if let Some(alert) = detect_anomaly(&history) {
+                    history.push_back(cred);
+                    if history.len() > MAX_HISTORY {
+                        history.pop_front();
+                    }
+                    let slice = history.make_contiguous();
+                    if let Some(alert) = detect_anomaly(&slice[..]) {
                         warn!(id=%record.id, message=%alert.message, "publishing alert");
                         let _ = node_clone.alert.send(alert);
                     }
