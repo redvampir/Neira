@@ -121,14 +121,14 @@ impl DiagnosticsNode {
                     if let Some(alert) = detect_anomaly(&slice[..]) {
                         warn!(id=%record.id, message=%alert.message, "publishing alert");
                         let _ = node_clone.alert.send(alert);
-                        node_clone.collector.set_fast();
+                        node_clone.collector.set_normal();
                     }
                     if cred < 0.5 {
                         metrics::counter!("diagnostics_node_errors_total").increment(1);
                         let count = node_clone.error_count.fetch_add(1, Ordering::SeqCst) + 1;
                         if count >= node_clone.error_threshold {
                             warn!(id=%record.id, count, "credibility below threshold");
-                            node_clone.collector.set_fast();
+                            node_clone.collector.set_normal();
                             if !(node_clone.attempt_fix)() {
                                 let _ = node_clone.notify.send(DeveloperRequest {
                                     description: format!(
@@ -141,7 +141,7 @@ impl DiagnosticsNode {
                     } else {
                         // Сбрасываем счётчик при успешных записях.
                         node_clone.error_count.store(0, Ordering::SeqCst);
-                        node_clone.collector.set_slow();
+                        node_clone.collector.set_low();
                     }
                 }
             }

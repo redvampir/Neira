@@ -8,6 +8,9 @@ use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord}
 use crate::analysis_node::QualityMetrics;
 use super::SystemProbe;
 
+const CPU_HIGH_THRESHOLD: f64 = 80.0;
+const MEM_HIGH_THRESHOLD: f64 = 80.0;
+
 /// Collects host level metrics and forwards them to the metrics system.
 pub struct HostMetrics {
     sys: System,
@@ -45,6 +48,17 @@ impl SystemProbe for HostMetrics {
         let cpu = self.sys.global_cpu_info().cpu_usage() as f64;
         let total_mem = self.sys.total_memory() as f64;
         let used_mem = self.sys.used_memory() as f64;
+        let mem_percent = if total_mem > 0.0 {
+            used_mem / total_mem * 100.0
+        } else {
+            0.0
+        };
+
+        if cpu > CPU_HIGH_THRESHOLD || mem_percent > MEM_HIGH_THRESHOLD {
+            self.collector.set_low();
+        } else {
+            self.collector.set_normal();
+        }
 
         metrics::gauge!("host_cpu_usage_percent").set(cpu);
         metrics::gauge!("host_memory_total_bytes").set(total_mem);
