@@ -100,7 +100,8 @@ impl InteractionHub {
 
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
-        registry.register_action_node(IntegrityCheckerNode::new());
+        registry.register_action_node(Arc::new(crate::system::base_path_resolver::BasePathResolverNode::new()));
+        registry.register_action_node(IntegrityCheckerNode::new(memory.clone()));
 
         let hub = Self {
             registry,

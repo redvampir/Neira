@@ -16,3 +16,4 @@ pub trait SystemProbe: Send + Sync {
 
 pub mod host_metrics;
 pub mod io_watcher;
+pub mod base_path_resolver;

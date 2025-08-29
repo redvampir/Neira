@@ -15,11 +15,12 @@ use crate::memory_node::MemoryNode;
 pub struct IntegrityCheckerNode {
     config_path: PathBuf,
     interval_ms: u64,
+    memory: Arc<MemoryNode>,
 }
 
 impl IntegrityCheckerNode {
     /// Создаёт узел и запускает периодическую проверку.
-    pub fn new() -> Arc<Self> {
+    pub fn new(memory: Arc<MemoryNode>) -> Arc<Self> {
         let config_path = std::env::var("INTEGRITY_CONFIG_PATH")
             .unwrap_or_else(|_| "config/integrity.json".into());
         let interval_ms = std::env::var("INTEGRITY_CHECK_INTERVAL_MS")
@@ -29,6 +30,7 @@ impl IntegrityCheckerNode {
         let node = Arc::new(Self {
             config_path: PathBuf::from(config_path),
             interval_ms,
+            memory,
         });
         let node_clone = node.clone();
         tokio::spawn(async move {
@@ -47,9 +49,10 @@ impl IntegrityCheckerNode {
     }
 
     fn check_once(&self) -> Result<(), String> {
-        let base = match std::env::var("INTEGRITY_ROOT") {
-            Ok(p) => PathBuf::from(p),
-            Err(_) => std::env::current_dir().map_err(|e| format!("current_dir: {e}"))?,
+        let base = if let Some(res) = self.memory.load_checkpoint("base_path") {
+            PathBuf::from(res.output)
+        } else {
+            std::env::current_dir().map_err(|e| format!("current_dir: {e}"))?
         };
         let cfg_path = if self.config_path.is_absolute() {
             self.config_path.clone()
