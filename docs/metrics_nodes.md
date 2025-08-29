@@ -16,6 +16,7 @@
 - [MetricsCollectorNode](#metricscollectornode)
 - [DiagnosticsNode](#diagnosticsnode)
 - [Механизм автоисправления](#механизм-автоисправления)
+- [Как отключить или ограничить мониторинг](#как-отключить-или-ограничить-мониторинг)
 
 ---
 
@@ -43,4 +44,23 @@
 разработчику (`DeveloperRequest`) с описанием проблемы. Это позволяет
 сначала пробовать быстрые исправления, а затем привлекать человека при
 необходимости.
+
+### Как отключить или ограничить мониторинг
+
+Сбор метрик можно полностью отключить или ограничить через переменные
+окружения:
+
+- `NERVOUS_SYSTEM_ENABLED=false` — выключает публикацию всех метрик и
+  эндпоинт `/metrics`.
+- `PROBES_HOST_METRICS_ENABLED=false` — отключает метрики хоста.
+- `PROBES_IO_WATCHER_ENABLED=false` — отключает наблюдатель задержек
+  ввода‑вывода.
+
+Пример файла `.env`:
+
+```
+NERVOUS_SYSTEM_ENABLED=false
+PROBES_HOST_METRICS_ENABLED=false
+PROBES_IO_WATCHER_ENABLED=false
+```
 
