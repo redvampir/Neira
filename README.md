@@ -446,6 +446,20 @@ time_slice_ms = 10
 
 - [Интеграция IDE](docs/guides/ide-integration.md)
 
+<!-- neira:meta
+id: NEI-20250214-120100-pre-commit-doc
+intent: docs
+summary: |
+  Добавлены инструкции по установке локальных pre-commit хуков.
+-->
+### Pre-commit
+
+Установите локальные хуки для форматирования и линтинга:
+
+```bash
+pre-commit install
+```
+
 ## Схемы
 
 JSON‑схемы расположены в каталоге [schemas](schemas). При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
