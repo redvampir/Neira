@@ -163,6 +163,11 @@ impl TaskScheduler {
         }
         self.long.pop().map(|t| (t.id, t.input))
     }
+
+    /// Возвращает длины очередей (fast, standard, long) для оценки backpressure
+    pub fn queue_lengths(&self) -> (usize, usize, usize) {
+        (self.fast.len(), self.standard.len(), self.long.len())
+    }
 }
 
 /// Расчёт приоритета на основе метрик качества и статистики использования

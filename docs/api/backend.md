@@ -25,8 +25,9 @@ summary: |
 
 - POST `/api/neira/chat/stream`
   - SSE events: `meta` (first), many `message`, periodic `progress`, final `done`.
-  - `meta`: `{ used_context, session_id?, idempotent, source?, thread_id?, rate_limit: { limit, remaining, used, window, key } }`.
+  - `meta`: `{ used_context, session_id?, idempotent, source?, thread_id?, rate_limit: { limit, remaining, used, window, key }, budget_tokens? }`.
   - Cancel: POST `/api/neira/chat/stream/cancel` with `{ auth, chat_id, session_id }` (requires `write`).
+  - Token budget (optional): передайте `budget_tokens` в теле запроса (или используйте ENV `REASONING_TOKEN_BUDGET`). В `progress` периодически приходит `{"budget_remaining": N}`. При достижении нуля поток мягко завершится; метрика `budget_hits_total`.
 
 ## Sessions
 
@@ -66,3 +67,53 @@ summary: |
 - SSE/logging: `SSE_WARN_AFTER_MS`, `NERVOUS_SYSTEM_JSON_LOGS`.
 - Masking presets: `MASK_PRESETS_DIR`.
 
+## Control Plane (admin)
+
+- POST `/api/neira/control/pause`
+  - Body: `{ auth, reason?, request_id?, drain_active_streams? }`
+  - Effect: ставит все новые задания на паузу; опционально «сливает» активные SSE‑стримы (`drain_active_streams=true`).
+  - Returns: `{ paused: true, reason, paused_since_ts_ms }`.
+
+- POST `/api/neira/control/resume`
+  - Body: `{ auth, request_id? }`
+  - Effect: снимает глобальную паузу.
+  - Returns: `{ paused: false }`.
+
+- POST `/api/neira/control/kill`
+  - Body: `{ auth, grace_ms?, request_id? }`
+  - Effect: инициирует graceful shutdown; по таймауту `grace_ms` — принудительный выход.
+  - Returns: `{ stopping: true, grace_ms }`.
+
+- GET `/api/neira/control/status`
+  - Returns: `{ paused, paused_for_ms, paused_since_ts_ms, reason, active_tasks, backpressure, queues: { fast, standard, long } }`.
+
+- GET `/api/neira/inspect/snapshot`
+  - Query: `include=metrics,context,logs`
+  - Returns: `{ ok, file }` — путь к JSON‑срезу; при `include=metrics` прикладывает Prometheus‑метрики; при `include=context` — индекс файлов контекста.
+
+- GET `/api/neira/trace/:request_id`
+  - При `TRACE_ENABLED=1` возвращает накопленные события по `request_id` (chat/analysis start/done и др.). Объём ограничен `TRACE_MAX_EVENTS`.
+
+Notes
+- Все операции требуют `admin` и журналируются (tracing). Гейтятся фичами: `control_pause_resume`, `control_kill_switch`, `inspect_snapshot`, `trace_requests`.
+
+## Очереди и давление (Queues)
+
+- GET `/api/neira/queues/status`
+  - Returns: `{ active_streams, backpressure, queues: { fast, standard, long } }`.
+  - Используется для UI/дашбордов и внешнего мониторинга.
+
+## Dev‑маршруты (только при `DEV_ROUTES_ENABLED=1` и `auth=admin`)
+
+- GET `/api/neira/dev/stream/long`
+  - Длинный детерминированный SSE‑стрим для тестов дренажа.
+  - Управление длительностью: `SSE_DEV_DELAY_MS`, `SSE_DEV_TOKENS` (ENV).
+
+- GET `/api/neira/dev/analysis/long?ms=<duration>&auth=<admin>`
+  - «Длинный» анализ для проверки watchdog soft/hard, без реальных узлов.
+
+## Snapshot: опции
+
+- GET `/api/neira/inspect/snapshot?include=metrics,context,logs&request_id=<id>&zip=1&level=INFO`
+  - Сохраняет JSON и, при `zip=1`, упаковывает в ZIP: `snapshot.json`, `logs-tail.log`, `trace.json` (если `request_id` задан и трассы включены).
+  - `logs` — добавляет хвост `logs/backend.log` (маскируется `mask_preview`), фильтр по уровню через `level=`.

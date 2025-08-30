@@ -19,7 +19,7 @@ use crate::security::safe_mode_controller::SafeModeController;
 use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
 use lru::LruCache;
 use std::num::NonZeroUsize;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
@@ -31,6 +31,7 @@ use crate::node_registry::NodeRegistry;
 use crate::queue_config::QueueConfig;
 use crate::task_scheduler::TaskScheduler;
 use crate::trigger_detector::TriggerDetector;
+use serde_json::json;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scope {
@@ -63,6 +64,16 @@ pub struct InteractionHub {
     safe_mode: Arc<SafeModeController>,
     cancels:
         RwLock<std::collections::HashMap<(String, String), tokio_util::sync::CancellationToken>>,
+    analysis_cancels:
+        RwLock<std::collections::HashMap<String, tokio_util::sync::CancellationToken>>,
+    // Tracing store (in-memory, optional)
+    traces: RwLock<std::collections::HashMap<String, Vec<serde_json::Value>>>,
+    trace_enabled: AtomicBool,
+    trace_max_events: usize,
+    // Anti-Idle: timestamp (epoch seconds) of last observed user activity
+    last_activity_secs: std::sync::atomic::AtomicU64,
+    // Anti-Idle: runtime toggle flag
+    anti_idle_enabled: AtomicBool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -135,6 +146,13 @@ impl InteractionHub {
 
         let queue_cfg = QueueConfig::new(&memory);
 
+        let now_secs = {
+            use std::time::{SystemTime, UNIX_EPOCH};
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+        };
         let hub = Self {
             registry,
             memory,
@@ -153,6 +171,12 @@ impl InteractionHub {
             io_watcher_threshold_ms,
             safe_mode,
             cancels: RwLock::new(std::collections::HashMap::new()),
+            analysis_cancels: RwLock::new(std::collections::HashMap::new()),
+            traces: RwLock::new(std::collections::HashMap::new()),
+            trace_enabled: AtomicBool::new(std::env::var("TRACE_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false)),
+            trace_max_events: std::env::var("TRACE_MAX_EVENTS").ok().and_then(|v| v.parse().ok()).unwrap_or(200),
+            last_activity_secs: std::sync::atomic::AtomicU64::new(now_secs),
+            anti_idle_enabled: AtomicBool::new(std::env::var("ANTI_IDLE_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true)),
         };
 
         // Spawn host metrics polling loop
@@ -204,6 +228,54 @@ impl InteractionHub {
         Ok(true)
     }
 
+    /// Количество активных SSE-стримов (по зарегистрированным токенам отмены)
+    pub fn active_streams(&self) -> usize {
+        self.cancels.read().unwrap().len()
+    }
+
+    /// Отметить пользовательскую активность (chat/analysis/API вызовы)
+    pub fn mark_activity(&self) {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        self.last_activity_secs.store(now, Ordering::Relaxed);
+    }
+
+    /// Сколько секунд прошло с момента последней зафиксированной активности
+    pub fn seconds_since_last_activity(&self) -> u64 {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        let last = self.last_activity_secs.load(Ordering::Relaxed);
+        now.saturating_sub(last)
+    }
+
+    pub fn is_anti_idle_enabled(&self) -> bool {
+        self.anti_idle_enabled.load(Ordering::Relaxed)
+    }
+
+    pub fn set_anti_idle_enabled(&self, enabled: bool) {
+        self.anti_idle_enabled.store(enabled, Ordering::Relaxed);
+    }
+
+    pub fn is_trace_enabled(&self) -> bool { self.trace_enabled.load(Ordering::Relaxed) }
+    pub fn set_trace_enabled(&self, enabled: bool) { self.trace_enabled.store(enabled, Ordering::Relaxed) }
+
+    /// Отмена всех активных SSE-стримов. Возвращает количество отменённых.
+    pub fn cancel_all_streams(&self) -> usize {
+        let mut n = 0usize;
+        let mut map = self.cancels.write().unwrap();
+        for (_k, token) in map.iter() {
+            token.cancel();
+            n += 1;
+        }
+        map.clear();
+        n
+    }
+
+    /// Длины очередей планировщика (fast, standard, long)
+    pub fn queue_lengths(&self) -> (usize, usize, usize) {
+        self.scheduler.read().unwrap().queue_lengths()
+    }
+
     pub fn add_auth_token(&self, token: impl Into<String>) {
         // backwards compatible: full scopes
         self.add_token_with_scopes(token, &[Scope::Read, Scope::Write, Scope::Admin]);
@@ -217,6 +289,35 @@ impl InteractionHub {
                 scopes: scopes.to_vec(),
             },
         );
+    }
+
+    pub fn backpressure_sum(&self) -> u64 {
+        let (a,b,c) = self.queue_lengths();
+        (a + b + c) as u64
+    }
+
+    pub fn is_safe_mode(&self) -> bool {
+        self.safe_mode.is_safe_mode()
+    }
+
+    pub fn trace_event(&self, request_id: Option<&str>, event: &str, data: serde_json::Value) {
+        if !self.is_trace_enabled() { return; }
+        let id = match request_id { Some(s) if !s.is_empty() => s.to_string(), _ => return };
+        let ev = json!({
+            "ts_ms": (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i128),
+            "event": event,
+            "data": data,
+        });
+        let mut store = self.traces.write().unwrap();
+        let list = store.entry(id).or_insert_with(Vec::new);
+        if list.len() >= self.trace_max_events { list.remove(0); }
+        list.push(ev);
+    }
+
+    pub fn trace_dump(&self, request_id: &str) -> Option<serde_json::Value> {
+        if !self.is_trace_enabled() { return None; }
+        let store = self.traces.read().unwrap();
+        store.get(request_id).map(|v| json!({"request_id": request_id, "events": v}))
     }
 
     fn authorize(&self, token: &str) -> bool {
@@ -551,7 +652,7 @@ impl InteractionHub {
         let node = self.registry.get_analysis_node(&task_id)?;
         let cancel = cancel_token.clone();
 
-        let handle = spawn_blocking(move || node.analyze(&task_input, &cancel));
+        let mut handle = spawn_blocking(move || node.analyze(&task_input, &cancel));
 
         let start = Instant::now();
         let checkpoint_mem = self.memory.clone();
@@ -570,55 +671,135 @@ impl InteractionHub {
             }
         });
 
-        tokio::select! {
-            _ = sleep(Duration::from_millis(cfg.global_time_budget)) => {
-                cancel_token.cancel();
-                let mut r = AnalysisResult::new(id, "", vec![]);
-                r.status = NodeStatus::Error;
-                self.memory.save_checkpoint(id, &r);
-                metrics::counter!("analysis_errors_total").increment(1);
-                info!("analysis {} timed out", id);
-                Some(r)
-            }
-            _ = cancel_token.cancelled() => {
-                let mut r = AnalysisResult::new(id, "", vec![]);
-                r.status = NodeStatus::Error;
-                self.memory.save_checkpoint(id, &r);
-                metrics::counter!("analysis_errors_total").increment(1);
-                info!("analysis {} cancelled", id);
-                Some(r)
-            }
-            res = handle => {
-                if let Ok(result) = res {
+        // Watchdog timeouts from ENV (soft/hard) with per-node overrides
+        fn env_ms(key: &str, default_ms: u64) -> u64 { std::env::var(key).ok().and_then(|v| v.parse().ok()).unwrap_or(default_ms) }
+        let base_soft = env_ms("WATCHDOG_REASONING_SOFT_MS", 30_000);
+        let base_hard = env_ms("WATCHDOG_REASONING_HARD_MS", cfg.global_time_budget);
+        // per-node override: WATCHDOG_SOFT_MS_<ID>, WATCHDOG_HARD_MS_<ID> (ID upcased, non-alnum -> '_')
+        let mut up = id.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_uppercase() } else { '_' }).collect::<String>();
+        if up.is_empty() { up = "DEFAULT".into(); }
+        let soft_key = format!("WATCHDOG_SOFT_MS_{}", up);
+        let hard_key = format!("WATCHDOG_HARD_MS_{}", up);
+        let soft_ms = env_ms(&soft_key, base_soft);
+        let hard_ms = env_ms(&hard_key, base_hard);
+        let mut soft_fired = false;
+        let mut result_opt: Option<AnalysisResult> = None;
+        loop {
+            if soft_fired {
+                tokio::select! {
+                    _ = sleep(Duration::from_millis(hard_ms.saturating_sub(soft_ms))) => {
+                        cancel_token.cancel();
+                        let mut r = AnalysisResult::new(id, "", vec![]);
+                        r.status = NodeStatus::Error;
+                        self.memory.save_checkpoint(id, &r);
+                        metrics::counter!("watchdog_timeouts_total", "kind" => "hard").increment(1);
+                        if let Ok(url) = std::env::var("INCIDENT_WEBHOOK_URL") { let payload = json!({"type":"watchdog_hard","id": id, "ts": chrono::Utc::now().to_rfc3339()}); let _= tokio::spawn(async move { let _ = reqwest::Client::new().post(url).json(&payload).send().await; }); }
+                        metrics::counter!("analysis_errors_total").increment(1);
+                        info!(analysis_id=%id, kind="hard", "watchdog timeout hard; cancelled");
+                        result_opt = Some(r);
+                        break;
+                    }
+                    _ = cancel_token.cancelled() => {
+                        let mut r = AnalysisResult::new(id, "", vec![]);
+                        r.status = NodeStatus::Error;
+                        self.memory.save_checkpoint(id, &r);
+                        metrics::counter!("analysis_errors_total").increment(1);
+                        info!(analysis_id=%id, "analysis cancelled");
+                        result_opt = Some(r);
+                        break;
+                    }
+                    res = &mut handle => {
+                if let Ok(mut result) = res {
                     let elapsed = start.elapsed().as_millis();
+                    // step budget (env-based)
+                    if let Ok(b) = std::env::var("REASONING_STEPS_BUDGET").and_then(|v| v.parse::<usize>().map_err(|_| std::env::VarError::NotPresent)) {
+                        if b > 0 && result.reasoning_chain.len() > b { let _ = result.reasoning_chain.drain(b..); result.explanation = Some(format!("Ограничено по бюджету шагов: {}", b)); metrics::counter!("analysis_budget_steps_hits_total").increment(1); }
+                    }
                     if result.status == NodeStatus::Error {
                         metrics::counter!("analysis_errors_total").increment(1);
                         self.memory.save_checkpoint(id, &result);
                     } else {
                         self.memory.push_metrics(&result);
-                        self.metrics.record(MetricsRecord {
-                            id: result.id.clone(),
-                            metrics: result.quality_metrics.clone(),
-                        });
-                        self.memory.update_time(id, elapsed);
-                        let mem = self.memory.clone();
-                        let rid = id.to_string();
-                        mem.recalc_priority_async(rid);
+                                self.metrics.record(MetricsRecord { id: result.id.clone(), metrics: result.quality_metrics.clone(), });
+                                self.memory.update_time(id, elapsed);
+                                let mem = self.memory.clone(); let rid = id.to_string(); mem.recalc_priority_async(rid);
+                            }
+                            metrics::histogram!("analysis_node_request_duration_ms").record(elapsed as f64);
+                            metrics::histogram!("analysis_node_request_duration_ms_p95").record(elapsed as f64);
+                            metrics::histogram!("analysis_node_request_duration_ms_p99").record(elapsed as f64);
+                            info!(analysis_id=%id, duration_ms=elapsed, soft_timeout=true, "analysis completed after soft timeout");
+                            result_opt = Some(result);
+                            break;
+                        } else {
+                            metrics::counter!("analysis_errors_total").increment(1);
+                            result_opt = None; break;
+                        }
                     }
-                    metrics::histogram!("analysis_node_request_duration_ms")
-                        .record(elapsed as f64);
-                    metrics::histogram!("analysis_node_request_duration_ms_p95")
-                        .record(elapsed as f64);
-                    metrics::histogram!("analysis_node_request_duration_ms_p99")
-                        .record(elapsed as f64);
-                    info!(analysis_id=%id, duration_ms=elapsed, "analysis completed");
-                    Some(result)
-                } else {
-                    metrics::counter!("analysis_errors_total").increment(1);
-                    None
+                }
+            } else {
+                tokio::select! {
+                    _ = sleep(Duration::from_millis(soft_ms)) => {
+                        soft_fired = true;
+                        metrics::counter!("watchdog_timeouts_total", "kind" => "soft").increment(1);
+                        let auto_requeue = std::env::var("AUTO_REQUEUE_ON_SOFT").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false);
+                        if auto_requeue {
+                            // Re-enqueue into Long queue with lower priority and return draft result now
+                            self.scheduler.write().unwrap().enqueue(
+                                crate::task_scheduler::Queue::Long,
+                                id.to_string(),
+                                input.to_string(),
+                                crate::task_scheduler::Priority::Low,
+                                None,
+                                vec![id.to_string()],
+                            );
+                            let mut r = AnalysisResult::new(id, "", vec![]);
+                            r.status = NodeStatus::Draft;
+                            r.explanation = Some("Re-queued to long after soft timeout".into());
+                            self.memory.save_checkpoint(id, &r);
+                            info!(analysis_id=%id, kind="soft", requeued=true, "watchdog soft timeout; re-queued to long and returning draft");
+                            result_opt = Some(r);
+                            break;
+                        } else {
+                            info!(analysis_id=%id, kind="soft", "watchdog soft timeout; allowing grace until hard");
+                            continue;
+                        }
+                    }
+                    _ = cancel_token.cancelled() => {
+                        let mut r = AnalysisResult::new(id, "", vec![]);
+                        r.status = NodeStatus::Error;
+                        self.memory.save_checkpoint(id, &r);
+                        metrics::counter!("analysis_errors_total").increment(1);
+                        info!(analysis_id=%id, "analysis cancelled");
+                        result_opt = Some(r);
+                        break;
+                    }
+                    res = &mut handle => {
+                        if let Ok(mut result) = res {
+                            let elapsed = start.elapsed().as_millis();
+                            if let Ok(b) = std::env::var("REASONING_STEPS_BUDGET").and_then(|v| v.parse::<usize>().map_err(|_| std::env::VarError::NotPresent)) {
+                                if b > 0 && result.reasoning_chain.len() > b { let _ = result.reasoning_chain.drain(b..); result.explanation = Some(format!("Ограничено по бюджету шагов: {}", b)); metrics::counter!("analysis_budget_steps_hits_total").increment(1); }
+                            }
+                            if result.status == NodeStatus::Error {
+                                metrics::counter!("analysis_errors_total").increment(1);
+                                self.memory.save_checkpoint(id, &result);
+                            } else {
+                                self.memory.push_metrics(&result);
+                                self.metrics.record(MetricsRecord { id: result.id.clone(), metrics: result.quality_metrics.clone(), });
+                                self.memory.update_time(id, elapsed);
+                                let mem = self.memory.clone(); let rid = id.to_string(); mem.recalc_priority_async(rid);
+                            }
+                            metrics::histogram!("analysis_node_request_duration_ms").record(elapsed as f64);
+                            metrics::histogram!("analysis_node_request_duration_ms_p95").record(elapsed as f64);
+                            metrics::histogram!("analysis_node_request_duration_ms_p99").record(elapsed as f64);
+                            info!(analysis_id=%id, duration_ms=elapsed, soft_timeout=false, "analysis completed");
+                            result_opt = Some(result);
+                            break;
+                        } else { metrics::counter!("analysis_errors_total").increment(1); result_opt=None; break; }
+                    }
                 }
             }
         }
+        result_opt
     }
 
     pub fn resume(&self, id: &str, auth: &str) -> Option<AnalysisResult> {
@@ -672,6 +853,30 @@ impl InteractionHub {
             .write()
             .unwrap()
             .insert((chat_id.to_string(), session_id.to_string()), token);
+    }
+
+    // Analysis cancellation registry
+    pub fn register_analysis_cancel(
+        &self,
+        id: &str,
+        token: tokio_util::sync::CancellationToken,
+    ) {
+        self.analysis_cancels
+            .write()
+            .unwrap()
+            .insert(id.to_string(), token);
+    }
+
+    pub fn remove_analysis_cancel(&self, id: &str) {
+        self.analysis_cancels.write().unwrap().remove(id);
+    }
+
+    pub fn cancel_analysis(&self, id: &str) -> bool {
+        if let Some(tok) = self.analysis_cancels.write().unwrap().remove(id) {
+            tok.cancel();
+            return true;
+        }
+        false
     }
 
     pub fn cancel_stream(&self, chat_id: &str, session_id: &str) -> bool {

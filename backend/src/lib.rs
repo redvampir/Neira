@@ -14,3 +14,9 @@ pub mod system;
 pub mod task_scheduler;
 pub mod trigger_detector;
 // duplicates removed
+
+// Global hub reference (optional), used for lightweight signals like Anti-Idle activity marks
+use std::sync::{Arc, OnceLock, RwLock};
+use crate::interaction_hub::InteractionHub;
+
+pub static GLOBAL_HUB: OnceLock<RwLock<Option<Arc<InteractionHub>>>> = OnceLock::new();

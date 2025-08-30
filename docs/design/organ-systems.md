@@ -151,3 +151,14 @@
 - Только при выполняющихся SLO: латентность/ошибки/нагрузка в норме за окно времени.
 - Только с явной разблокировкой соответствующего гейта.
 - Всегда с возможностью быстрого отката (фиксируем в JOURNALING.md и через neira:meta).
+
+---
+
+## OrganTemplate & Builder (дополнение)
+
+- OrganTemplate: декларативное описание графа узлов (роли/каналы/политики/зависимости).
+- OrganBuilder (Action): сборка по шаблону с dry‑run/canary/HITL, проверка интеграций с Nervous/Immune.
+- Совместимость: проверка версий/линков, автопубликация метрик RED/USE, регистрация в Introspection.
+- Управление: CAPABILITIES `organs_builder=experimental`, approve/rollback, журнал (JOURNALING).
+
+См. также: design/factory-system.md, CAPABILITIES.md.

@@ -64,5 +64,75 @@ summary: Добавлены переменные для адаптивных п�
 | IDLE_REQUIRE_APPROVAL_FOR_NEW_DOMAINS | bool | true | safety | Одобрение новых доменов задач |
 | IDLE_REPORT_FREQUENCY | enum | on_user_return | reporting | Частота отчётов |
 | IDLE_DETAILED_LOGS | bool | true | reporting | Детальные логи |
+| IDLE_EMA_ALPHA | float | 0.3 | anti-idle | Коэффициент сглаживания EMA `idle_state_smoothed` |
+| LEARNING_MICROTASKS_DRYRUN | bool | false | anti-idle | Включить dry‑run очереди микрозадач |
+| IDLE_DRYRUN_QUEUE_DEPTH | int | 0 | anti-idle | Размер каркасной очереди (dry‑run) |
+
+### Backpressure Auto Backoff
+| Переменная | Тип | Дефолт | Раздел | Описание |
+|---|---|---|---|---|
+| AUTO_BACKOFF_ENABLED | bool | false | backpressure | Включить авто‑бэкофф сверх базового сна при высоком давлении |
+| BP_MAX_BACKOFF_MS | int | 200 | backpressure | Максимальный дополнительный сон (мс) при авто‑бэкоффе |
 
 Примечание: значения по умолчанию сверены с кодом (backend/src/*). При расхождениях — источник истины этот файл.
+
+---
+
+## Homeostasis & Control (дополнение)
+
+| var | type | default | area | description |
+|---|---|---|---|---|
+| HOMEOSTASIS_ENABLED | bool | false | homeostasis | Включить автотюнинг бюджетов (experimental) |
+| HOMEOSTASIS_RECALC_INTERVAL_MS | int | 10000 | homeostasis | Интервал пересчёта лимитов |
+| BUDGET_DEFAULT_CONCURRENCY | int | adaptive | budgets | Базовый параллелизм (ceil/floor задаются политикой) |
+| BUDGET_DEFAULT_BATCH | int | adaptive | budgets | Базовый размер батчей |
+| REASONING_TIME_BUDGET_MS | int | adaptive | budgets | Мягкий лимит времени рассуждений |
+| WATCHDOG_REASONING_SOFT_MS | int | 30000 | watchdog | Soft‑таймаут (деградация/упрощение плана) |
+| WATCHDOG_REASONING_HARD_MS | int | 120000 | watchdog | Hard‑таймаут (прерывание шага) |
+| LOOP_DETECT_ENABLED | bool | true | watchdog | Включить детектор циклов/повторов |
+| LOOP_WINDOW_TOKENS | int | 256 | watchdog | Окно анализа повторов |
+| LOOP_REPEAT_THRESHOLD | float | 0.6 | watchdog | Порог повторяемости (0..1) |
+| CONTROL_ALLOW_PAUSE | bool | true | control | Разрешить pause/resume (admin) |
+| CONTROL_ALLOW_KILL | bool | true | control | Разрешить аварийную остановку (admin) |
+| CONTROL_SNAPSHOT_DIR | string | ./snapshots | control | Каталог для snapshot‑срезов |
+| TRACE_ENABLED | bool | false | control | Включить генерацию трасс по request_id |
+| NEIRA_BIND_ADDR | string | 127.0.0.1:3000 | http | Адрес/порт HTTP‑сервера (для тестов можно указывать уникальный порт) |
+| SSE_DEV_DELAY_MS | int | 0 | http/sse | Искусственная задержка между SSE‑сообщениями (для тестов дренажа) |
+| NEIRA_ADMIN_TOKEN | string | - | auth | Токен администратора (dev) |
+| NEIRA_WRITE_TOKEN | string | - | auth | Токен записи (dev) |
+| NEIRA_READ_TOKEN | string | - | auth | Токен чтения (dev) |
+| TRACE_MAX_EVENTS | int | 200 | control | Лимит событий на `request_id` |
+| LOGS_TAIL_LINES | int | 200 | control | Хвост логов, который включать в snapshot |
+| BACKPRESSURE_HIGH_WATERMARK | int | 100 | throttle | Порог для мягкого троттлинга |
+| BACKPRESSURE_THROTTLE_MS | int | 0 | throttle | Задержка при превышении порога (мс) |
+| REASONING_TOKEN_BUDGET | int | 0 | http/sse | Лимит «токенов» для SSE‑стрима (0 — без лимита) |
+| DEV_ROUTES_ENABLED | bool | false | dev | Включить dev‑эндпоинты (SSE/analysis) |
+| SSE_DEV_TOKENS | int | 200 | dev | Количество сообщений в dev‑стриме |
+| WATCHDOG_REASONING_SOFT_MS | int | 30000 | watchdog | Soft‑таймаут рассуждений (общий) |
+| WATCHDOG_REASONING_HARD_MS | int | global_time_budget | watchdog | Hard‑таймаут рассуждений (общий) |
+| WATCHDOG_SOFT_MS_<NODEID> | int | - | watchdog | Пер‑узловой soft‑таймаут (ID: UPPER_CASE, не алф/цифры → `_`) |
+| WATCHDOG_HARD_MS_<NODEID> | int | - | watchdog | Пер‑узловой hard‑таймаут |
+| AUTO_REQUEUE_ON_SOFT | bool | false | watchdog | Авто‑переочередить в Long при soft‑таймауте (вернуть Draft сразу) |
+| INCIDENT_WEBHOOK_URL | string | - | alerts | Вебхук уведомлений о hard‑таймаутах/инцидентах |
+
+Примечание: значения daptive задаются автоматически по пробам и метрикам; ENV служит как потолок/пол и аварийные дефолты.
+
+---
+
+### Anti‑Idle System (normalized)
+
+| Переменная | Тип | Дефолт | Раздел | Описание |
+|---|---|---|---|---|
+| ANTI_IDLE_ENABLED | bool | true | anti-idle core | Включить каркас Anti‑Idle (только метрики, без автозадач) |
+| IDLE_THRESHOLD_SECONDS | int | 30 | idle detection | Порог простоя (сек) |
+| LONG_IDLE_THRESHOLD_MINUTES | int | 5 | idle detection | Длительный простой (мин) |
+| DEEP_IDLE_THRESHOLD_MINUTES | int | 30 | idle detection | Глубокий простой (мин) |
+| IDLE_MICRO_TASK_MAX_DURATION | string | 10min | anti-idle limits | Максимум одной микрозадачи |
+| IDLE_SESSION_MAX_DURATION | string | 30min | anti-idle limits | Максимум одной сессии |
+| IDLE_DAILY_AUTONOMOUS_LIMIT | string | 4hours | anti-idle limits | Дневной лимит автономии |
+| IDLE_LEARNING_SESSION_LIMIT | string | 20min | learning | Лимит учебной сессии |
+| IDLE_MONEY_SESSION_LIMIT | string | 15min | income | Лимит «заработка» |
+| IDLE_REFLECTION_SESSION_LIMIT | string | 5min | reflection | Лимит размышлений |
+| IDLE_REQUIRE_APPROVAL_FOR_NEW_DOMAINS | bool | true | safety | Одобрение новых доменов задач |
+| IDLE_REPORT_FREQUENCY | enum | on_user_return | reporting | Частота отчётов |
+| IDLE_DETAILED_LOGS | bool | true | reporting | Детальные логи |

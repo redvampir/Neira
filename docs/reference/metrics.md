@@ -53,3 +53,42 @@
 - Способности и гейты: CAPABILITIES.md
 
 Примечание: именование согласовано с кодом (backend/src). При добавлении новых метрик — обновляйте эту таблицу.
+
+---
+
+## Homeostasis & Control (дополнение)
+
+- throttle_events_total (counter): число случаев троттлинга/снижения агрессии.
+- retry_backoff_applied_total (counter): повторы с backoff.
+- watchdog_timeouts_total (counter): срабатывания soft/hard сторожей.
+- loop_detected_total (counter): обнаруженные циклы/повторы в рассуждениях.
+- paused_state (gauge 0/1): глобальная пауза активна.
+- pause_events_total (counter): число переключений паузы.
+- kill_switch_total (counter): активации аварийной остановки.
+- snapshots_created_total (counter): сформированные snapshot‑срезы.
+- traces_generated_total (counter): сгенерированные трассы по request_id.
+- pause_drain_events_total (counter): операции дренажа активных SSE при паузе.
+- loop_detected_total (counter): срабатывания детектора повторов в SSE.
+- budget_hits_total (counter): срабатывания лимита токенов для SSE.
+- throttle_events_total (counter): события троттлинга при backpressure.
+- watchdog_timeouts_total{kind=soft|hard} (counter): срабатывания сторожей рассуждений.
+
+См. также: docs/design/homeostasis.md
+- pause_reason_total{reason} (counter): количество пауз по причинам (использовать осторожно из-за кардинальности).
+
+---
+
+## Factory & Organs (draft)
+
+| metric | type | unit | scope | description |
+|---|---|---|---|---|
+| factory_nodes_created_total | counter | nodes | Factory | Создано узлов (всего) |
+| factory_nodes_active | gauge | nodes | Factory | Активные фабричные узлы |
+| factory_exec_errors_total | counter | errors | Factory | Ошибки исполнения (backend) |
+| factory_dryrun_requests_total | counter | req | Factory | Запросы dry‑run |
+| factory_approvals_total | counter | ops | Factory | Подтверждения HITL |
+| factory_rollbacks_total | counter | ops | Factory | Откаты узлов |
+| organ_build_attempts_total | counter | ops | OrganBuilder | Попытки сборки органов |
+| organ_build_failures_total | counter | ops | OrganBuilder | Ошибки сборки органов |
+| training_iterations_total | counter | iters | Training | Итерации обучения новых узлов |
+| training_converged_total | counter | iters | Training | Конвергировали до стабильности |

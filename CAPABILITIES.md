@@ -42,6 +42,110 @@ capabilities:
     notes: enforce safe-mode write=admin
 ```
 
+## Factory & Organs
+
+```
+capabilities:
+  factory_adapter:
+    state: experimental
+    notes: Fabricator (Adapter only) — dry‑run/HITL, без исполнения кода
+    signals: [factory_nodes_created_total, factory_dryrun_requests_total]
+
+  factory_script:
+    state: locked
+    notes: Rhai backend в песочнице, лимиты CPU/Mem/IO, политики
+
+  factory_wasm:
+    state: locked
+    notes: WASI backend, лимиты, без внешней сети
+
+  organs_builder:
+    state: experimental
+    notes: Сборка органов из OrganTemplate (dry‑run→canary→experimental)
+    signals: [organ_build_attempts_total, organ_build_failures_total]
+```
+
+## Persona & Control (дополнение)
+
+```yaml
+capabilities:
+  # Control & Homeostasis
+  control_pause_resume:
+    state: stable
+    notes: глобальная пауза/возобновление задач (admin)
+    signals: [paused_state, pause_events_total]
+
+  control_kill_switch:
+    state: stable
+    notes: аварийная остановка с grace-периодом (admin)
+    signals: [kill_switch_total]
+
+  inspect_snapshot:
+    state: stable
+    notes: сбор snapshot-срезов (логи/контекст/метрики) для анализа (admin)
+    signals: [snapshots_created_total]
+
+  trace_requests:
+    state: experimental
+    notes: генерация трасс по request_id (узлы/тайминги/метки)
+    signals: [traces_generated_total]
+
+  homeostasis_budgets:
+    state: experimental
+    notes: автотюнинг конкурентности/батчей/времени рассуждений; backpressure/backoff
+    signals: [throttle_events_total, retry_backoff_applied_total]
+
+  # Persona
+  persona_kernel:
+    state: stable
+    notes: ядро личности (инварианты ценностей)
+    signals: [persona_drift_score]
+
+  persona_roles_minimal:
+    state: stable
+    notes: базовые роли coder/editor/architect
+    signals: [role_switches_total]
+
+  persona_style_neutral:
+    state: stable
+    notes: нейтрально‑дружелюбный стиль по умолчанию
+    signals: [style_adherence]
+
+  persona_style_teen:
+    state: experimental
+    notes: «подростковая» окраска; интенсивность 0–3 (0 — выкл.)
+    safeguards: explicit opt‑in; auto‑reset on critical tasks
+    signals: [style_adherence]
+
+  persona_reflection:
+    state: experimental
+    notes: предложения микрокоррекций ядра/политик через JOURNALING (review→canary)
+    safeguards: dry-run, audit trail, rollback plan
+    signals: [reflection_journal_entries, proposals_accepted_total, proposals_reverted_total]
+
+  tone_state:
+    state: experimental
+    notes: эфемерное настроение/тон; не трогает ценности
+    safeguards: auto-reset; capped impact on latency
+    signals: [style_adherence]
+
+  studio_artflow:
+    state: locked
+    notes: генеративная графика (песочница)
+
+  studio_soundweaver:
+    state: locked
+    notes: процедурная музыка/звук (песочница)
+
+  studio_storynodes:
+    state: locked
+    notes: интерактивные микро‑истории (песочница)
+
+  roleplay_mode:
+    state: locked
+    notes: ролевая симуляция личности; только явно и с дисклеймером
+```
+
 ## Текущие способности (стартовый набор)
 
 ```yaml
