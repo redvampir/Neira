@@ -4,6 +4,12 @@ intent: docs
 summary: Обновлено описание CONTEXT_MAX_LINES/CONTEXT_MAX_BYTES: адаптивные лимиты со storage_metrics.json.
 -->
 
+<!-- neira:meta
+id: NEI-20250922-analysis-queue-env-docs
+intent: docs
+summary: Добавлены переменные для адаптивных порогов очередей анализа.
+-->
+
 # ENV Reference (Истина)
 
 | Ключ | Тип | По умолчанию | Где используется | Влияние |
@@ -21,6 +27,9 @@ summary: Обновлено описание CONTEXT_MAX_LINES/CONTEXT_MAX_BYTES
 | CHAT_RATE_LIMIT_PER_MIN | int | 120 | hub rate limit | Лимит запросов в минуту |
 | CHAT_RATE_KEY | enum | auth | hub rate limit | Ключ лимита: auth/chat/session |
 | IO_WATCHER_THRESHOLD_MS | int | 100 | nervous probes | Порог латентности для проб |
+| ANALYSIS_QUEUE_FAST_MS | int | adaptive | queue thresholds | Граница Fast/Standard очереди |
+| ANALYSIS_QUEUE_LONG_MS | int | adaptive | queue thresholds | Граница Standard/Long очереди |
+| ANALYSIS_QUEUE_RECALC_MIN | int | 100 | queue thresholds | Новые запросы для пересчёта |
 | NERVOUS_SYSTEM_ENABLED | bool | true | metrics/init | Включить /metrics и «нервную» подсистему |
 | PROBES_HOST_METRICS_ENABLED | bool | true | nervous probes | Включить сбор хост‑метрик |
 | PROBES_IO_WATCHER_ENABLED | bool | false | nervous probes | Включить наблюдатель ввода/вывода |
