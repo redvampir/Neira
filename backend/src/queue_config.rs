@@ -33,7 +33,7 @@ impl QueueConfig {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(100);
-        let (fast_ms, long_ms, total) = Self::compute_thresholds(memory);
+        let (fast_ms, long_ms, total) = Self::compute_thresholds(memory, min_samples);
         Self {
             fast_ms: fast_override.unwrap_or(fast_ms),
             long_ms: long_override.unwrap_or(long_ms),
@@ -64,7 +64,7 @@ impl QueueConfig {
     fn maybe_recompute(&mut self, memory: &MemoryNode) {
         let total = Self::total_requests(memory);
         if total >= self.last_total + self.min_samples {
-            let (fast_ms, long_ms, total_now) = Self::compute_thresholds(memory);
+            let (fast_ms, long_ms, total_now) = Self::compute_thresholds(memory, self.min_samples);
             self.fast_ms = self.fast_override.unwrap_or(fast_ms);
             self.long_ms = self.long_override.unwrap_or(long_ms);
             self.last_total = total_now;
@@ -75,7 +75,7 @@ impl QueueConfig {
         memory.records().into_iter().map(|r| r.time.count).sum()
     }
 
-    fn compute_thresholds(memory: &MemoryNode) -> (u128, u128, u64) {
+    fn compute_thresholds(memory: &MemoryNode, min_samples: u64) -> (u128, u128, u64) {
         let records = memory.records();
         let mut avgs = Vec::new();
         let mut total = 0u64;
@@ -85,7 +85,7 @@ impl QueueConfig {
                 total += r.time.count;
             }
         }
-        if avgs.len() >= 3 {
+        if avgs.len() >= 2 && total >= min_samples {
             avgs.sort_unstable();
             let fast_idx = avgs.len() / 3;
             let long_idx = avgs.len() * 2 / 3;

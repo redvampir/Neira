@@ -2,9 +2,15 @@ use backend::analysis_node::AnalysisResult;
 use backend::memory_node::MemoryNode;
 use backend::queue_config::QueueConfig;
 use backend::task_scheduler::Queue;
+use std::sync::Mutex;
+
+static ENV_MUTEX: Mutex<()> = Mutex::new(());
 
 #[test]
 fn queue_config_recalculates() {
+    let _guard = ENV_MUTEX.lock().unwrap();
+    std::env::remove_var("ANALYSIS_QUEUE_FAST_MS");
+    std::env::remove_var("ANALYSIS_QUEUE_LONG_MS");
     std::env::set_var("ANALYSIS_QUEUE_RECALC_MIN", "2");
     let memory = MemoryNode::new();
 
@@ -24,18 +30,21 @@ fn queue_config_recalculates() {
     memory.update_time("c", 2000);
 
     let q = cfg.classify(1500, &memory);
-    assert_eq!(q, Queue::Long);
+    assert_eq!(q, Queue::Standard);
     assert_eq!(cfg.thresholds(), (500, 2000));
     std::env::remove_var("ANALYSIS_QUEUE_RECALC_MIN");
+    std::env::remove_var("ANALYSIS_QUEUE_FAST_MS");
+    std::env::remove_var("ANALYSIS_QUEUE_LONG_MS");
 }
 
 #[test]
 fn queue_config_env_override() {
+    let _guard = ENV_MUTEX.lock().unwrap();
     std::env::set_var("ANALYSIS_QUEUE_FAST_MS", "150");
     std::env::set_var("ANALYSIS_QUEUE_LONG_MS", "1500");
     let memory = MemoryNode::new();
 
-    let mut r = AnalysisResult::new("a", "", vec![]);
+    let r = AnalysisResult::new("a", "", vec![]);
     memory.push_metrics(&r);
     memory.update_time("a", 50);
 
