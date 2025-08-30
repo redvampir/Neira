@@ -8,6 +8,7 @@ pub mod interaction_hub;
 pub mod memory_node;
 pub mod node_registry;
 pub mod node_template;
+pub mod queue_config;
 pub mod security;
 pub mod system;
 pub mod task_scheduler;

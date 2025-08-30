@@ -4,6 +4,12 @@ intent: docs
 summary: Контекстное хранилище теперь подбирает лимиты по диску; переменные можно переопределить.
 -->
 
+<!-- neira:meta
+id: NEI-20250922-analysis-queue-env
+intent: docs
+summary: Добавлены переменные управления порогами очередей анализа.
+-->
+
 Backend environment variables
 
 Note
@@ -25,6 +31,9 @@ Note
 - NERVOUS_SYSTEM_ENABLED: enable Prometheus metrics and nervous system (default: true)
 - PROBES_HOST_METRICS_ENABLED: enable host metrics collection (default: true)
 - PROBES_IO_WATCHER_ENABLED: enable keyboard/display latency watcher (default: false, deprecated alias: IO_WATCHER_ENABLED)
+ - ANALYSIS_QUEUE_FAST_MS: override boundary between fast and standard analysis queues in ms (default: adaptive)
+ - ANALYSIS_QUEUE_LONG_MS: override boundary between standard and long analysis queues in ms (default: adaptive)
+ - ANALYSIS_QUEUE_RECALC_MIN: number of new analysis requests before thresholds recompute (default: 100)
 - INTEGRITY_ROOT: base dir for integrity config and files (default: current working directory; set explicitly if the service runs outside `backend/`)
 - INTEGRITY_CONFIG_PATH: path to integrity config file relative to INTEGRITY_ROOT or absolute (default: config/integrity.json)
 - INTEGRITY_CHECK_INTERVAL_MS: integrity check interval in ms (default: 60000)

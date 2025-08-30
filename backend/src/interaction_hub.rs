@@ -1,3 +1,10 @@
+/* neira:meta
+id: NEI-20250922-adaptive-queues
+intent: code
+summary: |
+  Очереди анализа выбирают адаптивные пороги на основе истории и
+  переопределяются через переменные окружения.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -21,7 +28,8 @@ use tracing::info;
 use crate::analysis_node::{AnalysisResult, NodeStatus};
 use crate::memory_node::MemoryNode;
 use crate::node_registry::NodeRegistry;
-use crate::task_scheduler::{Queue, TaskScheduler};
+use crate::queue_config::QueueConfig;
+use crate::task_scheduler::TaskScheduler;
 use crate::trigger_detector::TriggerDetector;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -42,6 +50,7 @@ pub struct InteractionHub {
     metrics: Arc<MetricsCollectorNode>,
     trigger_detector: Arc<TriggerDetector>,
     scheduler: RwLock<TaskScheduler>,
+    queue_cfg: RwLock<QueueConfig>,
     allowed_tokens: RwLock<std::collections::HashMap<String, TokenInfo>>,
     rate: RwLock<std::collections::HashMap<String, (u64, u32)>>,
     rate_limit_per_min: u32,
@@ -124,12 +133,15 @@ impl InteractionHub {
         registry.register_action_node(quarantine);
         registry.register_action_node(IntegrityCheckerNode::new(memory.clone(), quarantine_tx));
 
+        let queue_cfg = QueueConfig::new(&memory);
+
         let hub = Self {
             registry,
             memory,
             metrics: metrics.clone(),
             trigger_detector: Arc::new(TriggerDetector::default()),
             scheduler: RwLock::new(TaskScheduler::default()),
+            queue_cfg: RwLock::new(queue_cfg),
             allowed_tokens: RwLock::new(std::collections::HashMap::new()),
             rate: RwLock::new(std::collections::HashMap::new()),
             rate_limit_per_min,
@@ -521,13 +533,11 @@ impl InteractionHub {
 
         let priority = self.memory.get_priority(id);
         let avg_time = self.memory.average_time_ms(id).unwrap_or(0);
-        let queue = if avg_time < 100 {
-            Queue::Fast
-        } else if avg_time < 1000 {
-            Queue::Standard
-        } else {
-            Queue::Long
-        };
+        let queue = self
+            .queue_cfg
+            .write()
+            .unwrap()
+            .classify(avg_time, &self.memory);
         self.scheduler.write().unwrap().enqueue(
             queue,
             id.to_string(),
