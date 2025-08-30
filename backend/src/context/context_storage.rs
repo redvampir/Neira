@@ -1,7 +1,7 @@
 use chrono::{Datelike, Utc};
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use fs2::FileExt;
+use fs2::{available_space, total_space, FileExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -175,6 +175,16 @@ pub struct FileContextStorage {
     tx: Option<mpsc::Sender<(String, String, ChatMessage)>>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StorageMetrics {
+    disk_total: u64,
+    disk_available: u64,
+    avg_msg_bytes: u64,
+    max_lines: usize,
+    max_bytes: u64,
+    updated_ms: i64,
+}
+
 #[derive(Clone)]
 struct Config {
     max_lines: usize,
@@ -185,6 +195,56 @@ struct Config {
     mask_enabled: bool,
     mask_regex: Vec<Regex>,
     mask_roles: Vec<Role>,
+    metrics_path: PathBuf,
+}
+
+fn load_or_init_metrics(root: &Path) -> StorageMetrics {
+    let path = root.join("storage_metrics.json");
+    if let Ok(data) = fs::read_to_string(&path) {
+        if let Ok(m) = serde_json::from_str::<StorageMetrics>(&data) {
+            return m;
+        }
+    }
+    fs::create_dir_all(root).ok();
+    let total = total_space(root).unwrap_or(0);
+    let free = available_space(root).unwrap_or(0);
+    let avg_msg_bytes = 1024; // initial guess, updated later
+    let max_bytes = (free / 100).max(avg_msg_bytes as u64);
+    let max_lines = (max_bytes / avg_msg_bytes.max(1)) as usize;
+    let metrics = StorageMetrics {
+        disk_total: total,
+        disk_available: free,
+        avg_msg_bytes,
+        max_lines,
+        max_bytes,
+        updated_ms: Utc::now().timestamp_millis(),
+    };
+    let _ = fs::write(&path, serde_json::to_string_pretty(&metrics).unwrap());
+    metrics
+}
+
+fn update_storage_metrics(cfg: &Config, added_bytes: u64, lines: usize) {
+    if lines == 0 {
+        return;
+    }
+    let root = cfg.metrics_path.parent().unwrap_or(Path::new("."));
+    let mut metrics = load_or_init_metrics(root);
+    let new_avg = added_bytes / lines as u64;
+    metrics.avg_msg_bytes = if metrics.avg_msg_bytes == 0 {
+        new_avg
+    } else {
+        (metrics.avg_msg_bytes + new_avg) / 2
+    };
+    metrics.disk_total = total_space(root).unwrap_or(metrics.disk_total);
+    metrics.disk_available = available_space(root).unwrap_or(metrics.disk_available);
+    let suggested = metrics.disk_available / 100;
+    metrics.max_bytes = suggested.max(metrics.avg_msg_bytes * 100);
+    metrics.max_lines = (metrics.max_bytes / metrics.avg_msg_bytes.max(1)).max(1) as usize;
+    metrics.updated_ms = Utc::now().timestamp_millis();
+    let _ = fs::write(
+        &cfg.metrics_path,
+        serde_json::to_string_pretty(&metrics).unwrap(),
+    );
 }
 
 impl FileContextStorage {
@@ -193,7 +253,7 @@ impl FileContextStorage {
             .ok()
             .map(PathBuf::from)
             .unwrap_or_else(|| root.into());
-        let cfg = Config::from_env();
+        let cfg = Config::from_env(&root);
         if cfg.flush_interval_ms > 0 {
             let (tx, mut rx) = mpsc::channel::<(String, String, ChatMessage)>(1024);
             let root_clone = root.clone();
@@ -371,15 +431,16 @@ impl FileContextStorage {
 }
 
 impl Config {
-    fn from_env() -> Self {
+    fn from_env(root: &Path) -> Self {
+        let metrics = load_or_init_metrics(root);
         let max_lines = std::env::var("CONTEXT_MAX_LINES")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(500);
+            .unwrap_or(metrics.max_lines);
         let max_bytes = std::env::var("CONTEXT_MAX_BYTES")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(1_000_000);
+            .unwrap_or(metrics.max_bytes);
         let daily_rotation = std::env::var("CONTEXT_DAILY_ROTATION")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
             .unwrap_or(true);
@@ -419,6 +480,7 @@ impl Config {
             mask_enabled,
             mask_regex,
             mask_roles,
+            metrics_path: root.join("storage_metrics.json"),
         }
     }
 }
@@ -529,6 +591,7 @@ fn append_messages_and_update_index(
         .get("message_count")
         .and_then(|v| v.as_u64())
         .unwrap_or(0);
+    let mut added_bytes = 0_u64;
     for m in msgs.iter_mut() {
         if m.message_id.is_none() {
             last_id += 1;
@@ -538,6 +601,7 @@ fn append_messages_and_update_index(
         }
         let line = serde_json::to_string(m).map_err(|e| e.to_string())? + "\n";
         approx_bytes += line.len() as u64;
+        added_bytes += line.len() as u64;
         cnt += 1;
         f.write_all(line.as_bytes()).map_err(|e| e.to_string())?;
         metrics::counter!("context_bytes_written").increment(line.len() as u64);
@@ -578,6 +642,8 @@ fn append_messages_and_update_index(
     entry.insert("kw_updated_ms".into(), serde_json::json!(now_ms));
     fs::write(&index_path, serde_json::to_string_pretty(&index).unwrap())
         .map_err(|e| e.to_string())?;
+
+    update_storage_metrics(cfg, added_bytes, msgs.len());
 
     // size-based trim
     if cfg.max_bytes > 0 {
@@ -659,7 +725,8 @@ intent: docs
 scope: backend/storage
 summary: |
   Файловое хранилище контекста (ndjson + дневная ротация + gzip), индекс index.json,
-  TTL ключевых слов, маскирование (runtime + пресеты), буферизация записи, импорта.
+  TTL ключевых слов, адаптивные лимиты по диску (storage_metrics.json), маскирование
+  (runtime + пресеты), буферизация записи, импорта.
 links:
   - docs/reference/env.md
   - docs/reference/metrics.md

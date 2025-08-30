@@ -1,3 +1,9 @@
+<!-- neira:meta
+id: NEI-20250915-adaptive-storage-backend-env
+intent: docs
+summary: Контекстное хранилище теперь подбирает лимиты по диску; переменные можно переопределить.
+-->
+
 Backend environment variables
 
 Note
@@ -5,8 +11,8 @@ Note
 - Этот файл сохраняет обзор и пример `.env`, но при расхождениях доверяйте справочнику.
 
 - CONTEXT_DIR: base dir for chat history (default: context)
-- CONTEXT_MAX_LINES: max lines kept in a file before trimming (default: 500)
-- CONTEXT_MAX_BYTES: max bytes per file before trimming (default: 1_000_000)
+- CONTEXT_MAX_LINES: max lines kept in a file before trimming (default: adaptive via storage_metrics.json)
+- CONTEXT_MAX_BYTES: max bytes per file before trimming (default: adaptive via storage_metrics.json)
 - CONTEXT_DAILY_ROTATION: if true, rotate files daily with -YYYYMMDD suffix (default: true)
 - CONTEXT_ARCHIVE_GZ: if true, gzip previous days’ files (default: true)
 - CONTEXT_FLUSH_MS: buffered write flush interval in ms; 0 disables buffering (default: 0)
@@ -22,6 +28,10 @@ Note
 - INTEGRITY_ROOT: base dir for integrity config and files (default: current working directory; set explicitly if the service runs outside `backend/`)
 - INTEGRITY_CONFIG_PATH: path to integrity config file relative to INTEGRITY_ROOT or absolute (default: config/integrity.json)
 - INTEGRITY_CHECK_INTERVAL_MS: integrity check interval in ms (default: 60000)
+
+When `CONTEXT_MAX_LINES` or `CONTEXT_MAX_BYTES` are not set, the service
+estimates safe limits based on disk space and message size telemetry. Results
+are stored in `<CONTEXT_DIR>/storage_metrics.json` and updated over time.
 
 Idempotency and persist policy
 - IDEMPOTENT_PERSIST: enable persistent idempotency storage for request_id (default: false)
