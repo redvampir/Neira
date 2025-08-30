@@ -1,10 +1,16 @@
+<!-- neira:meta
+id: NEI-20250915-adaptive-storage-env-docs
+intent: docs
+summary: Обновлено описание CONTEXT_MAX_LINES/CONTEXT_MAX_BYTES: адаптивные лимиты со storage_metrics.json.
+-->
+
 # ENV Reference (Истина)
 
 | Ключ | Тип | По умолчанию | Где используется | Влияние |
 |---|---|---|---|---|
 | CONTEXT_DIR | string | context | backend context storage | База для истории чатов |
-| CONTEXT_MAX_LINES | int | 500 | storage trim | Ограничение строк при тримме |
-| CONTEXT_MAX_BYTES | int | 1_000_000 | storage trim | Ограничение размера файла |
+| CONTEXT_MAX_LINES | int | adaptive | storage trim | Ограничение строк (автоподбор, можно переопределить) |
+| CONTEXT_MAX_BYTES | int | adaptive | storage trim | Ограничение размера файла (автоподбор, можно переопределить) |
 | CONTEXT_DAILY_ROTATION | bool | true | storage rotation | Ротация по дням |
 | CONTEXT_ARCHIVE_GZ | bool | true | storage rotation | Архивирование .gz прошлых дней |
 | CONTEXT_FLUSH_MS | int | 0 | storage buffering | Буферизованная запись, 0=выкл |
@@ -30,6 +36,10 @@
 | SSE_WARN_AFTER_MS | int | 60000 | SSE | Варнинг при долгом стриме |
 | NERVOUS_SYSTEM_JSON_LOGS | bool | false | logging | JSON‑логи включить |
 | MASK_PRESETS_DIR | string | config/mask_presets | masking | Каталог пресетов масок |
+
+Лимиты `CONTEXT_MAX_LINES` и `CONTEXT_MAX_BYTES` при отсутствии в окружении
+оцениваются автоматически на основе свободного места диска и средней длины
+сообщения. Метрики сохраняются и обновляются в `<CONTEXT_DIR>/storage_metrics.json`.
 
 ### Anti‑Idle System
 | Ключ | Тип | По умолчанию | Где используется | Влияние |
