@@ -1,0 +1,25 @@
+# neira:meta
+# id: NEI-20250214-120000-pre-commit
+# intent: chore
+# summary: |
+#   Добавлен конфиг pre-commit с форматированием и линтерами.
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npx eslint
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
