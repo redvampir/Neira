@@ -363,7 +363,7 @@ impl ScriptedTrainingNode {
                 return Err(format!("jsonpath '{}' no match", a.path));
             }
             if let Some(eq) = &a.equals {
-                if !res.iter().any(|v| *v == eq) {
+                if !res.contains(&eq) {
                     return Err(format!("jsonpath '{}' equals failed", a.path));
                 }
             }
