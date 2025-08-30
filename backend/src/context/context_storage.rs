@@ -570,7 +570,7 @@ fn append_messages_and_update_index(
         .unwrap_or_default();
     let new_kws = super_keywords(&msgs.last().map(|m| m.content.as_str()).unwrap_or(""));
     for k in new_kws {
-        if !kws.iter().any(|x| x.as_str() == Some(&k)) && kws.len() < 32 {
+        if !kws.contains(&serde_json::json!(k)) && kws.len() < 32 {
             kws.push(serde_json::json!(k));
         }
     }
