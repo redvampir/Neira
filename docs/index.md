@@ -85,3 +85,14 @@ summary: Централизованный DocMap: чистая структур�
 
 ### Reference Additions
 - Anti‑Idle ENV Addendum: reference/env_anti_idle.md
+
+---
+
+### Design Additions
+- Nervous System: design/nervous-system.md
+- Policy Engine: design/policy-engine.md
+- System Lifecycle: design/system-lifecycle.md
+ - State & Recovery: design/state-and-recovery.md
+
+### Meta Additions
+- Taxonomy: meta/taxonomy.md

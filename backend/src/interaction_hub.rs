@@ -13,6 +13,7 @@ use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord}
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::idempotent_store::IdempotentStore;
+use crate::factory::{FactoryService, FabricatorNode, SelectorNode};
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::security::quarantine_node::QuarantineNode;
 use crate::security::safe_mode_controller::SafeModeController;
@@ -74,6 +75,8 @@ pub struct InteractionHub {
     last_activity_secs: std::sync::atomic::AtomicU64,
     // Anti-Idle: runtime toggle flag
     anti_idle_enabled: AtomicBool,
+    // Factory service (adapter-only for now)
+    factory: Arc<FactoryService>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -177,6 +180,7 @@ impl InteractionHub {
             trace_max_events: std::env::var("TRACE_MAX_EVENTS").ok().and_then(|v| v.parse().ok()).unwrap_or(200),
             last_activity_secs: std::sync::atomic::AtomicU64::new(now_secs),
             anti_idle_enabled: AtomicBool::new(std::env::var("ANTI_IDLE_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true)),
+            factory: FactoryService::new(),
         };
 
         // Spawn host metrics polling loop
@@ -202,6 +206,10 @@ impl InteractionHub {
                 .unwrap()
                 .insert("io_watcher".into(), handle);
         }
+
+        // Register factory helper nodes (Adapter + Selector)
+        hub.registry.register_action_node(Arc::new(FabricatorNode::default()));
+        hub.registry.register_analysis_node(Arc::new(SelectorNode::new(hub.registry.clone())));
 
         hub
     }
@@ -255,6 +263,15 @@ impl InteractionHub {
     pub fn set_anti_idle_enabled(&self, enabled: bool) {
         self.anti_idle_enabled.store(enabled, Ordering::Relaxed);
     }
+
+    // Factory service accessors (adapter-only for now)
+    pub fn factory_is_adapter_enabled(&self) -> bool { self.factory.is_adapter_enabled() }
+    pub fn factory_dry_run(&self, tpl: &crate::node_template::NodeTemplate) -> serde_json::Value { self.factory.dry_run(tpl) }
+    pub fn factory_create(&self, backend: &str, tpl: &crate::node_template::NodeTemplate) -> crate::factory::FactoryRecord { self.factory.create_record(backend, tpl) }
+    pub fn factory_advance(&self, id: &str) -> Option<crate::factory::FabricationState> { self.factory.advance(id) }
+    pub fn factory_disable(&self, id: &str) -> Option<crate::factory::FabricationState> { self.factory.disable(id) }
+    pub fn factory_rollback(&self, id: &str) -> Option<crate::factory::FabricationState> { self.factory.rollback(id) }
+    pub fn factory_counts(&self) -> (usize, usize) { self.factory.counts() }
 
     pub fn is_trace_enabled(&self) -> bool { self.trace_enabled.load(Ordering::Relaxed) }
     pub fn set_trace_enabled(&self, enabled: bool) { self.trace_enabled.store(enabled, Ordering::Relaxed) }

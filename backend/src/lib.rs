@@ -20,3 +20,6 @@ use std::sync::{Arc, OnceLock, RwLock};
 use crate::interaction_hub::InteractionHub;
 
 pub static GLOBAL_HUB: OnceLock<RwLock<Option<Arc<InteractionHub>>>> = OnceLock::new();
+
+pub mod factory;
+pub mod policy;

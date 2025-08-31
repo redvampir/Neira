@@ -46,6 +46,31 @@
       setJson('out', data); await refreshStatus();
     }
     function setJson(id, obj) { qs(id).textContent = JSON.stringify(obj, null, 2); }
+    async function factoryDryrun() {
+      const body = JSON.parse(qs('factoryTpl').value||'{}');
+      const res = await post(`${BASE}/factory/nodes/dryrun`, body);
+      setJson('out', res);
+    }
+    async function factoryCreate() {
+      const body = JSON.parse(qs('factoryTpl').value||'{}');
+      const res = await post(`${BASE}/factory/nodes`, body);
+      setJson('out', res);
+    }
+    async function factoryApprove() {
+      const id = qs('fid').value.trim(); if(!id) return;
+      const res = await post(`${BASE}/factory/nodes/${encodeURIComponent(id)}/approve`);
+      setJson('out', res);
+    }
+    async function factoryDisable() {
+      const id = qs('fid').value.trim(); if(!id) return;
+      const res = await post(`${BASE}/factory/nodes/${encodeURIComponent(id)}/disable`);
+      setJson('out', res);
+    }
+    async function factoryRollback() {
+      const id = qs('fid').value.trim(); if(!id) return;
+      const res = await post(`${BASE}/factory/nodes/${encodeURIComponent(id)}/rollback`);
+      setJson('out', res);
+    }
 
     async function actionPause(drain) {
       const auth = qs('auth').value;
@@ -189,6 +214,24 @@
     <div class="card">
       <h3>Интроспекция</h3>
       <pre id="introspection"></pre>
+    </div>
+    <div class="card">
+      <h3>Factory (Adapter)</h3>
+      <small>Dry‑run / Create / Approve / Disable / Rollback</small>
+      <textarea id="factoryTpl" style="width:100%;height:140px;">{
+  "backend": "adapter",
+  "tpl": {"id":"analysis.summarize.v1","version":"0.1.0","analysis_type":"summary","links":[],"metadata":{"schema":"v1"}}
+}</textarea>
+      <div style="margin-top:6px;">
+        <button onclick="factoryDryrun()">Dry‑Run</button>
+        <button onclick="factoryCreate()">Create (draft)</button>
+      </div>
+      <div style="margin-top:6px;">
+        <input id="fid" type="text" placeholder="factory id" />
+        <button onclick="factoryApprove()">Approve</button>
+        <button onclick="factoryDisable()">Disable</button>
+        <button onclick="factoryRollback()">Rollback</button>
+      </div>
     </div>
   </div>
 

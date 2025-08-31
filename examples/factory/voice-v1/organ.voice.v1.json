@@ -1,0 +1,16 @@
+{
+  "id": "organ.voice.v1",
+  "version": "0.1.0",
+  "kind": "organ",
+  "pipeline": [
+    { "node": "analysis.text_normalize.v1" },
+    { "node": "analysis.text_to_phonemes.v1" },
+    { "node": "action.speak_adapter.v1" }
+  ],
+  "metadata": { "schema": "v1" },
+  "policy": {
+    "stage": "draft",
+    "hitl": true
+  }
+}
+

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neira.ai/schemas/factory-spec.schema.json",
+  "title": "FactorySpec",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "backend": { "type": "string", "enum": ["adapter", "script", "wasm"], "default": "adapter" },
+    "template": { "type": "object" }
+  },
+  "required": ["template"]
+}

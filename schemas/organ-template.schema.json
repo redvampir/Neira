@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neira.ai/schemas/organ-template.schema.json",
+  "title": "OrganTemplate",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "version": { "type": "string", "default": "0.1.0" },
+    "roles": { "type": "array", "items": { "type": "string" } },
+    "nodes": { "type": "array", "items": { "type": "string" } },
+    "channels": { "type": "array", "items": { "type": "string" } },
+    "policies": { "type": "object" }
+  },
+  "required": ["id", "roles", "nodes"]
+}

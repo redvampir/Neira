@@ -1,0 +1,9 @@
+{
+  "id": "analysis.text_to_phonemes.v1",
+  "version": "0.1.0",
+  "analysis_type": "text_to_phonemes",
+  "links": [
+    "analysis.text_normalize.v1"
+  ],
+  "metadata": { "schema": "v1" }
+}

@@ -66,3 +66,7 @@ ENV (см. docs/reference/env.md)
 - Organ Systems: «орган гомеостаза» координирует локальные правила узлов.
 - Roadmap: Stage 0 — control_pause/kill/snapshot; Stage 1 — homeostasis_budgets/trace.
 
+
+
+��. �����: design/anti-idle-system.md, design/nervous-system.md
+

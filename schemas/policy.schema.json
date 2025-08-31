@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neira.ai/schemas/policy.schema.json",
+  "title": "Policy",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "capabilities": { "type": "object" },
+    "approvals": { "type": "object" },
+    "roles": { "type": "object" }
+  }
+}

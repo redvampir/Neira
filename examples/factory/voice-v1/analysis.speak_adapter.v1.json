@@ -1,0 +1,10 @@
+{
+  "id": "analysis.speak_adapter.v1",
+  "version": "0.1.0",
+  "analysis_type": "speak_adapter",
+  "links": [
+    "analysis.text_to_phonemes.v1"
+  ],
+  "metadata": { "schema": "v1" }
+}
+

@@ -1,0 +1,7 @@
+{
+  "id": "analysis.text_normalize.v1",
+  "version": "0.1.0",
+  "analysis_type": "text_normalize",
+  "links": [],
+  "metadata": { "schema": "v1" }
+}

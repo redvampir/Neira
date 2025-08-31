@@ -60,3 +60,9 @@ Rollout (минимальная дорожная карта)
 
 Notes
 - Все опасные операции зафлажены; по умолчанию locked. Все переходы — с журналом и быстрым rollback.
+
+## Natural Language Commands (эскиз)
+
+- Примеры: “создай голосовой орган v1”, “обнови зрение до v2 (grayscale)”, “собери speak‑pipeline normalize→phonemes→adapter”.
+- Парсинг команд (Command Node) → генерация FactorySpec/OrganTemplate + Policy checks.
+- В ответ — dry‑run отчёт/дифф, затем создание draft и проведение HITL‑циклов до canary/experimental.

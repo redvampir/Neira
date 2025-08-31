@@ -30,6 +30,8 @@ use backend::interaction_hub::InteractionHub;
 use backend::memory_node::MemoryNode;
 use backend::node_registry::NodeRegistry;
 use backend::node_template::NodeTemplate;
+use backend::factory::{FabricationState, NodeTemplateAdapter, AdapterBackend};
+use backend::policy::{Capability, PolicyEngine};
 use backend::security::init_config_node::InitConfigNode;
 mod http {
     pub mod training_routes;
@@ -94,6 +96,81 @@ async fn get_node_latest(
         .get(&id)
         .map(Json)
         .ok_or(axum::http::StatusCode::NOT_FOUND)
+}
+
+#[derive(serde::Deserialize)]
+struct FactoryBody {
+    #[serde(default)]
+    backend: Option<String>,
+    #[serde(flatten)]
+    tpl: NodeTemplate,
+}
+
+async fn factory_dryrun(
+    State(state): State<AppState>,
+    Json(body): Json<FactoryBody>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let backend = body.backend.as_deref().unwrap_or("adapter");
+    if backend != "adapter" { return Err(axum::http::StatusCode::BAD_REQUEST); }
+    let pe = PolicyEngine::new();
+    if let Err(_e) = pe.require_capability(&state.hub, Capability::FactoryAdapter) { return Err(axum::http::StatusCode::FORBIDDEN); }
+    Ok(Json(state.hub.factory_dry_run(&body.tpl)))
+}
+
+async fn factory_create(
+    State(state): State<AppState>,
+    Json(body): Json<FactoryBody>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let backend = body.backend.as_deref().unwrap_or("adapter");
+    if backend != "adapter" { return Err(axum::http::StatusCode::BAD_REQUEST); }
+    let pe = PolicyEngine::new();
+    if let Err(_e) = pe.require_capability(&state.hub, Capability::FactoryAdapter) { return Err(axum::http::StatusCode::FORBIDDEN); }
+    let adapter = NodeTemplateAdapter{ tpl: &body.tpl };
+    adapter.validate().map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
+    adapter.register(&state.hub.registry).map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
+    let rec = state.hub.factory_create(backend, &body.tpl);
+    Ok(Json(serde_json::json!({"id": rec.id, "state": "draft"})))
+}
+
+async fn factory_approve(
+    State(state): State<AppState>,
+    Path(fid): Path<String>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    match state.hub.factory_advance(&fid) {
+        Some(st) => Ok(Json(serde_json::json!({"id": fid, "state": format_state(st)}))),
+        None => Err(axum::http::StatusCode::NOT_FOUND),
+    }
+}
+
+async fn factory_disable(
+    State(state): State<AppState>,
+    Path(fid): Path<String>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    match state.hub.factory_disable(&fid) {
+        Some(st) => Ok(Json(serde_json::json!({"id": fid, "state": format_state(st)}))),
+        None => Err(axum::http::StatusCode::NOT_FOUND),
+    }
+}
+
+async fn factory_rollback(
+    State(state): State<AppState>,
+    Path(fid): Path<String>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    match state.hub.factory_rollback(&fid) {
+        Some(st) => Ok(Json(serde_json::json!({"id": fid, "state": format_state(st)}))),
+        None => Err(axum::http::StatusCode::NOT_FOUND),
+    }
+}
+
+fn format_state(st: FabricationState) -> &'static str {
+    match st {
+        FabricationState::Draft => "draft",
+        FabricationState::Canary => "canary",
+        FabricationState::Experimental => "experimental",
+        FabricationState::Stable => "stable",
+        FabricationState::Disabled => "disabled",
+        FabricationState::RolledBack => "rolled_back",
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -1259,6 +1336,12 @@ async fn main() {
         .route("/nodes", post(register_node))
         .route("/nodes/:id", get(get_node_latest))
         .route("/nodes/:id/:version", get(get_node))
+        // Factory API (draft)
+        .route("/factory/nodes/dryrun", post(factory_dryrun))
+        .route("/factory/nodes", post(factory_create))
+        .route("/factory/nodes/:fid/approve", post(factory_approve))
+        .route("/factory/nodes/:fid/disable", post(factory_disable))
+        .route("/factory/nodes/:fid/rollback", post(factory_rollback))
         .route("/api/neira/analysis", post(analyze_request))
         .route("/api/neira/analysis/resume", post(resume_request))
         .route("/api/neira/chat", post(chat_request))
@@ -1736,8 +1819,10 @@ async fn main() {
             "inspect_snapshot": true,
             "control_pause_resume": std::env::var("CONTROL_ALLOW_PAUSE").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true),
             "control_kill_switch": std::env::var("CONTROL_ALLOW_KILL").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true),
-            "dev_routes": std::env::var("DEV_ROUTES_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false)
+            "dev_routes": std::env::var("DEV_ROUTES_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false),
+            "factory_adapter": state.hub.factory_is_adapter_enabled()
         });
+        let (factory_total, factory_active) = state.hub.factory_counts();
         Ok(Json(serde_json::json!({
             "version": env!("CARGO_PKG_VERSION"),
             "paused": state.paused.load(std::sync::atomic::Ordering::Relaxed),
@@ -1748,6 +1833,7 @@ async fn main() {
             "backpressure": bp,
             "watchdogs": {"soft_ms": soft_ms, "hard_ms": hard_ms},
             "anti_idle": {"enabled": anti_idle_enabled, "idle_state": idle_state, "idle_label": match idle_state {0=>"active",1=>"short",2=>"long",_=>"deep"}, "since_seconds": since, "thresholds": {"idle": idle_threshold, "long": long_secs, "deep": deep_secs}, "microtasks": {"dryrun_depth": std::env::var("IDLE_DRYRUN_QUEUE_DEPTH").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(0) }}
+            ,"factory": {"records_total": factory_total, "active": factory_active}
         })))
     }
     app = app.route("/api/neira/introspection/status", get(introspection_status));

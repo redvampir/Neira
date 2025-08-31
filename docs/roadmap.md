@@ -174,6 +174,53 @@ Stage 1 (Experimental Growth)
 - [x] Runtime Extensibility — read‑only листинги плагинов/инструментов (exec = LOCKED).
 - [ ] Anti‑Idle микрозадачи — `learning_microtasks` и `reflection_journal` (каркас готов, запуска нет).
 - [ ] Homeostasis budgets — обратные давления/паузы/лимиты в обработке запросов (experimental).
- - [ ] Factory (Adapter) — FabricatorNode + SelectorNode, только dry‑run/HITL (experimental).
- - [ ] OrganTemplate/OrganBuilder — сборка органов (dry‑run → canary) с интеграцией NS/IS (experimental).
- - [ ] Training Orchestrator (HITL) — мини‑циклы стабилизации узлов до Experimental/Stable.
+- [ ] Factory (Adapter) — FabricatorNode + SelectorNode, только dry‑run/HITL (experimental).
+- [ ] OrganTemplate/OrganBuilder — сборка органов (dry‑run → canary) с интеграцией NS/IS (experimental).
+- [ ] Training Orchestrator (HITL) — мини‑циклы стабилизации узлов до Experimental/Stable.
+
+---
+
+## Universal System Roadmap (high‑level)
+
+Factory & Organs
+- Adapter→Script→WASM (exec под флагами); Organ Builder v0 (dry‑run→canary→experimental); schemas (factory‑spec/organ‑template/policy); natural‑language команды → FactorySpec/Policy.
+
+Policies & Safety
+- Policy Engine: роли/approvals/risk; JSON‑ошибки; гейты матрицей “кто/что/когда”; safety rails Script/WASM (CPU/Mem/IO/no‑net), whitelist источников.
+
+HITL Learning
+- Orchestrator: итерации/лимиты/критерии конвергенции; training_*; автозапуск при draft→canary; curriculum/skill graph; тест‑стенды.
+
+Memory & Representations
+- Единая STM/эпизодическая/семантическая память; индексы/векторы; объяснимость; связь с обучением (прогресс, рефлексия, планы).
+
+Sensing & Acting
+- Зрение v1→v3 (ч/б→серый→RGB); Моторика v1 (примитивы→композиции); Слух/речь (STT/TTS под флагами); Командный узел.
+
+Observability & Ops
+- Интроспекция+: policy/approvals/pending; органы/фабрика (состояния/рекомендации); Admin UI: dashboard и diff dry‑run; инциденты/алерты.
+- Homeostasis: пулы/бюджеты/бэкофф; снапшоты/чекпойнты; масштабирование (позже).
+
+Consistency & Taxonomy
+- Идентификаторы kind.namespace.name[:version], единые статусы; док‑связность Nervous/Immune/Factory/Policy/Organs/Lifecycle.
+
+---
+
+## Execution Plan — Voice v1 via Factory (Adapter‑only)
+
+1) StateStore & Recovery
+- Добавить NodeState/Model артефакты и сервис автоподхвата (discovery→adapter.register→restore config/state).
+- Интроспекция: показать восстановленные узлы/версии и состояние recovery.
+
+2) Upgrade Hooks + Blue/Green
+- Простые `migrate_state(old→new)` + shadow‑run и сравнение метрик; роуты планового upgrade/rollback (интеграция с фабрикой).
+
+3) Runtime Config Overlay
+- Узлы принимают `NodeConfig` overlay; фабрика/Policy меняют параметры на лету; Admin UI: patch‑форма.
+
+4) Snapshot++ & Audit
+- В snapshot включить templates,state,models; журнал событий с diff dry‑run/спецификаций.
+
+5) Voice v1 pipeline
+- Узлы: `analysis.text_normalize.v1`, `analysis.text_to_phonemes.v1`, `action.speak_adapter.v1`.
+- Орган: `organ.voice.v1` (normalize→phonemes→speak_adapter); dry‑run→canary; метрики organ_build_* и factory_*.
