@@ -1,14 +1,17 @@
 {
   "id": "organ.voice.v1",
   "version": "0.1.0",
-  "kind": "organ",
-  "pipeline": [
-    { "node": "analysis.text_normalize.v1" },
-    { "node": "analysis.text_to_phonemes.v1" },
-    { "node": "action.speak_adapter.v1" }
+  "roles": [
+    "text_normalize",
+    "text_to_phonemes",
+    "speak_adapter"
   ],
-  "metadata": { "schema": "v1" },
-  "policy": {
+  "nodes": [
+    "analysis.text_normalize.v1",
+    "analysis.text_to_phonemes.v1",
+    "analysis.speak_adapter.v1"
+  ],
+  "policies": {
     "stage": "draft",
     "hitl": true
   }
