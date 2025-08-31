@@ -3,6 +3,11 @@ id: NEI-20250923-factory-api-draft
 intent: docs
 summary: Черновой API Фабрикаторов (dry‑run/approve/rollback) и сборки органов.
 -->
+<!-- neira:meta
+id: NEI-20251010-organ-builder-status-route
+intent: docs
+summary: описан ручной апдейт статуса органа и метрика длительности сборки.
+-->
 
 # Factory API (Draft)
 
@@ -34,9 +39,16 @@ Adapter Contracts (обязательные хуки)
   - Gate: `organs_builder=experimental`
   - Body: { organ_template, dryrun?: true }
   - Resp: { organ_id, state: 'draft'|'canary'|'experimental'|'stable' }
+  - Logs `organ build started` и метрики `organ_build_attempts_total`, `organ_build_duration_ms`
 
 - GET `/organs/:id/status`
   - Resp: { id, state, nodes, metrics }
+  - Метрика: `organ_build_status_queries_total`
+
+- POST `/organs/:id/status`
+  - Body: { state: 'draft'|'canary'|'experimental'|'stable'|'failed' }
+  - Resp: { id, state }
+  - Позволяет вручную продвигать орган по стадиям
 
 ## Examples
 

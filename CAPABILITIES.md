@@ -1,3 +1,8 @@
+<!-- neira:meta
+id: NEI-20251010-organ-builder-cap-doc
+intent: docs
+summary: добавлены примеры активации орган-билдера.
+-->
 # Neira Capabilities & Feature Gates
 
 Purpose
@@ -62,8 +67,11 @@ capabilities:
   organs_builder:
     state: experimental
     notes: Сборка органов из OrganTemplate (dry‑run→canary→experimental)
-    signals: [organ_build_attempts_total, organ_build_failures_total]
+    signals: [organ_build_attempts_total, organ_build_failures_total, organ_build_status_queries_total, organ_build_duration_ms, organ_status_not_found_total]
 ```
+
+### Пример
+- «Разблокируй organs_builder» — включает капабилити на уровне experimental
 
 ## Persona & Control (дополнение)
 
