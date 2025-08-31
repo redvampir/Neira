@@ -34,9 +34,11 @@ Adapter Contracts (обязательные хуки)
   - Gate: `organs_builder=experimental`
   - Body: { organ_template, dryrun?: true }
   - Resp: { organ_id, state: 'draft'|'canary'|'experimental'|'stable' }
+  - Logs `organ build started` и метрика `organ_build_attempts_total`
 
 - GET `/organs/:id/status`
   - Resp: { id, state, nodes, metrics }
+  - Метрика: `organ_build_status_queries_total`
 
 ## Examples
 
