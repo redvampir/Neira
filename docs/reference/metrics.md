@@ -1,3 +1,8 @@
+<!-- neira:meta
+id: NEI-20251010-organ-builder-metrics
+intent: docs
+summary: добавлена метрика organ_build_duration_ms и статусные запросы.
+-->
 # Реестр Метрик (Истина)
 
 | Имя | Тип | Единицы | Где инкрементируется | Назначение |
@@ -90,5 +95,8 @@
 | factory_rollbacks_total | counter | ops | Factory | Откаты узлов |
 | organ_build_attempts_total | counter | ops | OrganBuilder | Попытки сборки органов |
 | organ_build_failures_total | counter | ops | OrganBuilder | Ошибки сборки органов |
+| organ_build_status_queries_total | counter | ops | OrganBuilder | Запросы статуса органа |
+| organ_build_duration_ms | histogram | ms | OrganBuilder | Время от Draft до Stable |
+| organ_status_not_found_total | counter | ops | OrganBuilder | Запросы статуса к несуществующим органам |
 | training_iterations_total | counter | iters | Training | Итерации обучения новых узлов |
 | training_converged_total | counter | iters | Training | Конвергировали до стабильности |

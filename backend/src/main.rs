@@ -221,6 +221,48 @@ async fn organ_status(
                 serde_json::json!({"id": id, "state": format_organ_state(st)}),
             ))
         }
+        None => {
+            metrics::counter!("organ_status_not_found_total").increment(1);
+            tracing::warn!(organ_id = %id, reason = "not_found", "organ status missing");
+            Err(axum::http::StatusCode::NOT_FOUND)
+        }
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct OrganStatusUpdateReq {
+    state: String,
+}
+
+/* neira:meta
+id: NEI-20251010-organ-status-update-route
+intent: code
+summary: добавлен POST /organs/:id/status для ручного изменения стадии.
+*/
+async fn organ_update_status(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<OrganStatusUpdateReq>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let pe = PolicyEngine::new();
+    if let Err(_e) = pe.require_capability(&state.hub, Capability::OrgansBuilder) {
+        return Err(axum::http::StatusCode::FORBIDDEN);
+    }
+    let st = match body.state.as_str() {
+        "draft" => backend::organ_builder::OrganState::Draft,
+        "canary" => backend::organ_builder::OrganState::Canary,
+        "experimental" => backend::organ_builder::OrganState::Experimental,
+        "stable" => backend::organ_builder::OrganState::Stable,
+        "failed" => backend::organ_builder::OrganState::Failed,
+        _ => return Err(axum::http::StatusCode::BAD_REQUEST),
+    };
+    match state.hub.organ_update_status(&id, st) {
+        Some(st) => {
+            info!(organ_id = %id, new_state = %body.state, "organ status updated");
+            Ok(Json(
+                serde_json::json!({"id": id, "state": format_organ_state(st)}),
+            ))
+        }
         None => Err(axum::http::StatusCode::NOT_FOUND),
     }
 }
@@ -228,9 +270,13 @@ async fn organ_status(
 fn format_organ_state(st: backend::organ_builder::OrganState) -> &'static str {
     match st {
         backend::organ_builder::OrganState::Draft => "draft",
+        backend::organ_builder::OrganState::Canary => "canary",
+        backend::organ_builder::OrganState::Experimental => "experimental",
+        backend::organ_builder::OrganState::Stable => "stable",
         backend::organ_builder::OrganState::Failed => "failed",
     }
 }
+
 
 fn format_state(st: FabricationState) -> &'static str {
     match st {
@@ -1543,7 +1589,7 @@ async fn main() {
         }
     }
 
-    let mut app = Router::new()
+   let mut app = Router::new()
         .route("/", get(|| async { "Hello, world!" }))
         .route(
             "/admin",
@@ -1586,7 +1632,10 @@ async fn main() {
         .route("/factory/nodes/:fid/rollback", post(factory_rollback))
         // Organ builder
         .route("/organs/build", post(organ_build))
-        .route("/organs/:id/status", get(organ_status))
+        .route(
+            "/organs/:id/status",
+            get(organ_status).post(organ_update_status),
+        )
         .route("/api/neira/analysis", post(analyze_request))
         .route("/api/neira/analysis/resume", post(resume_request))
         .route("/api/neira/chat", post(chat_request))
@@ -1656,6 +1705,7 @@ async fn main() {
         )
         .route("/api/neira/chat/stream/cancel", post(cancel_stream));
     // Control Plane (admin)
+
     async fn control_pause(
         State(state): State<AppState>,
         Json(mut body): Json<serde_json::Value>,

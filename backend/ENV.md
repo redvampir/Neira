@@ -9,6 +9,11 @@ id: NEI-20250922-analysis-queue-env
 intent: docs
 summary: Добавлены переменные управления порогами очередей анализа.
 -->
+<!-- neira:meta
+id: NEI-20251010-organ-builder-env
+intent: docs
+summary: описаны переменные ORGANS_BUILDER_ENABLED и ORGANS_BUILDER_TEMPLATES_DIR.
+-->
 
 Backend environment variables
 
@@ -58,6 +63,8 @@ SSE and logging
 
 Masking presets
 - MASK_PRESETS_DIR: directory with regex preset files named <preset>.txt (default: config/mask_presets)
+- ORGANS_BUILDER_ENABLED: enable organ builder module (default: false)
+- ORGANS_BUILDER_TEMPLATES_DIR: directory to store organ templates (default: organ_templates)
 
 ## Автоматическое определение `INTEGRITY_ROOT`
 
@@ -95,3 +102,5 @@ INDEX_COMPACT_INTERVAL_MS=300000
 SSE_WARN_AFTER_MS=60000
 NERVOUS_SYSTEM_JSON_LOGS=false
 MASK_PRESETS_DIR=./config/mask_presets
+ORGANS_BUILDER_ENABLED=false
+ORGANS_BUILDER_TEMPLATES_DIR=./organ_templates

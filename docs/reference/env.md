@@ -9,6 +9,11 @@ id: NEI-20250922-analysis-queue-env-docs
 intent: docs
 summary: Добавлены переменные для адаптивных порогов очередей анализа.
 -->
+<!-- neira:meta
+id: NEI-20251010-organ-builder-env-docs
+intent: docs
+summary: описаны ORGANS_BUILDER_ENABLED и ORGANS_BUILDER_TEMPLATES_DIR.
+-->
 
 # ENV Reference (Истина)
 
@@ -44,7 +49,9 @@ summary: Добавлены переменные для адаптивных п�
 | INDEX_COMPACT_INTERVAL_MS   | int             | 300000                | compaction job          | Интервал фоновой чистки                                      |
 | SSE_WARN_AFTER_MS           | int             | 60000                 | SSE                     | Варнинг при долгом стриме                                    |
 | NERVOUS_SYSTEM_JSON_LOGS    | bool            | false                 | logging                 | JSON‑логи включить                                           |
-| MASK_PRESETS_DIR            | string          | config/mask_presets   | masking                 | Каталог пресетов масок                                       |
+| MASK_PRESETS_DIR            | string          | config/mask_presets   | masking                 | Каталог пресетов масок                                 |
+| ORGANS_BUILDER_ENABLED     | bool            | false                 | organ builder           | Включить модуль орган-билдера                          |
+| ORGANS_BUILDER_TEMPLATES_DIR | string        | organ_templates       | organ builder           | Каталог шаблонов органов                               |
 
 Лимиты `CONTEXT_MAX_LINES` и `CONTEXT_MAX_BYTES` при отсутствии в окружении
 оцениваются автоматически на основе свободного места диска и средней длины
