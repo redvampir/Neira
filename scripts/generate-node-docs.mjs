@@ -23,7 +23,17 @@ async function collectJsonFiles(dir) {
 
 async function main() {
   const files = await collectJsonFiles('examples');
-  const lines = ['# Node IDs', ''];
+  const lines = [
+    '<!-- neira:meta',
+    'id: NEI-20250101-000005-node-ids-doc',
+    'intent: docs',
+    'summary: |',
+    '  Node identifiers generated from organ specs.',
+    '-->',
+    '',
+    '# Node IDs',
+    ''
+  ];
   for (const file of files) {
     const data = JSON.parse(await fs.readFile(file, 'utf8'));
     lines.push(`## ${data.id}`, '');
@@ -36,3 +46,4 @@ async function main() {
 }
 
 main();
+
