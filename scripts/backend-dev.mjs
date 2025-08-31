@@ -2,13 +2,14 @@
 /* neira:meta
 id: NEI-20250831-backend-dev
 intent: utility
-summary: Запуск backend с выбором адреса и порта через NEIRA_BIND_ADDR.
+summary: Запуск backend с выбором адреса и порта через NEIRA_BIND_ADDR,
+  по умолчанию "0.0.0.0:3000".
 */
 /* global process */
 import { spawn } from "node:child_process";
 
 const args = process.argv.slice(2);
-const addr = process.env.NEIRA_BIND_ADDR ?? "127.0.0.1:3000";
+const addr = process.env.NEIRA_BIND_ADDR ?? "0.0.0.0:3000";
 const sep = addr.lastIndexOf(":");
 const host = sep !== -1 ? addr.slice(0, sep) : addr;
 const defaultPort = sep !== -1 ? addr.slice(sep + 1) : "3000";
