@@ -222,5 +222,5 @@ Consistency & Taxonomy
 - В snapshot включить templates,state,models; журнал событий с diff dry‑run/спецификаций.
 
 5) Voice v1 pipeline
-- Узлы: `analysis.text_normalize.v1`, `analysis.text_to_phonemes.v1`, `action.speak_adapter.v1`.
+- Узлы: `analysis.text_normalize.v1`, `analysis.text_to_phonemes.v1`, `analysis.speak_adapter.v1`.
 - Орган: `organ.voice.v1` (normalize→phonemes→speak_adapter); dry‑run→canary; метрики organ_build_* и factory_*.
