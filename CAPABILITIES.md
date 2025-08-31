@@ -62,7 +62,7 @@ capabilities:
   organs_builder:
     state: experimental
     notes: Сборка органов из OrganTemplate (dry‑run→canary→experimental)
-    signals: [organ_build_attempts_total, organ_build_failures_total]
+    signals: [organ_build_attempts_total, organ_build_failures_total, organ_build_status_queries_total]
 ```
 
 ## Persona & Control (дополнение)

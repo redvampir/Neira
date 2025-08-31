@@ -12,8 +12,9 @@ use crate::action::diagnostics_node::DiagnosticsNode;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
+use crate::factory::{FabricatorNode, FactoryService, SelectorNode};
 use crate::idempotent_store::IdempotentStore;
-use crate::factory::{FactoryService, FabricatorNode, SelectorNode};
+use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::security::quarantine_node::QuarantineNode;
 use crate::security::safe_mode_controller::SafeModeController;
@@ -77,6 +78,7 @@ pub struct InteractionHub {
     anti_idle_enabled: AtomicBool,
     // Factory service (adapter-only for now)
     factory: Arc<FactoryService>,
+    organ_builder: Arc<OrganBuilder>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -176,11 +178,23 @@ impl InteractionHub {
             cancels: RwLock::new(std::collections::HashMap::new()),
             analysis_cancels: RwLock::new(std::collections::HashMap::new()),
             traces: RwLock::new(std::collections::HashMap::new()),
-            trace_enabled: AtomicBool::new(std::env::var("TRACE_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false)),
-            trace_max_events: std::env::var("TRACE_MAX_EVENTS").ok().and_then(|v| v.parse().ok()).unwrap_or(200),
+            trace_enabled: AtomicBool::new(
+                std::env::var("TRACE_ENABLED")
+                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                    .unwrap_or(false),
+            ),
+            trace_max_events: std::env::var("TRACE_MAX_EVENTS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(200),
             last_activity_secs: std::sync::atomic::AtomicU64::new(now_secs),
-            anti_idle_enabled: AtomicBool::new(std::env::var("ANTI_IDLE_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true)),
+            anti_idle_enabled: AtomicBool::new(
+                std::env::var("ANTI_IDLE_ENABLED")
+                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                    .unwrap_or(true),
+            ),
             factory: FactoryService::new(),
+            organ_builder: OrganBuilder::new(),
         };
 
         // Spawn host metrics polling loop
@@ -208,8 +222,10 @@ impl InteractionHub {
         }
 
         // Register factory helper nodes (Adapter + Selector)
-        hub.registry.register_action_node(Arc::new(FabricatorNode::default()));
-        hub.registry.register_analysis_node(Arc::new(SelectorNode::new(hub.registry.clone())));
+        hub.registry
+            .register_action_node(Arc::new(FabricatorNode::default()));
+        hub.registry
+            .register_analysis_node(Arc::new(SelectorNode::new(hub.registry.clone())));
 
         hub
     }
@@ -244,14 +260,20 @@ impl InteractionHub {
     /// Отметить пользовательскую активность (chat/analysis/API вызовы)
     pub fn mark_activity(&self) {
         use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
         self.last_activity_secs.store(now, Ordering::Relaxed);
     }
 
     /// Сколько секунд прошло с момента последней зафиксированной активности
     pub fn seconds_since_last_activity(&self) -> u64 {
         use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
         let last = self.last_activity_secs.load(Ordering::Relaxed);
         now.saturating_sub(last)
     }
@@ -265,16 +287,49 @@ impl InteractionHub {
     }
 
     // Factory service accessors (adapter-only for now)
-    pub fn factory_is_adapter_enabled(&self) -> bool { self.factory.is_adapter_enabled() }
-    pub fn factory_dry_run(&self, tpl: &crate::node_template::NodeTemplate) -> serde_json::Value { self.factory.dry_run(tpl) }
-    pub fn factory_create(&self, backend: &str, tpl: &crate::node_template::NodeTemplate) -> crate::factory::FactoryRecord { self.factory.create_record(backend, tpl) }
-    pub fn factory_advance(&self, id: &str) -> Option<crate::factory::FabricationState> { self.factory.advance(id) }
-    pub fn factory_disable(&self, id: &str) -> Option<crate::factory::FabricationState> { self.factory.disable(id) }
-    pub fn factory_rollback(&self, id: &str) -> Option<crate::factory::FabricationState> { self.factory.rollback(id) }
-    pub fn factory_counts(&self) -> (usize, usize) { self.factory.counts() }
+    pub fn factory_is_adapter_enabled(&self) -> bool {
+        self.factory.is_adapter_enabled()
+    }
+    pub fn factory_dry_run(&self, tpl: &crate::node_template::NodeTemplate) -> serde_json::Value {
+        self.factory.dry_run(tpl)
+    }
+    pub fn factory_create(
+        &self,
+        backend: &str,
+        tpl: &crate::node_template::NodeTemplate,
+    ) -> crate::factory::FactoryRecord {
+        self.factory.create_record(backend, tpl)
+    }
+    pub fn factory_advance(&self, id: &str) -> Option<crate::factory::FabricationState> {
+        self.factory.advance(id)
+    }
+    pub fn factory_disable(&self, id: &str) -> Option<crate::factory::FabricationState> {
+        self.factory.disable(id)
+    }
+    pub fn factory_rollback(&self, id: &str) -> Option<crate::factory::FabricationState> {
+        self.factory.rollback(id)
+    }
+    pub fn factory_counts(&self) -> (usize, usize) {
+        self.factory.counts()
+    }
 
-    pub fn is_trace_enabled(&self) -> bool { self.trace_enabled.load(Ordering::Relaxed) }
-    pub fn set_trace_enabled(&self, enabled: bool) { self.trace_enabled.store(enabled, Ordering::Relaxed) }
+    // Organ builder accessors
+    pub fn organ_builder_enabled(&self) -> bool {
+        self.organ_builder.is_enabled()
+    }
+    pub fn organ_build(&self, tpl: serde_json::Value) -> String {
+        self.organ_builder.start_build(tpl)
+    }
+    pub fn organ_status(&self, id: &str) -> Option<OrganState> {
+        self.organ_builder.status(id)
+    }
+
+    pub fn is_trace_enabled(&self) -> bool {
+        self.trace_enabled.load(Ordering::Relaxed)
+    }
+    pub fn set_trace_enabled(&self, enabled: bool) {
+        self.trace_enabled.store(enabled, Ordering::Relaxed)
+    }
 
     /// Отмена всех активных SSE-стримов. Возвращает количество отменённых.
     pub fn cancel_all_streams(&self) -> usize {
@@ -309,7 +364,7 @@ impl InteractionHub {
     }
 
     pub fn backpressure_sum(&self) -> u64 {
-        let (a,b,c) = self.queue_lengths();
+        let (a, b, c) = self.queue_lengths();
         (a + b + c) as u64
     }
 
@@ -318,8 +373,13 @@ impl InteractionHub {
     }
 
     pub fn trace_event(&self, request_id: Option<&str>, event: &str, data: serde_json::Value) {
-        if !self.is_trace_enabled() { return; }
-        let id = match request_id { Some(s) if !s.is_empty() => s.to_string(), _ => return };
+        if !self.is_trace_enabled() {
+            return;
+        }
+        let id = match request_id {
+            Some(s) if !s.is_empty() => s.to_string(),
+            _ => return,
+        };
         let ev = json!({
             "ts_ms": (std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i128),
             "event": event,
@@ -327,14 +387,20 @@ impl InteractionHub {
         });
         let mut store = self.traces.write().unwrap();
         let list = store.entry(id).or_insert_with(Vec::new);
-        if list.len() >= self.trace_max_events { list.remove(0); }
+        if list.len() >= self.trace_max_events {
+            list.remove(0);
+        }
         list.push(ev);
     }
 
     pub fn trace_dump(&self, request_id: &str) -> Option<serde_json::Value> {
-        if !self.is_trace_enabled() { return None; }
+        if !self.is_trace_enabled() {
+            return None;
+        }
         let store = self.traces.read().unwrap();
-        store.get(request_id).map(|v| json!({"request_id": request_id, "events": v}))
+        store
+            .get(request_id)
+            .map(|v| json!({"request_id": request_id, "events": v}))
     }
 
     fn authorize(&self, token: &str) -> bool {
@@ -689,12 +755,28 @@ impl InteractionHub {
         });
 
         // Watchdog timeouts from ENV (soft/hard) with per-node overrides
-        fn env_ms(key: &str, default_ms: u64) -> u64 { std::env::var(key).ok().and_then(|v| v.parse().ok()).unwrap_or(default_ms) }
+        fn env_ms(key: &str, default_ms: u64) -> u64 {
+            std::env::var(key)
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(default_ms)
+        }
         let base_soft = env_ms("WATCHDOG_REASONING_SOFT_MS", 30_000);
         let base_hard = env_ms("WATCHDOG_REASONING_HARD_MS", cfg.global_time_budget);
         // per-node override: WATCHDOG_SOFT_MS_<ID>, WATCHDOG_HARD_MS_<ID> (ID upcased, non-alnum -> '_')
-        let mut up = id.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_uppercase() } else { '_' }).collect::<String>();
-        if up.is_empty() { up = "DEFAULT".into(); }
+        let mut up = id
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() {
+                    c.to_ascii_uppercase()
+                } else {
+                    '_'
+                }
+            })
+            .collect::<String>();
+        if up.is_empty() {
+            up = "DEFAULT".into();
+        }
         let soft_key = format!("WATCHDOG_SOFT_MS_{}", up);
         let hard_key = format!("WATCHDOG_HARD_MS_{}", up);
         let soft_ms = env_ms(&soft_key, base_soft);
@@ -873,11 +955,7 @@ impl InteractionHub {
     }
 
     // Analysis cancellation registry
-    pub fn register_analysis_cancel(
-        &self,
-        id: &str,
-        token: tokio_util::sync::CancellationToken,
-    ) {
+    pub fn register_analysis_cancel(&self, id: &str, token: tokio_util::sync::CancellationToken) {
         self.analysis_cancels
             .write()
             .unwrap()
