@@ -277,6 +277,7 @@ fn format_organ_state(st: backend::organ_builder::OrganState) -> &'static str {
     }
 }
 
+
 fn format_state(st: FabricationState) -> &'static str {
     match st {
         FabricationState::Draft => "draft",
@@ -1588,7 +1589,7 @@ async fn main() {
         }
     }
 
-    let mut app = Router::new()
+   let mut app = Router::new()
         .route("/", get(|| async { "Hello, world!" }))
         .route(
             "/admin",
@@ -1704,6 +1705,7 @@ async fn main() {
         )
         .route("/api/neira/chat/stream/cancel", post(cancel_stream));
     // Control Plane (admin)
+
     async fn control_pause(
         State(state): State<AppState>,
         Json(mut body): Json<serde_json::Value>,

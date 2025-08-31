@@ -50,6 +50,7 @@ Adapter Contracts (обязательные хуки)
   - Resp: { id, state }
   - Позволяет вручную продвигать орган по стадиям
 
+
 ## Examples
 
 Request (dry‑run, adapter):

@@ -313,24 +313,25 @@ impl InteractionHub {
         self.factory.counts()
     }
 
-    // Organ builder accessors
-    pub fn organ_builder_enabled(&self) -> bool {
-        self.organ_builder.is_enabled()
-    }
-    /* neira:meta
-    id: NEI-20251010-organ-builder-update
-    intent: code
-    summary: добавлены методы обновления и получения статусов органа.
-    */
-    pub fn organ_build(&self, tpl: serde_json::Value) -> String {
-        self.organ_builder.start_build(tpl)
-    }
-    pub fn organ_status(&self, id: &str) -> Option<OrganState> {
-        self.organ_builder.status(id)
-    }
-    pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState> {
-        self.organ_builder.update_status(id, st)
-    }
+// Organ builder accessors
+pub fn organ_builder_enabled(&self) -> bool {
+    self.organ_builder.is_enabled()
+}
+/* neira:meta
+id: NEI-20251010-organ-builder-update
+intent: code
+summary: добавлены методы обновления и получения статусов органа.
+*/
+pub fn organ_build(&self, tpl: serde_json::Value) -> String {
+    self.organ_builder.start_build(tpl)
+}
+pub fn organ_status(&self, id: &str) -> Option<OrganState> {
+    self.organ_builder.status(id)
+}
+pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState> {
+    self.organ_builder.update_status(id, st)
+}
+
 
     pub fn is_trace_enabled(&self) -> bool {
         self.trace_enabled.load(Ordering::Relaxed)
