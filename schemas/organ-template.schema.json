@@ -9,7 +9,27 @@
     "version": { "type": "string", "default": "0.1.0" },
     "roles": { "type": "array", "items": { "type": "string" } },
     "nodes": { "type": "array", "items": { "type": "string" } },
-    "channels": { "type": "array", "items": { "type": "string" } },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "nodes": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["name", "nodes"]
+      },
+      "examples": [
+        [
+          {
+            "name": "speech",
+            "nodes": ["analysis.speak_adapter.v1"]
+          }
+        ]
+      ]
+    },
     "policies": { "type": "object" }
   },
   "required": ["id", "roles", "nodes"]
