@@ -1,5 +1,10 @@
 name: CI
 
+# neira:meta
+# id: NEI-20250101-000006-ci-validate-examples
+# intent: ci
+# summary: Validate example organs and ensure node ID docs are up to date.
+
 on:
   push:
     branches: [ main ]
@@ -28,6 +33,12 @@ jobs:
         run: scripts/check-duplicates.sh
       - name: Lint
         run: npm run lint
+      - name: Validate examples
+        run: npm run check-examples
+      - name: Verify node ID docs
+        run: |
+          npm run generate-node-docs
+          git diff --exit-code docs/node-ids.md
       - name: Test backend
         run: cargo test --manifest-path backend/Cargo.toml
       - name: Test frontend
