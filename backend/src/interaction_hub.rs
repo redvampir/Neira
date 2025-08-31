@@ -700,7 +700,7 @@ impl InteractionHub {
         let soft_ms = env_ms(&soft_key, base_soft);
         let hard_ms = env_ms(&hard_key, base_hard);
         let mut soft_fired = false;
-        let mut result_opt: Option<AnalysisResult> = None;
+        let result_opt: Option<AnalysisResult>;
         loop {
             if soft_fired {
                 tokio::select! {
