@@ -5,7 +5,7 @@
  * summary: Внешний CLI-оркестратор фабрики с режимом LLM-агента (локальная модель), безопасные команды dry-run/create/approve/rollback.
  */
 
-/* eslint-disable no-console */
+/* global fetch, process, console */
 import fs from 'node:fs';
 
 // Minimal Node.js (>=18) CLI without external deps.
@@ -29,7 +29,7 @@ async function http(method, path, body) {
   });
   const text = await res.text();
   let json;
-  try { json = text ? JSON.parse(text) : {}; } catch (_) { json = { raw: text }; }
+  try { json = text ? JSON.parse(text) : {}; } catch { json = { raw: text }; }
   if (!res.ok) {
     const err = new Error(`HTTP ${res.status} ${res.statusText}`);
     err.status = res.status;
@@ -195,7 +195,7 @@ function toolsSpecString() {
 }
 
 function safeJsonParse(s) {
-  try { return JSON.parse(s); } catch (_) { return null; }
+  try { return JSON.parse(s); } catch { return null; }
 }
 
 async function cmdAgent(args) {
