@@ -19,6 +19,7 @@ const idx = args.indexOf("--port");
 if (idx !== -1 && args[idx + 1]) port = args[idx + 1];
 
 const env = { ...process.env, NEIRA_BIND_ADDR: `${host}:${port}` };
+
 const child = spawn("cargo", ["run", "--manifest-path", "backend/Cargo.toml"], {
   stdio: "inherit",
   env,

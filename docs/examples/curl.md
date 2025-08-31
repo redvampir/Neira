@@ -1,6 +1,12 @@
+<!-- neira:meta
+id: NEI-20250831-curl-examples
+intent: docs
+summary: Добавлено упоминание смены порта через NEIRA_BIND_ADDR.
+-->
+
 # Примеры cURL
 
-> Замените `AUTH=secret` при необходимости. Базовый адрес: http://127.0.0.1:3000
+> Замените `AUTH=secret` при необходимости. Базовый адрес: http://127.0.0.1:3000 (порт можно сменить через `NEIRA_BIND_ADDR`)
 
 ## Chat (JSON)
 ```bash
