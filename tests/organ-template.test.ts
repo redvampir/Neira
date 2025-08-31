@@ -6,13 +6,13 @@ summary: |
 */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
-import Ajv from "ajv/dist/2020.js";
+import Ajv2020 from "ajv/dist/2020";
 
 describe("organ template examples", () => {
   const schema = JSON.parse(
     readFileSync("schemas/organ-template.schema.json", "utf8"),
   );
-  const ajv = new Ajv({ strict: false });
+  const ajv = new Ajv2020({ strict: false });
   const validate = ajv.compile(schema);
 
   function collectFiles(dir: string): string[] {
@@ -33,4 +33,3 @@ describe("organ template examples", () => {
     });
   }
 });
-
