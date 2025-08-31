@@ -5,10 +5,11 @@
     "test": "jest",
     "lint": "eslint .",
     "prepare": "husky",
-    "backend:dev": "cargo run --manifest-path backend/Cargo.toml",
+    "backend:dev": "node scripts/backend-dev.mjs",
     "backend:test": "cargo test --manifest-path backend/Cargo.toml",
     "frontend:dev": "npm run dev --prefix frontend",
     "frontend:test": "npm test --prefix frontend",
+    "env:list": "node scripts/env-list.mjs",
     "check-examples": "node scripts/validate-examples.mjs",
     "check-examples:watch": "node scripts/validate-examples.mjs --watch",
     "generate-node-docs": "node scripts/generate-node-docs.mjs"
