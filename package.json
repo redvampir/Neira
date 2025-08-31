@@ -47,9 +47,17 @@
     ]
   },
   "lint-staged": {
-    "*.ts": ["prettier --write", "eslint --fix", "jest --bail --findRelatedTests"],
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix",
+      "jest --bail --findRelatedTests"
+    ],
     "*.md": "prettier --write",
-    "*.rs": "cargo fmt --"
+    "*.rs": "cargo fmt --",
+    "examples/**/*.json": [
+      "prettier --write",
+      "npm run check-examples --",
+      "npm run generate-node-docs && prettier --write docs/node-ids.md && git add docs/node-ids.md"
+    ]
   }
 }
-
