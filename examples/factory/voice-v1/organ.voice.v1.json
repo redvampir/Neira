@@ -11,6 +11,12 @@
     "analysis.text_to_phonemes.v1",
     "analysis.speak_adapter.v1"
   ],
+  "channels": [
+    {
+      "name": "speech",
+      "nodes": ["analysis.speak_adapter.v1"]
+    }
+  ],
   "policies": {
     "stage": "draft",
     "hitl": true

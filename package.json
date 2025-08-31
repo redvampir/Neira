@@ -8,7 +8,9 @@
     "backend:dev": "cargo run --manifest-path backend/Cargo.toml",
     "backend:test": "cargo test --manifest-path backend/Cargo.toml",
     "frontend:dev": "npm run dev --prefix frontend",
-    "frontend:test": "npm test --prefix frontend"
+    "frontend:test": "npm test --prefix frontend",
+    "check-examples": "node scripts/validate-examples.mjs",
+    "generate-node-docs": "node scripts/generate-node-docs.mjs"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
@@ -21,7 +23,8 @@
     "lint-staged": "^16.1.5",
     "prettier": "^3.6.2",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "ajv": "^8.17.1"
   },
   "overrides": {
     "p-limit": "^2.3.0",
@@ -44,7 +47,8 @@
     ]
   },
   "lint-staged": {
-    "*.{ts,md}": "prettier --write",
+    "*.ts": ["prettier --write", "eslint --fix", "jest --bail --findRelatedTests"],
+    "*.md": "prettier --write",
     "*.rs": "cargo fmt --"
   }
 }
