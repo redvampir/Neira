@@ -3,7 +3,8 @@ id: NEI-20251010-organ-builder
 intent: code
 summary: |-
   Асинхронная сборка органов со стадиями Draft→Canary→Experimental→Stable,
-  сохранением шаблонов на диск и метрикой времени сборки.
+  сохранением шаблонов на диск, метрикой времени сборки и остановкой при
+  ручном изменении статуса.
 */
 
 use std::collections::HashMap;
@@ -96,9 +97,14 @@ impl OrganBuilder {
                 (OrganState::Experimental, 50u64),
                 (OrganState::Stable, 50u64),
             ];
+            let mut expected = OrganState::Draft;
             for (state, delay) in stages {
                 tokio::time::sleep(Duration::from_millis(delay)).await;
+                if this.status(&build_id) != Some(expected) {
+                    break;
+                }
                 this.update_status(&build_id, state);
+                expected = state;
             }
         });
         id
@@ -124,4 +130,3 @@ impl OrganBuilder {
         Some(*prev)
     }
 }
-
