@@ -4,6 +4,11 @@ intent: design
 summary: |
   Каркас системы Фабрикаторов: FabricatorNode/SelectorNode, жизненный цикл узлов (Draft→Canary→Experimental→Stable), интеграции с Nervous/Immune, HITL‑обучение и органы.
 -->
+<!-- neira:meta
+id: NEI-20251115-organ-cancel-build-design
+intent: design
+summary: упомянут DELETE /organs/:id/build в API эскизе.
+-->
 
 # Factory System (Фабрикаторы)
 
@@ -38,6 +43,7 @@ API (эскиз)
 - POST `/factory/nodes/:id/approve|disable|rollback`
 - POST `/organs/build` (dryrun=true|false) → {organ_id, state}
 - GET `/organs/:id/status`
+- DELETE `/organs/:id/build`
 
 Metrics (минимальный набор)
 - factory_nodes_created_total, factory_nodes_active, factory_exec_errors_total
