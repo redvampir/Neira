@@ -325,6 +325,15 @@ impl InteractionHub {
     pub fn organ_build(&self, tpl: serde_json::Value) -> String {
         self.organ_builder.start_build(tpl)
     }
+
+    /* neira:meta
+    id: NEI-20260407-organ-list-hub
+    intent: code
+    summary: проксирует орган-билдер для выдачи списка органов.
+    */
+    pub fn organ_list(&self) -> Vec<(String, OrganState)> {
+        self.organ_builder.list()
+    }
     pub fn organ_status(&self, id: &str) -> Option<OrganState> {
         self.organ_builder.status(id)
     }

@@ -171,3 +171,26 @@ async fn organ_builder_rebuilds_from_template() {
     std::env::remove_var("ORGANS_BUILDER_ENABLED");
     std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
 }
+
+/* neira:meta
+id: NEI-20260407-organ-builder-list-test
+intent: test
+summary: проверяет, что list возвращает все известные органы.
+*/
+#[tokio::test]
+#[serial]
+async fn organ_builder_lists_all_organs() {
+    std::env::set_var("ORGANS_BUILDER_ENABLED", "true");
+    std::env::set_var("ORGANS_BUILDER_STAGE_DELAYS", "1000,1000,1000");
+    let dir = tempfile::tempdir().unwrap();
+    std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
+    let builder = OrganBuilder::new();
+    let id1 = builder.start_build(serde_json::json!({"kind": "one"}));
+    let id2 = builder.start_build(serde_json::json!({"kind": "two"}));
+    let list = builder.list();
+    assert!(list.contains(&(id1.clone(), OrganState::Draft)));
+    assert!(list.contains(&(id2.clone(), OrganState::Draft)));
+    std::env::remove_var("ORGANS_BUILDER_ENABLED");
+    std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
+    std::env::remove_var("ORGANS_BUILDER_STAGE_DELAYS");
+}

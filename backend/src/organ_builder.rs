@@ -257,6 +257,23 @@ impl OrganBuilder {
         true
     }
 
+    /* neira:meta
+    id: NEI-20260407-organ-builder-list
+    intent: code
+    summary: добавлен метод list для выдачи идентификаторов и стадий всех органов.
+    */
+    /// Возвращает все известные органы и их статусы.
+    pub fn list(&self) -> Vec<(String, OrganState)> {
+        metrics::counter!("organ_build_list_queries_total").increment(1);
+        self
+            .statuses
+            .read()
+            .unwrap()
+            .iter()
+            .map(|(id, st)| (id.clone(), *st))
+            .collect()
+    }
+
     /// Возвращает статус сборки.
     pub fn status(&self, id: &str) -> Option<OrganState> {
         metrics::counter!("organ_build_status_queries_total").increment(1);
