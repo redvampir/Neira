@@ -1,3 +1,8 @@
+/* neira:meta
+id: NEI-20250210-memory-node-clippy
+intent: test
+summary: заменён vec! на срез для устранения предупреждения clippy.
+*/
 use backend::analysis_node::AnalysisResult;
 use backend::memory_node::MemoryNode;
 use metrics_exporter_prometheus::PrometheusBuilder;
@@ -12,7 +17,7 @@ fn memory_node_stores_metrics_and_chain() {
     memory.save_checkpoint("id", &result);
     assert!(memory.load_checkpoint("id").is_some());
     assert!(memory.load_checkpoint("missing").is_none());
-    let preloaded = memory.preload_by_trigger(&vec!["rust".into()]);
+    let preloaded = memory.preload_by_trigger(&["rust".into()]);
     assert_eq!(preloaded.len(), 1);
     let records = memory.records();
     assert_eq!(records.len(), 1);
