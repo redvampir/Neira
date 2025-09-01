@@ -82,8 +82,17 @@ impl OrganBuilder {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(3600);
-        let stages_env =
-            std::env::var("ORGANS_BUILDER_STAGE_DELAYS").unwrap_or_else(|_| "50,50,50".into());
+        let stages_env = std::env::var("ORGANS_BUILDER_STAGE_DELAYS")
+            .or_else(|_| {
+                let deprecated = std::env::var("ORGANS_BUILDER_STAGE_DELAYS_MS");
+                if deprecated.is_ok() {
+                    tracing::warn!(
+                        "ORGANS_BUILDER_STAGE_DELAYS_MS is deprecated; use ORGANS_BUILDER_STAGE_DELAYS"
+                    );
+                }
+                deprecated
+            })
+            .unwrap_or_else(|_| "50,50,50".into());
         let stages = parse_stage_delays(&stages_env);
         if enabled {
             let _ = std::fs::create_dir_all(&templates_dir);
@@ -354,8 +363,10 @@ fn parse_stage_delays(input: &str) -> Vec<(OrganState, u64)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[tokio::test]
+    #[serial]
     async fn cancel_build_stops_task() {
         std::env::set_var("ORGANS_BUILDER_ENABLED", "1");
         std::env::set_var("ORGANS_BUILDER_STAGE_DELAYS", "1000,1000,1000");
@@ -368,5 +379,22 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(10)).await;
         assert_eq!(builder.status(&id), Some(OrganState::Failed));
         assert!(!builder.handles.read().unwrap().contains_key(&id));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn stage_delays_ms_env_is_supported() {
+        std::env::remove_var("ORGANS_BUILDER_STAGE_DELAYS");
+        std::env::set_var("ORGANS_BUILDER_STAGE_DELAYS_MS", "10,20,30");
+        let builder = OrganBuilder::new();
+        assert_eq!(
+            builder.stages,
+            vec![
+                (OrganState::Canary, 10),
+                (OrganState::Experimental, 20),
+                (OrganState::Stable, 30),
+            ]
+        );
+        std::env::remove_var("ORGANS_BUILDER_STAGE_DELAYS_MS");
     }
 }

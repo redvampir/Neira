@@ -66,7 +66,7 @@ Adapter Contracts (обязательные хуки)
   - Body: { organ_template, dryrun?: true }
   - Resp: { organ_id, state: 'draft'|'canary'|'experimental'|'stable' }
   - Logs `organ build started` и метрики `organ_build_attempts_total`, `organ_build_duration_ms`
-  - Задержки стадий берутся из `ORGANS_BUILDER_STAGE_DELAYS` (пример: `50,100,200` → canary/experimental/stable)
+  - Задержки стадий берутся из `ORGANS_BUILDER_STAGE_DELAYS` (пример: `50,100,200` → canary/experimental/stable; устаревший алиас: `ORGANS_BUILDER_STAGE_DELAYS_MS`)
 
 - GET `/organs/:id/status`
   - Resp: { id, state, nodes, metrics }
@@ -110,6 +110,7 @@ Response:
 Stage delay config:
 
 ```
+# устаревший алиас: ORGANS_BUILDER_STAGE_DELAYS_MS
 ORGANS_BUILDER_STAGE_DELAYS=50,100,200
 ```
 
