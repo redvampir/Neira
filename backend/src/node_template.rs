@@ -173,7 +173,16 @@ impl ActionNodeTemplate {
     }
 }
 
-pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
+/* neira:meta
+id: NEI-20250214-154500-validate-with-loader
+intent: refactor
+summary: |
+  Вынос общей логики валидации в validate_with_loader.
+*/
+fn validate_with_loader<F>(value: &Value, load_schema_fn: F) -> Result<(), Vec<String>>
+where
+    F: Fn(&str) -> Result<&'static Config<'static>, String>,
+{
     let version = value
         .get("metadata")
         .and_then(|m| m.get("schema"))
@@ -187,15 +196,12 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
         error!("{msg}");
         vec![msg]
     })?;
-    let schema = load_schema(&dir).map_err(|e| {
+    let schema = load_schema_fn(&dir).map_err(|e| {
         error!("{e}");
         vec![e]
     })?;
     match schema.validate(value) {
-        Ok(()) => {
-            info!("NodeTemplate validation succeeded");
-            Ok(())
-        }
+        Ok(()) => Ok(()),
         Err(errors) => {
             let messages: Vec<String> = errors
                 .map(|err| {
@@ -209,8 +215,20 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
                     format!("{}: {}", path, err.msg)
                 })
                 .collect();
-            error!("NodeTemplate validation failed: {:?}", messages);
             Err(messages)
+        }
+    }
+}
+
+pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
+    match validate_with_loader(value, load_schema) {
+        Ok(()) => {
+            info!("NodeTemplate validation succeeded");
+            Ok(())
+        }
+        Err(errors) => {
+            error!("NodeTemplate validation failed: {:?}", errors);
+            Err(errors)
         }
     }
 }
@@ -222,43 +240,14 @@ summary: |
   Валидация ActionNodeTemplate по соответствующей JSON‑схеме.
 */
 pub fn validate_action_template(value: &Value) -> Result<(), Vec<String>> {
-    let version = value
-        .get("metadata")
-        .and_then(|m| m.get("schema"))
-        .and_then(|s| s.as_str())
-        .ok_or_else(|| {
-            let msg = "metadata.schema is required".to_string();
-            error!("{msg}");
-            vec![msg]
-        })?;
-    let dir = parse_version(version).map_err(|msg| {
-        error!("{msg}");
-        vec![msg]
-    })?;
-    let schema = load_action_schema(&dir).map_err(|e| {
-        error!("{e}");
-        vec![e]
-    })?;
-    match schema.validate(value) {
+    match validate_with_loader(value, load_action_schema) {
         Ok(()) => {
             info!("ActionNodeTemplate validation succeeded");
             Ok(())
         }
         Err(errors) => {
-            let messages: Vec<String> = errors
-                .map(|err| {
-                    let path = if err.instance_path.is_empty() {
-                        "/".to_string()
-                    } else {
-                        let segments: Vec<String> =
-                            err.instance_path.iter().rev().cloned().collect();
-                        format!("/{}", segments.join("/"))
-                    };
-                    format!("{}: {}", path, err.msg)
-                })
-                .collect();
-            error!("ActionNodeTemplate validation failed: {:?}", messages);
-            Err(messages)
+            error!("ActionNodeTemplate validation failed: {:?}", errors);
+            Err(errors)
         }
     }
 }
