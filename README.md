@@ -432,6 +432,28 @@ time_slice_ms = 10
 добавлять узлы и адаптировать поведение системы под потребности
 конкретного проекта.
 
+<!-- neira:meta
+id: NEI-20250214-organ-builder-cli-docs
+intent: docs
+summary: Добавлены примеры использования утилиты organ_builder.
+-->
+
+### Organ Builder CLI
+
+```bash
+# Сборка органа из JSON-шаблона
+cargo run -p backend --bin organ_builder -- build path/to/template.json
+
+# Проверка статуса
+cargo run -p backend --bin organ_builder -- status organ-1
+
+# Отмена сборки
+cargo run -p backend --bin organ_builder -- cancel organ-1
+```
+
+По умолчанию базовый URL берётся из переменной окружения `NEIRA_API_BASE`. Его можно
+указать явно последним аргументом команд.
+
 Подробные инструкции по установке зависимостей,
 запуску демонстрационной конфигурации и настройке
 переменных окружения приведены в [docs/legacy/deployment.md](docs/legacy/deployment.md).
