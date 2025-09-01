@@ -24,6 +24,11 @@ id: NEI-20251220-organ-builder-ttl-docs-update
 intent: docs
 summary: уточнено, что фоновой таймер удаляет шаблоны и статусы старше TTL.
 -->
+<!-- neira:meta
+id: NEI-20250620-organ-builder-stage-delays-docs
+intent: docs
+summary: добавлена переменная ORGANS_BUILDER_STAGE_DELAYS.
+-->
 
 <!-- neira:meta
 id: NEI-20251116-vite-api-url-env-doc
@@ -69,6 +74,7 @@ summary: Добавлена переменная VITE_API_URL для фронт�
 | ORGANS_BUILDER_ENABLED       | bool            | false                 | organ builder           | Включить модуль; при запуске восстанавливает статусы из каталога                   |
 | ORGANS_BUILDER_TEMPLATES_DIR | string          | organ_templates       | organ builder           | Каталог шаблонов органов (все \*.json загружаются как stable)                      |
 | ORGANS_BUILDER_TTL_SECS      | int             | 3600                  | organ builder           | Время хранения шаблонов и статусов; фоновый таймер удаляет записи старше TTL (сек) |
+| ORGANS_BUILDER_STAGE_DELAYS  | string list (,) | 50,50,50              | organ builder           | Задержки стадий Draft→Canary→Experimental→Stable (мс)                              |
 | VITE_API_URL                 | string          | —                     | frontend requests       | Базовый URL API для фронтенда                                                      |
 
 Лимиты `CONTEXT_MAX_LINES` и `CONTEXT_MAX_BYTES` при отсутствии в окружении

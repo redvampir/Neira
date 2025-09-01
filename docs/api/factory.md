@@ -11,7 +11,12 @@ summary: описан ручной апдейт статуса органа и �
 <!-- neira:meta
 id: NEI-20251101-organ-builder-stage-delays-doc
 intent: docs
-summary: добавлен пример настройки ORGANS_BUILDER_STAGE_DELAYS_MS.
+summary: добавлен пример настройки ORGANS_BUILDER_STAGE_DELAYS.
+-->
+<!-- neira:meta
+id: NEI-20250620-organ-builder-stage-delays-doc-rename
+intent: docs
+summary: пример обновлён под ORGANS_BUILDER_STAGE_DELAYS.
 -->
 <!-- neira:meta
 id: NEI-20251115-organ-cancel-build-doc
@@ -61,7 +66,7 @@ Adapter Contracts (обязательные хуки)
   - Body: { organ_template, dryrun?: true }
   - Resp: { organ_id, state: 'draft'|'canary'|'experimental'|'stable' }
   - Logs `organ build started` и метрики `organ_build_attempts_total`, `organ_build_duration_ms`
-  - Задержки стадий берутся из `ORGANS_BUILDER_STAGE_DELAYS_MS` (пример: `50,100,200` → canary/experimental/stable)
+  - Задержки стадий берутся из `ORGANS_BUILDER_STAGE_DELAYS` (пример: `50,100,200` → canary/experimental/stable)
 
 - GET `/organs/:id/status`
   - Resp: { id, state, nodes, metrics }
@@ -105,7 +110,7 @@ Response:
 Stage delay config:
 
 ```
-ORGANS_BUILDER_STAGE_DELAYS_MS=50,100,200
+ORGANS_BUILDER_STAGE_DELAYS=50,100,200
 ```
 
 ## Sample Templates

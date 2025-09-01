@@ -17,7 +17,12 @@ summary: описаны переменные ORGANS_BUILDER_ENABLED, ORGANS_BUIL
 <!-- neira:meta
 id: NEI-20251101-organ-builder-stage-delays-env
 intent: docs
-summary: добавлена переменная ORGANS_BUILDER_STAGE_DELAYS_MS.
+summary: добавлена переменная ORGANS_BUILDER_STAGE_DELAYS.
+-->
+<!-- neira:meta
+id: NEI-20250620-organ-builder-stage-delays-env-rename
+intent: docs
+summary: переменная переименована в ORGANS_BUILDER_STAGE_DELAYS.
 -->
 
 Backend environment variables
@@ -76,7 +81,7 @@ Masking presets
 - ORGANS_BUILDER_ENABLED: enable organ builder module; restores statuses from templates_dir on startup (default: false)
 - ORGANS_BUILDER_TEMPLATES_DIR: directory to store organ templates; existing \*.json are loaded as stable (default: organ_templates)
 - ORGANS_BUILDER_TTL_SECS: seconds to keep organ templates after stabilization (default: 3600)
-- ORGANS_BUILDER_STAGE_DELAYS_MS: comma-separated delays in ms for Draft→Canary→Experimental→Stable transitions (default: 50,50,50)
+- ORGANS_BUILDER_STAGE_DELAYS: comma-separated delays in ms for Draft→Canary→Experimental→Stable transitions (default: 50,50,50)
 
 ## Автоматическое определение `INTEGRITY_ROOT`
 
@@ -117,4 +122,4 @@ NERVOUS_SYSTEM_JSON_LOGS=false
 MASK_PRESETS_DIR=./config/mask_presets
 ORGANS_BUILDER_ENABLED=false
 ORGANS_BUILDER_TEMPLATES_DIR=./organ_templates
-ORGANS_BUILDER_STAGE_DELAYS_MS=50,100,200
+ORGANS_BUILDER_STAGE_DELAYS=50,100,200
