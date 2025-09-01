@@ -17,6 +17,7 @@ pub trait SystemProbe: Send + Sync {
 pub mod anti_idle;
 pub mod backpressure_probe;
 pub mod base_path_resolver;
+pub mod heartbeat;
 pub mod host_metrics;
 pub mod io_watcher;
 pub mod loop_detector;
