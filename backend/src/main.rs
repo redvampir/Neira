@@ -18,6 +18,7 @@ use std::convert::Infallible;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::net::TcpListener;
+use tower_http::cors::CorsLayer;
 use tracing::error;
 
 use backend::action::chat_node::EchoChatNode;
@@ -1795,7 +1796,8 @@ async fn main() {
             "/api/neira/chat/:chat_id/:session_id/search",
             get(search_chat),
         )
-        .route("/api/neira/chat/stream/cancel", post(cancel_stream));
+        .route("/api/neira/chat/stream/cancel", post(cancel_stream))
+        .layer(CorsLayer::permissive());
     // Control Plane (admin)
 
     async fn control_pause(
@@ -2786,7 +2788,7 @@ intent: docs
 scope: backend/http
 summary: |
   Точки входа HTTP (API), SSE с прогрессом и отменой, маскирование с пресетами,
-  поиск по content с фильтрами и пагинацией, rate-limit заголовки, скоупы токенов.
+  поиск по content с фильтрами и пагинацией, rate-limit заголовки, скоупы токенов, включён CORS.
 links:
   - docs/backend-api.md
   - docs/reference/env.md
