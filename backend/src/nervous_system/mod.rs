@@ -18,3 +18,4 @@ pub mod base_path_resolver;
 pub mod host_metrics;
 pub mod io_watcher;
 pub mod watchdog;
+pub mod loop_detector;

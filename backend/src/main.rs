@@ -24,6 +24,7 @@ use axum::{
 use backend::context::context_storage::set_runtime_mask_config;
 use backend::hearing;
 use backend::nervous_system::watchdog::Watchdog;
+use backend::nervous_system::loop_detector;
 use dotenvy::dotenv;
 use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
@@ -1070,11 +1071,23 @@ async fn chat_stream(
         let mut chars = 0usize;
         let start = Instant::now();
         let dev_delay_ms = std::env::var("SSE_DEV_DELAY_MS").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
-        let loop_enabled = std::env::var("LOOP_DETECT_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true);
-        let loop_win: usize = std::env::var("LOOP_WINDOW_TOKENS").ok().and_then(|v| v.parse().ok()).unwrap_or(50);
-        let loop_thresh: f32 = std::env::var("LOOP_REPEAT_THRESHOLD").ok().and_then(|v| v.parse().ok()).unwrap_or(0.6);
-        let entropy_min: f32 = std::env::var("LOOP_ENTROPY_MIN").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
-        let mut win: std::collections::VecDeque<String> = std::collections::VecDeque::with_capacity(loop_win.max(1));
+        let loop_enabled = std::env::var("LOOP_DETECT_ENABLED")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            .unwrap_or(true);
+        let loop_win: usize = std::env::var("LOOP_WINDOW_TOKENS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(50);
+        let loop_thresh: f32 = std::env::var("LOOP_REPEAT_THRESHOLD")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.6);
+        let entropy_min: f32 = std::env::var("LOOP_ENTROPY_MIN")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.0);
+        let mut win: std::collections::VecDeque<String> =
+            std::collections::VecDeque::with_capacity(loop_win.max(1));
         for w in out.response.split_whitespace() {
             if cancel.is_cancelled() { break; }
             hub_for_idle.mark_activity();
@@ -1091,36 +1104,21 @@ async fn chat_stream(
                 if remaining == 0 { metrics::counter!("budget_hits_total").increment(1); break; }
             }
             if loop_enabled && loop_win > 0 {
-                // loop detection in a sliding window
-                win.push_back(w.to_string());
-                if win.len() > loop_win { let _ = win.pop_front(); }
-                if win.len() >= loop_win/2 { // start checking after half window
-                    let mut freq: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
-                    for t in &win { *freq.entry(t.as_str()).or_insert(0) += 1; }
-                    let max_rep = freq.values().copied().max().unwrap_or(0) as f32;
-                    let ratio = max_rep / (win.len() as f32);
-                    // entropy check (optional)
-                    let mut ent: f32 = 0.0;
-                    if entropy_min > 0.0 {
-                        let concat = win.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(" ");
-                        let mut cf: std::collections::HashMap<char, usize> = std::collections::HashMap::new();
-                        for ch in concat.chars() { *cf.entry(ch).or_insert(0) += 1; }
-                        let total = concat.chars().count() as f32;
-                        if total > 0.0 {
-                            for v in cf.values() { let p = (*v as f32)/total; ent += -(p * p.log2()); }
-                        }
-                    }
-                    if ratio >= loop_thresh || (entropy_min > 0.0 && ent < entropy_min) {
-                        metrics::counter!("loop_detected_total").increment(1);
-                        hearing::warn(&format!(
-                            "loop detected in SSE stream; terminating early; chat_id={} session_id={} window={} ratio={}",
-                            req.chat_id,
-                            req.session_id.clone().unwrap_or_default(),
-                            loop_win,
-                            ratio
-                        ));
-                        break;
-                    }
+                if let Some(ratio) = loop_detector::check_sequence(
+                    &mut win,
+                    w,
+                    loop_win,
+                    loop_thresh,
+                    entropy_min,
+                ) {
+                    hearing::warn(&format!(
+                        "loop detected in SSE stream; terminating early; chat_id={} session_id={} window={} ratio={}",
+                        req.chat_id,
+                        req.session_id.clone().unwrap_or_default(),
+                        loop_win,
+                        ratio,
+                    ));
+                    break;
                 }
             }
             if sent % 10 == 0 {
