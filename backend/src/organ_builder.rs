@@ -17,12 +17,17 @@ id: NEI-20251115-organ-cancel-build
 intent: code
 summary: сохраняются JoinHandle задач и добавлен cancel_build для их остановки.
 */
+/* neira:meta
+id: NEI-20251220-organ-builder-cleanup
+intent: code
+summary: добавлен фоновый таймер очистки и удаление записей templates/statuses вместе с файлом.
+*/
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use serde::Serialize;
 use serde_json::Value;
@@ -117,6 +122,16 @@ impl OrganBuilder {
             this.counter.store(max_id + 1, Ordering::Relaxed);
             metrics::counter!("organ_build_restored_total").increment(restored);
             info!(restored, "organ builder restored organs");
+        }
+        if enabled && ttl_secs > 0 {
+            let this_bg = Arc::clone(&this);
+            tokio::spawn(async move {
+                let interval = this_bg.ttl;
+                loop {
+                    tokio::time::sleep(interval).await;
+                    this_bg.cleanup_expired().await;
+                }
+            });
         }
         this
     }
@@ -253,11 +268,39 @@ impl OrganBuilder {
                 tokio::spawn(async move {
                     tokio::time::sleep(this.ttl).await;
                     this.templates.write().unwrap().remove(&id);
+                    this.statuses.write().unwrap().remove(&id);
                     let _ = tokio::fs::remove_file(path).await;
                 });
             }
         }
         Some(*prev)
+    }
+
+    /// Удаляет просроченные шаблоны и статусы.
+    async fn cleanup_expired(self: &Arc<Self>) {
+        let cutoff = SystemTime::now()
+            .checked_sub(self.ttl)
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+        if let Ok(mut entries) = tokio::fs::read_dir(&self.templates_dir).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                    continue;
+                }
+                if let Ok(meta) = entry.metadata().await {
+                    if let Ok(modified) = meta.modified() {
+                        if modified < cutoff {
+                            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                                let id = stem.to_string();
+                                self.templates.write().unwrap().remove(&id);
+                                self.statuses.write().unwrap().remove(&id);
+                            }
+                            let _ = tokio::fs::remove_file(&path).await;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Отменяет сборку органа по идентификатору.
