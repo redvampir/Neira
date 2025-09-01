@@ -125,3 +125,26 @@ async fn organ_builder_records_status_update_error() {
 
     std::env::remove_var("ORGANS_BUILDER_ENABLED");
 }
+
+/* neira:meta
+id: NEI-20251205-organ-rebuild-test
+intent: test
+summary: проверяет перезапуск сборки из сохранённого шаблона.
+*/
+#[tokio::test]
+#[serial]
+async fn organ_builder_rebuilds_from_template() {
+    std::env::set_var("ORGANS_BUILDER_ENABLED", "true");
+    let dir = tempfile::tempdir().unwrap();
+    std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
+    let builder = OrganBuilder::new();
+    let id = builder.start_build(serde_json::json!({"kind": "test"}));
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    assert_eq!(builder.status(&id), Some(OrganState::Stable));
+    assert!(builder.rebuild(&id));
+    assert_eq!(builder.status(&id), Some(OrganState::Draft));
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    assert_eq!(builder.status(&id), Some(OrganState::Stable));
+    std::env::remove_var("ORGANS_BUILDER_ENABLED");
+    std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
+}
