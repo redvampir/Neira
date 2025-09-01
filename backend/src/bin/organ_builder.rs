@@ -1,3 +1,8 @@
+/* neira:meta
+id: NEI-20250214-organ-builder-cli
+intent: code
+summary: CLI для управления сборкой органов: build, status и cancel.
+*/
 use std::env;
 use std::fs;
 
@@ -85,7 +90,7 @@ async fn run() -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: cargo run --bin organ_builder -- <command> <arg> [base_url]".to_string()
+    "usage: cargo run -p backend --bin organ_builder -- <command> <arg> [base_url]".to_string()
 }
 
 fn default_base() -> String {
