@@ -18,6 +18,11 @@ id: NEI-20251115-organ-cancel-build-doc
 intent: docs
 summary: описан DELETE /organs/:id/build для отмены сборки.
 -->
+<!-- neira:meta
+id: NEI-20250207-factory-sample-templates-doc
+intent: docs
+summary: добавлен раздел Sample Templates с примерами органных шаблонов.
+-->
 
 # Factory API (Draft)
 
@@ -97,6 +102,11 @@ Stage delay config:
 ```
 ORGANS_BUILDER_STAGE_DELAYS_MS=50,100,200
 ```
+
+## Sample Templates
+
+- [examples/organs/organ.echo.v1.json](../../examples/organs/organ.echo.v1.json) — минимальный эхо‑орган.
+- [examples/organs/organ.reverse.v1.json](../../examples/organs/organ.reverse.v1.json) — орган, разворачивающий текст.
 
 Notes
 

@@ -3,34 +3,46 @@ id: NEI-20251010-organ-builder-cap-doc
 intent: docs
 summary: добавлены примеры активации орган-билдера.
 -->
+<!-- neira:meta
+id: NEI-20250207-capabilities-sample-organs
+intent: docs
+summary: добавлены ссылки на примеры шаблонов органов.
+-->
+
 # Neira Capabilities & Feature Gates
 
 Purpose
+
 - Stage new abilities safely. Start minimal, unlock gradually.
 - Prevent confusion and resource thrash by enabling only what’s ready.
 
 States
+
 - locked: implemented but disabled by default
 - experimental: enabled with safeguards/limits, monitored
 - stable: enabled by default in perform mode
 - deprecated: slated for removal
 
 Owner Activation Phrases (RU)
+
 - Разблокируй {capability}
 - Включи {capability}
 - Выключи / Заблокируй {capability}
 - Покажи статус способностей
 
 Assistant Policy
+
 - Treat these phrases as intent to flip the gate (after quick risk check).
 - Always report back the new state, safeguards, and rollback.
 
 Graduation Criteria (move experimental → stable)
+
 - Error rate/latency within SLO for N runs/time window
 - No safety/policy violations observed
 - Resource impact within budget
 
 Examples (YAML)
+
 ```yaml
 capabilities:
   training_pipeline:
@@ -49,7 +61,7 @@ capabilities:
 
 ## Factory & Organs
 
-```
+````
 capabilities:
   factory_adapter:
     state: experimental
@@ -68,6 +80,8 @@ organs_builder:
   state: experimental
   notes: Сборка органов из OrganTemplate (dry-run→canary→experimental)
   signals: [organ_build_attempts_total, organ_build_failures_total, organ_build_status_queries_total, organ_build_duration_ms, organ_status_not_found_total]
+
+Примеры шаблонов органа: [examples/organs/organ.echo.v1.json](examples/organs/organ.echo.v1.json), [examples/organs/organ.reverse.v1.json](examples/organs/organ.reverse.v1.json).
 
 ### Пример
 - «Разблокируй organs_builder» — включает капабилити на уровне experimental
@@ -151,7 +165,7 @@ capabilities:
   roleplay_mode:
     state: locked
     notes: ролевая симуляция личности; только явно и с дисклеймером
-```
+````
 
 ## Текущие способности (стартовый набор)
 
@@ -165,7 +179,14 @@ capabilities:
   memory_context_storage:
     state: stable
     notes: ndjson + index.json + ротация/gzip; search(content, since_id, after_ts, role, sort, offset/limit)
-    signals: [messages_saved, context_loads, context_misses, gz_rotate_count, index_compact_runs]
+    signals:
+      [
+        messages_saved,
+        context_loads,
+        context_misses,
+        gz_rotate_count,
+        index_compact_runs,
+      ]
 
   masking_pii:
     state: stable
