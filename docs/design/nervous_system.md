@@ -4,6 +4,12 @@ intent: design
 summary: Описание Нервной системы Neira: цели, компоненты (пробы/метрики/живость/вотчдог), интеграции, ENV и диагностика.
 -->
 
+<!-- neira:meta
+id: NEI-20250214-watchdog-env-docs
+intent: docs
+summary: Добавлен раздел про WATCHDOG* переменные.
+-->
+
 # Нервная система (Nervous System)
 
 Цели
@@ -39,6 +45,14 @@ ENV (минимум)
 - PROBES_IO_WATCHER_ENABLED (bool, default=false) — включить IO‑пробу; IO_WATCHER_THRESHOLD_MS — порог задержки.
 - WATCHDOG_REASONING_SOFT_MS / WATCHDOG_REASONING_HARD_MS — таймауты.
 - BACKPRESSURE_HIGH_WATERMARK / BACKPRESSURE_THROTTLE_MS — пороги и базовый сон; AUTO_BACKOFF_ENABLED/BP_MAX_BACKOFF_MS — авто‑бэкофф.
+
+## WATCHDOG* переменные
+
+Настройки сторожей времени задаются через окружение:
+
+- `WATCHDOG_REASONING_SOFT_MS` — мягкий таймаут рассуждений (мс).
+- `WATCHDOG_REASONING_HARD_MS` — жёсткий таймаут (мс).
+- `WATCHDOG_SOFT_MS_<NODEID>` / `WATCHDOG_HARD_MS_<NODEID>` — переопределения для узлов (ID в UPPER_SNAKE_CASE).
 
 Метрики (ссылки)
 - См. docs/reference/metrics.md: `host_*`, `io_*`, `sse_active`, `throttle_events_total`, `watchdog_*`, `backpressure`, а также блоки Anti‑Idle (`idle_*`).
