@@ -5,7 +5,7 @@ summary: |
   Определяет базовый путь проекта и сохраняет его в памяти.
 */
 
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::action_node::ActionNode;

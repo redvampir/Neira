@@ -11,9 +11,9 @@ use std::time::{Duration, Instant};
 use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+use super::SystemProbe;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::analysis_node::QualityMetrics;
-use super::SystemProbe;
 
 /// Watches keyboard input and display output latency and reports delays
 /// to the diagnostics system.

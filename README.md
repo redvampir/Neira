@@ -515,11 +515,11 @@ scp target/release/neira user@server:/opt/neira
 ## Подключение пользовательского плагина
 
 Neira поддерживает пользовательские системные плагины. Для интеграции
-нужно реализовать трейt [`SystemProbe`](backend/src/system/mod.rs) и
+нужно реализовать трейt [`SystemProbe`](backend/src/nervous_system/mod.rs) и
 запустить его в фоне:
 
 ```rust
-use neira::system::SystemProbe;
+use neira::nervous_system::SystemProbe;
 
 struct CustomProbe;
 
