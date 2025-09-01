@@ -7,6 +7,9 @@ summary: Проверяет переходы стадий органа, ручн
 use backend::organ_builder::{OrganBuilder, OrganState};
 use serial_test::serial;
 
+mod common;
+use common::init_recorder;
+
 #[tokio::test]
 #[serial]
 async fn organ_builder_progresses_and_updates() {
@@ -108,50 +111,7 @@ summary: records error metric when updating status for unknown organ.
 async fn organ_builder_records_status_update_error() {
     std::env::set_var("ORGANS_BUILDER_ENABLED", "true");
 
-    use metrics::{
-        Counter, Gauge, Histogram, Key, KeyName, Metadata, Recorder, SharedString, Unit,
-    };
-    use std::sync::{Arc, Mutex};
-
-    struct CounterRecorder {
-        data: Arc<Mutex<Vec<(String, u64)>>>,
-    }
-
-    impl Recorder for CounterRecorder {
-        fn describe_counter(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
-        fn describe_gauge(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
-        fn describe_histogram(&self, _: KeyName, _: Option<Unit>, _: SharedString) {}
-
-        fn register_counter(&self, key: &Key, _meta: &Metadata<'_>) -> Counter {
-            let name = key.name().to_string();
-            let data = self.data.clone();
-            let ctr = TestCounter { name, data };
-            Counter::from_arc(Arc::new(ctr))
-        }
-
-        fn register_gauge(&self, _key: &Key, _: &Metadata<'_>) -> Gauge {
-            Gauge::noop()
-        }
-
-        fn register_histogram(&self, _key: &Key, _: &Metadata<'_>) -> Histogram {
-            Histogram::noop()
-        }
-    }
-
-    struct TestCounter {
-        name: String,
-        data: Arc<Mutex<Vec<(String, u64)>>>,
-    }
-
-    impl metrics::CounterFn for TestCounter {
-        fn increment(&self, value: u64) {
-            self.data.lock().unwrap().push((self.name.clone(), value));
-        }
-    }
-
-    let data = Arc::new(Mutex::new(Vec::new()));
-    let recorder = CounterRecorder { data: data.clone() };
-    metrics::set_global_recorder(recorder).expect("set recorder");
+    let data = init_recorder();
 
     let builder = OrganBuilder::new();
     assert!(builder
@@ -161,7 +121,7 @@ async fn organ_builder_records_status_update_error() {
     let records = data.lock().unwrap();
     assert!(records
         .iter()
-        .any(|(n, v)| n == "organ_build_status_errors_total" && *v == 1));
+        .any(|(n, v)| n == "organ_build_status_errors_total" && *v == 1.0));
 
     std::env::remove_var("ORGANS_BUILDER_ENABLED");
 }
