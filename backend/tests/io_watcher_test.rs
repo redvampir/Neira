@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use backend::action::diagnostics_node::DiagnosticsNode;
 use backend::action::metrics_collector_node::MetricsCollectorNode;
-use backend::system::io_watcher::IoWatcher;
+use backend::nervous_system::io_watcher::IoWatcher;
 
 #[tokio::test]
 async fn io_watcher_triggers_diagnostics_on_delay() {

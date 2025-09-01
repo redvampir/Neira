@@ -8,12 +8,12 @@ summary: |
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use tokio::time::{sleep, Duration};
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
+use tokio::time::{sleep, Duration};
 
+use super::SystemProbe;
 use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
 use crate::analysis_node::QualityMetrics;
-use super::SystemProbe;
 
 const CPU_HIGH_THRESHOLD: f64 = 80.0;
 const MEM_HIGH_THRESHOLD: f64 = 80.0;
@@ -34,7 +34,6 @@ impl HostMetrics {
         );
         Self { sys, collector }
     }
-
 }
 
 #[async_trait]

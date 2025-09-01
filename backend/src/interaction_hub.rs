@@ -15,11 +15,11 @@ use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::factory::{FabricatorNode, FactoryService, SelectorNode};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
+use crate::nervous_system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
 use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::security::quarantine_node::QuarantineNode;
 use crate::security::safe_mode_controller::SafeModeController;
-use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -143,7 +143,7 @@ impl InteractionHub {
         registry.register_action_node(metrics.clone());
         registry.register_action_node(diagnostics.clone());
         registry.register_action_node(Arc::new(
-            crate::system::base_path_resolver::BasePathResolverNode::new(),
+            crate::nervous_system::base_path_resolver::BasePathResolverNode::new(),
         ));
         let safe_mode = SafeModeController::new();
         let (quarantine, quarantine_tx, _dev_rx) = QuarantineNode::new(safe_mode.clone());

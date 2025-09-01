@@ -14,6 +14,6 @@ pub trait SystemProbe: Send + Sync {
     fn collect(&mut self) {}
 }
 
+pub mod base_path_resolver;
 pub mod host_metrics;
 pub mod io_watcher;
-pub mod base_path_resolver;
