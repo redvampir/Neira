@@ -49,6 +49,15 @@ pub fn load_schema_from(path: &Path) -> Result<Config<'static>, String> {
 static SCHEMAS: Lazy<Mutex<HashMap<String, &'static Config<'static>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
+/* neira:meta
+id: NEI-20250214-152000-action-schema-cache
+intent: feature
+summary: |
+  Кэш конфигураций JSON‑схем для шаблонов узлов действий.
+*/
+static ACTION_SCHEMAS: Lazy<Mutex<HashMap<String, &'static Config<'static>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
 fn parse_version(version: &str) -> Result<String, String> {
     let trimmed = version.trim_start_matches('v');
     let major = trimmed
@@ -74,6 +83,22 @@ fn load_schema(version: &str) -> Result<&'static Config<'static>, String> {
     let cfg = load_schema_from(&path)?;
     let cfg_static: &'static Config<'static> = Box::leak(Box::new(cfg));
     info!("Using NodeTemplate schema {}", version);
+    map.insert(version.to_string(), cfg_static);
+    Ok(cfg_static)
+}
+
+fn load_action_schema(version: &str) -> Result<&'static Config<'static>, String> {
+    let mut map = ACTION_SCHEMAS.lock().map_err(|e| e.to_string())?;
+    if let Some(cfg) = map.get(version) {
+        return Ok(*cfg);
+    }
+    let base = env::var("NODE_TEMPLATE_SCHEMAS_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas"));
+    let path = base.join(version).join("action-node-template.schema.json");
+    let cfg = load_schema_from(&path)?;
+    let cfg_static: &'static Config<'static> = Box::leak(Box::new(cfg));
+    info!("Using ActionNodeTemplate schema {}", version);
     map.insert(version.to_string(), cfg_static);
     Ok(cfg_static)
 }
@@ -112,6 +137,42 @@ impl NodeTemplate {
     }
 }
 
+/* neira:meta
+id: NEI-20250214-152500-action-node-template
+intent: feature
+summary: |
+  Структура шаблона узла действия и преобразование в JSON.
+*/
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ActionNodeTemplate {
+    pub id: String,
+    pub version: String,
+    pub action_type: String,
+    #[serde(default)]
+    pub links: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence_threshold: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft_content: Option<String>,
+    pub metadata: Metadata,
+}
+
+impl ActionNodeTemplate {
+    pub fn to_json(&self) -> Value {
+        let value = serde_json::to_value(self).expect("serialize ActionNodeTemplate");
+        #[cfg(debug_assertions)]
+        {
+            if let Err(errors) = validate_action_template(&value) {
+                panic!(
+                    "serialized ActionNodeTemplate failed validation: {:?}",
+                    errors
+                );
+            }
+        }
+        value
+    }
+}
+
 pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
     let version = value
         .get("metadata")
@@ -141,13 +202,62 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
                     let path = if err.instance_path.is_empty() {
                         "/".to_string()
                     } else {
-                        let segments: Vec<String> = err.instance_path.iter().rev().cloned().collect();
+                        let segments: Vec<String> =
+                            err.instance_path.iter().rev().cloned().collect();
                         format!("/{}", segments.join("/"))
                     };
                     format!("{}: {}", path, err.msg)
                 })
                 .collect();
             error!("NodeTemplate validation failed: {:?}", messages);
+            Err(messages)
+        }
+    }
+}
+
+/* neira:meta
+id: NEI-20250214-153000-validate-action-template
+intent: feature
+summary: |
+  Валидация ActionNodeTemplate по соответствующей JSON‑схеме.
+*/
+pub fn validate_action_template(value: &Value) -> Result<(), Vec<String>> {
+    let version = value
+        .get("metadata")
+        .and_then(|m| m.get("schema"))
+        .and_then(|s| s.as_str())
+        .ok_or_else(|| {
+            let msg = "metadata.schema is required".to_string();
+            error!("{msg}");
+            vec![msg]
+        })?;
+    let dir = parse_version(version).map_err(|msg| {
+        error!("{msg}");
+        vec![msg]
+    })?;
+    let schema = load_action_schema(&dir).map_err(|e| {
+        error!("{e}");
+        vec![e]
+    })?;
+    match schema.validate(value) {
+        Ok(()) => {
+            info!("ActionNodeTemplate validation succeeded");
+            Ok(())
+        }
+        Err(errors) => {
+            let messages: Vec<String> = errors
+                .map(|err| {
+                    let path = if err.instance_path.is_empty() {
+                        "/".to_string()
+                    } else {
+                        let segments: Vec<String> =
+                            err.instance_path.iter().rev().cloned().collect();
+                        format!("/{}", segments.join("/"))
+                    };
+                    format!("{}: {}", path, err.msg)
+                })
+                .collect();
+            error!("ActionNodeTemplate validation failed: {:?}", messages);
             Err(messages)
         }
     }

@@ -1,5 +1,11 @@
 # NodeTemplate
 
+<!-- neira:meta
+id: NEI-20250214-155200-node-template-action-note
+intent: docs
+summary: Добавлено упоминание ActionNodeTemplate и ссылки на схему.
+-->
+
 ## Навигация
 - [Обзор Нейры](README.md)
 - [Узлы действий](action-nodes.md)
@@ -25,6 +31,9 @@
 
 
 Шаблон для создания узлов анализа. Обязательными являются поля `id`, `analysis_type` и `metadata`.
+Для узлов действий используется отдельный шаблон `ActionNodeTemplate` с полем
+`action_type`; его схема находится по пути
+[`schemas/v1/action-node-template.schema.json`](../../schemas/v1/action-node-template.schema.json).
 
 ## Обязательные поля
 
@@ -165,4 +174,4 @@ cargo run --bin generate_node -- --schema v1
 
 ## Схемы
 
-JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для NodeTemplate хранятся в `schemas/vX/node-template.schema.json`, где `X` — номер мажорной версии. При несовместимых изменениях повышайте версию: `1.0.0` → `2.0.0`.
+JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для NodeTemplate хранятся в `schemas/vX/node-template.schema.json`, где `X` — номер мажорной версии. Для узлов действий используйте `schemas/vX/action-node-template.schema.json`. При несовместимых изменениях повышайте версию: `1.0.0` → `2.0.0`.
