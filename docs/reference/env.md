@@ -53,6 +53,12 @@ intent: docs
 summary: Описаны IDLE_EMA_ALPHA и IDLE_DRYRUN_QUEUE_DEPTH.
 -->
 
+<!-- neira:meta
+id: NEI-20250310-node-templates-recursive-docs
+intent: docs
+summary: Уточнено, что NODE_TEMPLATES_DIR поддерживает подкаталоги.
+-->
+
 | Ключ                         | Тип             | По умолчанию          | Где используется        | Влияние                                                                                                 |
 | ---------------------------- | --------------- | --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
 | CONTEXT_DIR                  | string          | context               | backend context storage | База для истории чатов                                                                                  |
@@ -64,7 +70,7 @@ summary: Описаны IDLE_EMA_ALPHA и IDLE_DRYRUN_QUEUE_DEPTH.
 | MASK_PII                     | bool            | true                  | storage masking         | Маскирование PII по умолчанию                                                                           |
 | MASK_REGEX                   | string list (;) | —                     | storage masking         | Кастомные regex для маскирования                                                                        |
 | MASK_ROLES                   | string list (,) | user                  | storage masking         | Роли для маскирования                                                                                   |
-| NODE_TEMPLATES_DIR           | string          | ./templates           | backend init            | Каталог шаблонов узлов                                                                                  |
+| NODE_TEMPLATES_DIR           | string          | ./templates           | backend init            | Каталог шаблонов узлов (подкаталоги поддерживаются)                                                      |
 | CHAT_RATE_LIMIT_PER_MIN      | int             | 120                   | hub rate limit          | Лимит запросов в минуту                                                                                 |
 | CHAT_RATE_KEY                | enum            | auth                  | hub rate limit          | Ключ лимита: auth/chat/session                                                                          |
 | IO_WATCHER_THRESHOLD_MS      | int             | 100                   | nervous probes          | Порог латентности для проб                                                                              |
