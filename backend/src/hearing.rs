@@ -22,10 +22,6 @@ pub fn warn(message: &str) {
     send("warn", message);
 }
 
-
-fn send(level: &str, _message: &str) {
+fn send(level: &'static str, _message: &str) {
     metrics::counter!(STIMULI_COUNTER, "level" => level).increment(1);
 }
-
-
-
