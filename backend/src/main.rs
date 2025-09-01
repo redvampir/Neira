@@ -1004,7 +1004,6 @@ async fn chat_stream(
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(60_000);
     let hub_for_trace = state.hub.clone();
-    let hub_for_idle = state.hub.clone();
     let req_id2 = req.request_id.clone();
     let chat_id2 = req.chat_id.clone();
     let stream = stream! {
