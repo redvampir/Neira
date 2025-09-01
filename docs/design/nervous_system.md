@@ -62,7 +62,7 @@ ENV (минимум)
 - `WATCHDOG_SOFT_MS_<NODEID>` / `WATCHDOG_HARD_MS_<NODEID>` — переопределения для узлов (ID в UPPER_SNAKE_CASE).
 
 Метрики (ссылки)
-- См. docs/reference/metrics.md: `host_*`, `io_*`, `sse_active`, `throttle_events_total`, `watchdog_*`, `backpressure`, а также блоки Anti‑Idle (`idle_*`).
+- См. [docs/reference/metrics.md](../reference/metrics.md): `host_*`, `io_*`, `sse_active`, [`throttle_events_total`](../reference/metrics.md#homeostasis--control-дополнение), `watchdog_*`, [`backpressure`](../reference/metrics.md#реестр-метрик-истина), а также блоки Anti‑Idle (`idle_*`).
 
 Диагностика и SLO
 - Базовые панели: загрузка CPU/Mem, длины очередей, время отклика узлов, число активных SSE, срабатывания watchdog.

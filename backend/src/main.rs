@@ -25,6 +25,7 @@ use backend::context::context_storage::set_runtime_mask_config;
 use backend::hearing;
 use backend::nervous_system::watchdog::Watchdog;
 use backend::nervous_system::loop_detector;
+use backend::nervous_system::backpressure_probe::BackpressureProbe;
 use dotenvy::dotenv;
 use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
@@ -57,6 +58,7 @@ mod http {
 #[derive(Clone)]
 struct AppState {
     hub: Arc<InteractionHub>,
+    backpressure: Arc<BackpressureProbe>,
     storage: Arc<FileContextStorage>,
     paused: Arc<AtomicBool>,
     pause_info: Arc<Mutex<Option<(std::time::Instant, String)>>>,
@@ -463,34 +465,7 @@ async fn analyze_request(
     // Anti-Idle: mark user activity
     state.hub.mark_activity();
     // backpressure throttle for analysis
-    let bp = state.hub.backpressure_sum();
-    let bp_high = std::env::var("BACKPRESSURE_HIGH_WATERMARK")
-        .ok()
-        .and_then(|v| v.parse::<u64>().ok())
-        .unwrap_or(100);
-    let bp_sleep = std::env::var("BACKPRESSURE_THROTTLE_MS")
-        .ok()
-        .and_then(|v| v.parse::<u64>().ok())
-        .unwrap_or(0);
-    if bp_sleep > 0 && bp > bp_high {
-        metrics::counter!("throttle_events_total").increment(1);
-        tokio::time::sleep(std::time::Duration::from_millis(bp_sleep)).await;
-    }
-    if std::env::var("AUTO_BACKOFF_ENABLED")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false)
-        && bp > bp_high
-    {
-        let max_backoff = std::env::var("BP_MAX_BACKOFF_MS")
-            .ok()
-            .and_then(|v| v.parse::<u64>().ok())
-            .unwrap_or(200);
-        let over = (bp - bp_high) as f64 / (bp_high.max(1) as f64);
-        let extra = ((bp_sleep as f64) * over).min(max_backoff as f64) as u64;
-        if extra > 0 {
-            tokio::time::sleep(std::time::Duration::from_millis(extra)).await;
-        }
-    }
+    state.backpressure.throttle().await;
     let req_id = headers
         .get("x-request-id")
         .and_then(|v| v.to_str().ok())
@@ -597,34 +572,7 @@ async fn chat_request(
     // Anti-Idle: mark user activity
     state.hub.mark_activity();
     // backpressure throttle for chat
-    let bp = state.hub.backpressure_sum();
-    let bp_high = std::env::var("BACKPRESSURE_HIGH_WATERMARK")
-        .ok()
-        .and_then(|v| v.parse::<u64>().ok())
-        .unwrap_or(100);
-    let bp_sleep = std::env::var("BACKPRESSURE_THROTTLE_MS")
-        .ok()
-        .and_then(|v| v.parse::<u64>().ok())
-        .unwrap_or(0);
-    if bp_sleep > 0 && bp > bp_high {
-        metrics::counter!("throttle_events_total").increment(1);
-        tokio::time::sleep(std::time::Duration::from_millis(bp_sleep)).await;
-    }
-    if std::env::var("AUTO_BACKOFF_ENABLED")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false)
-        && bp > bp_high
-    {
-        let max_backoff = std::env::var("BP_MAX_BACKOFF_MS")
-            .ok()
-            .and_then(|v| v.parse::<u64>().ok())
-            .unwrap_or(200);
-        let over = (bp - bp_high) as f64 / (bp_high.max(1) as f64);
-        let extra = ((bp_sleep as f64) * over).min(max_backoff as f64) as u64;
-        if extra > 0 {
-            tokio::time::sleep(std::time::Duration::from_millis(extra)).await;
-        }
-    }
+    state.backpressure.throttle().await;
     if req.auth.trim().is_empty() {
         if let Some(h) = auth_from_headers(&headers) {
             req.auth = h;
@@ -1551,6 +1499,7 @@ async fn main() {
         diagnostics,
         &cfg,
     ));
+    let backpressure = Arc::new(BackpressureProbe::new(hub.clone()));
     // Expose hub globally for lightweight activity signals (optional)
     backend::GLOBAL_HUB.get_or_init(|| std::sync::RwLock::new(None));
     if let Some(lock) = backend::GLOBAL_HUB.get() {
@@ -1637,6 +1586,7 @@ async fn main() {
 
     let state = AppState {
         hub: hub.clone(),
+        backpressure: backpressure.clone(),
         storage: storage.clone(),
         paused: Arc::new(AtomicBool::new(false)),
         pause_info: Arc::new(Mutex::new(None)),
@@ -1992,7 +1942,7 @@ async fn main() {
             (p, since_ms, reason)
         };
         let active_tasks = state.hub.active_streams() as u64;
-        let (qf, qs, ql) = state.hub.queue_lengths();
+        let (qf, qs, ql) = state.backpressure.queue_lengths();
         let backpressure = (qf + qs + ql) as u64;
         let now_ms = chrono::Utc::now().timestamp_millis();
         Ok(Json(serde_json::json!({
@@ -2223,9 +2173,9 @@ async fn main() {
     async fn queues_status(
         State(state): State<AppState>,
     ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
-        let (qf, qs, ql) = state.hub.queue_lengths();
+        let (qf, qs, ql) = state.backpressure.queue_lengths();
         let active = state.hub.active_streams();
-        let bp = state.hub.backpressure_sum();
+        let bp = state.backpressure.backpressure_sum();
         Ok(Json(serde_json::json!({
             "active_streams": active,
             "backpressure": bp,
@@ -2506,9 +2456,9 @@ async fn main() {
         State(state): State<AppState>,
     ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
         metrics::counter!("introspection_status_requests_total").increment(1);
-        let (qf, qs, ql) = state.hub.queue_lengths();
+        let (qf, qs, ql) = state.backpressure.queue_lengths();
         let active = state.hub.active_streams();
-        let bp = state.hub.backpressure_sum();
+        let bp = state.backpressure.backpressure_sum();
         let soft_ms: u64 = std::env::var("WATCHDOG_REASONING_SOFT_MS")
             .ok()
             .and_then(|v| v.parse().ok())

@@ -29,6 +29,8 @@ summary: добавлена метрика organ_build_duration_ms и стату
 | requests_idempotent_hits | counter | ops | Hub (LRU+file) | Кэш‑попадания идемпотентных ответов |
 | index_compact_runs | counter | ops | Compaction job | Запуски компактера |
 | sse_active | gauge | count | SSE stream | Активные SSE потоки |
+| backpressure | gauge | count | BackpressureProbe | Суммарная длина очередей |
+| throttle_events_total | counter | events | BackpressureProbe | События троттлинга при backpressure |
 | safe_mode | gauge | 0/1 | Hub | Статус безопасного режима |
 | idle_state | gauge | 0..3 | Anti-Idle | Текущее состояние простоя |
 | idle_minutes_today | counter | min | Anti-Idle | Минуты простоя за день |
@@ -75,6 +77,7 @@ summary: добавлена метрика organ_build_duration_ms и стату
 - pause_drain_events_total (counter): операции дренажа активных SSE при паузе.
 - loop_detected_total (counter): срабатывания детектора повторов в SSE.
 - budget_hits_total (counter): срабатывания лимита токенов для SSE.
+- backpressure (gauge): суммарная длина очередей.
 - throttle_events_total (counter): события троттлинга при backpressure.
 - watchdog_timeouts_total{kind=soft|hard} (counter): срабатывания сторожей рассуждений.
 
