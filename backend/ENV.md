@@ -81,7 +81,7 @@ Masking presets
 - ORGANS_BUILDER_ENABLED: enable organ builder module; restores statuses from templates_dir on startup (default: false)
 - ORGANS_BUILDER_TEMPLATES_DIR: directory to store organ templates; existing \*.json are loaded as stable (default: organ_templates)
 - ORGANS_BUILDER_TTL_SECS: seconds to keep organ templates after stabilization (default: 3600)
-- ORGANS_BUILDER_STAGE_DELAYS: comma-separated delays in ms for Draft→Canary→Experimental→Stable transitions (default: 50,50,50)
+- ORGANS_BUILDER_STAGE_DELAYS: comma-separated delays in ms for Draft→Canary→Experimental→Stable transitions (default: 50,50,50; deprecated alias: ORGANS_BUILDER_STAGE_DELAYS_MS)
 
 ## Автоматическое определение `INTEGRITY_ROOT`
 
