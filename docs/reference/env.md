@@ -19,6 +19,11 @@ id: NEI-20251015-organ-builder-ttl-docs
 intent: docs
 summary: добавлена переменная ORGANS_BUILDER_TTL_SECS для очистки шаблонов.
 -->
+<!-- neira:meta
+id: NEI-20250220-vite-api-url-env-doc
+intent: docs
+summary: описан VITE_API_URL для подключения фронтенда к бэкенду.
+-->
 
 # ENV Reference (Истина)
 
@@ -148,3 +153,9 @@ summary: добавлена переменная ORGANS_BUILDER_TTL_SECS для 
 | IDLE_REQUIRE_APPROVAL_FOR_NEW_DOMAINS | bool   | true           | safety           | Одобрение новых доменов задач       |
 | IDLE_REPORT_FREQUENCY                 | enum   | on_user_return | reporting        | Частота отчётов                     |
 | IDLE_DETAILED_LOGS                    | bool   | true           | reporting        | Детальные логи                      |
+ 
+### Frontend
+
+| Переменная  | Тип    | Дефолт              | Раздел    | Описание                                      |
+| ----------- | ------ | ------------------- | --------- | --------------------------------------------- |
+| VITE_API_URL | string | http://localhost:3000 | frontend | Базовый URL бэкенда для панели органов (CORS включён) |

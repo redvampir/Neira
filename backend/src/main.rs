@@ -19,6 +19,7 @@ use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::net::TcpListener;
 use tracing::error;
+use tower_http::cors::CorsLayer;
 
 use backend::action::chat_node::EchoChatNode;
 use backend::action::diagnostics_node::DiagnosticsNode;
@@ -2685,7 +2686,15 @@ async fn main() {
     if let Some(handle) = metrics_handle {
         app = app.route("/metrics", get(move || async move { handle.render() }));
     }
-    let app = app.with_state(state);
+    /* neira:meta
+    id: NEI-20250220-enable-cors
+    intent: docs
+    summary: |
+      Добавлен permissive CORS слой для доступа панели органов.
+    */
+    let app = app
+        .layer(CorsLayer::permissive())
+        .with_state(state);
 
     // Index compaction job (keywords TTL cleanup)
     let compact_every_ms = std::env::var("INDEX_COMPACT_INTERVAL_MS")
