@@ -15,6 +15,11 @@ id: NEI-20260214-loop-detector-docs
 intent: docs
 summary: Описан детектор повторов SSE и переменные LOOP_*.
 -->
+<!-- neira:meta
+id: NEI-20260301-anti-idle-docs
+intent: docs
+summary: Добавлены пороги простоя и ручка `/api/neira/anti_idle/toggle`.
+-->
 
 # Нервная система (Nervous System)
 
@@ -37,6 +42,13 @@ summary: Описан детектор повторов SSE и переменн�
 - Watchdogs: soft/hard таймауты выполнения анализа/потоков, счётчики и рекомендации по ENV.
 - Loop Detector: анализирует поток SSE на повторы и низкую энтропию, публикует `loop_detected_total`.
 - Интроспекция: `/api/neira/introspection/status` блоки `watchdogs`, `queues/backpressure`, `anti_idle`, `capabilities`.
+
+## Anti-Idle
+
+- Порог `idle_state` вычисляется по `IDLE_THRESHOLD_SECONDS`, `LONG_IDLE_THRESHOLD_MINUTES` и `DEEP_IDLE_THRESHOLD_MINUTES`.
+- Сглаживание `idle_state_smoothed` — параметр `IDLE_EMA_ALPHA`.
+- Глубина очереди микрозадач в простое задаётся `IDLE_DRYRUN_QUEUE_DEPTH`.
+- Включение/выключение подсистемы — POST `/api/neira/anti_idle/toggle` (требуется админ‑токен).
 
 Интеграции (хуки)
 - Узлы (Analysis/Action/Chat):

@@ -1,3 +1,4 @@
+use crate::nervous_system::anti_idle;
 use chrono::{Datelike, Utc};
 use flate2::write::GzEncoder;
 use flate2::Compression;
@@ -300,11 +301,7 @@ impl ContextStorage for FileContextStorage {
         message: &ChatMessage,
     ) -> Result<(), String> {
         // Anti-Idle: отметим активность при записи контекста
-        if let Some(lock) = crate::GLOBAL_HUB.get() {
-            if let Ok(guard) = lock.read() {
-                if let Some(hub) = guard.as_ref() { hub.mark_activity(); }
-            }
-        }
+        anti_idle::mark_activity();
         let chat = chat_id.to_string();
         let sess = session_id.to_string();
         let mut msg = message.clone();
@@ -336,11 +333,7 @@ impl ContextStorage for FileContextStorage {
 
     fn load_session(&self, chat_id: &str, session_id: &str) -> Result<Vec<ChatMessage>, String> {
         // Anti-Idle: отметим активность при чтении контекста
-        if let Some(lock) = crate::GLOBAL_HUB.get() {
-            if let Ok(guard) = lock.read() {
-                if let Some(hub) = guard.as_ref() { hub.mark_activity(); }
-            }
-        }
+        anti_idle::mark_activity();
         metrics::counter!("context_loads").increment(1);
         // Read all (possibly rotated) files
         let dir = self.root.join(chat_id);

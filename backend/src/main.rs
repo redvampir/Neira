@@ -23,9 +23,10 @@ use axum::{
 };
 use backend::context::context_storage::set_runtime_mask_config;
 use backend::hearing;
-use backend::nervous_system::watchdog::Watchdog;
-use backend::nervous_system::loop_detector;
+use backend::nervous_system::anti_idle;
 use backend::nervous_system::backpressure_probe::BackpressureProbe;
+use backend::nervous_system::loop_detector;
+use backend::nervous_system::watchdog::Watchdog;
 use dotenvy::dotenv;
 use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
@@ -56,13 +57,19 @@ mod http {
 }
 
 #[derive(Clone)]
-struct AppState {
-    hub: Arc<InteractionHub>,
+pub struct AppState {
+    pub hub: Arc<InteractionHub>,
     backpressure: Arc<BackpressureProbe>,
     storage: Arc<FileContextStorage>,
     paused: Arc<AtomicBool>,
     pause_info: Arc<Mutex<Option<(std::time::Instant, String)>>>,
     shutdown: tokio_util::sync::CancellationToken,
+}
+
+impl axum::extract::FromRef<AppState> for Arc<InteractionHub> {
+    fn from_ref(state: &AppState) -> Arc<InteractionHub> {
+        state.hub.clone()
+    }
 }
 
 async fn register_node(
@@ -463,7 +470,7 @@ async fn analyze_request(
         return Err(axum::http::StatusCode::SERVICE_UNAVAILABLE);
     }
     // Anti-Idle: mark user activity
-    state.hub.mark_activity();
+    anti_idle::mark_activity();
     // backpressure throttle for analysis
     state.backpressure.throttle().await;
     let req_id = headers
@@ -524,7 +531,7 @@ async fn resume_request(
         return Err(axum::http::StatusCode::SERVICE_UNAVAILABLE);
     }
     // Anti-Idle: mark user activity
-    state.hub.mark_activity();
+    anti_idle::mark_activity();
     if req.auth.trim().is_empty() {
         if let Some(h) = auth_from_headers(&headers) {
             req.auth = h;
@@ -570,7 +577,7 @@ async fn chat_request(
         return Err((axum::http::StatusCode::SERVICE_UNAVAILABLE, "paused".into()));
     }
     // Anti-Idle: mark user activity
-    state.hub.mark_activity();
+    anti_idle::mark_activity();
     // backpressure throttle for chat
     state.backpressure.throttle().await;
     if req.auth.trim().is_empty() {
@@ -958,7 +965,7 @@ async fn chat_stream(
         return Err((axum::http::StatusCode::SERVICE_UNAVAILABLE, "paused".into()));
     }
     // Anti-Idle: mark user activity
-    state.hub.mark_activity();
+    anti_idle::mark_activity();
     let used_context = req.session_id.is_some();
     state.hub.trace_event(
         req.request_id.as_deref(),
@@ -1038,7 +1045,7 @@ async fn chat_stream(
             std::collections::VecDeque::with_capacity(loop_win.max(1));
         for w in out.response.split_whitespace() {
             if cancel.is_cancelled() { break; }
-            hub_for_idle.mark_activity();
+            anti_idle::mark_activity();
             yield Ok(Event::default().event("message").data(w.to_string()));
             sent += 1;
             chars += w.len();
@@ -1593,6 +1600,8 @@ async fn main() {
         shutdown: shutdown_token.clone(),
     };
 
+    anti_idle::init();
+
     // Register auth tokens from environment for development/admin access
     if let Ok(admin) = std::env::var("NEIRA_ADMIN_TOKEN") {
         hub.add_token_with_scopes(admin, &[backend::interaction_hub::Scope::Admin]);
@@ -1611,90 +1620,58 @@ async fn main() {
     }
 
     // Anti-Idle core (dry-run): update idle_state and idle_minutes_today
-    {
-        let enabled = std::env::var("ANTI_IDLE_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
-        if enabled {
-            let hub_for_idle = hub.clone();
-            tokio::spawn(async move {
-                use std::time::Duration;
-                let idle_secs: u64 = std::env::var("IDLE_THRESHOLD_SECONDS")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(30);
-                let long_min: u64 = std::env::var("LONG_IDLE_THRESHOLD_MINUTES")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(5);
-                let deep_min: u64 = std::env::var("DEEP_IDLE_THRESHOLD_MINUTES")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(30);
-                let long_secs = long_min.saturating_mul(60);
-                let deep_secs = deep_min.saturating_mul(60);
-                let alpha: f64 = std::env::var("IDLE_EMA_ALPHA")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(0.3);
-                let dry_depth_env: u64 = std::env::var("IDLE_DRYRUN_QUEUE_DEPTH")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(0);
-                let dryrun_enabled = std::env::var("LEARNING_MICROTASKS_DRYRUN")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false);
-                let mut accum_idle_secs: u64 = 0;
-                let mut idle_ema: f64 = 0.0;
-                loop {
-                    tokio::time::sleep(Duration::from_secs(5)).await;
-                    if !hub_for_idle.is_anti_idle_enabled() {
-                        metrics::gauge!("idle_state").set(0.0);
-                        metrics::gauge!("microtask_queue_depth").set(0.0);
-                        metrics::gauge!("time_since_activity_seconds").set(0.0);
-                        metrics::counter!("autonomous_time_spent_seconds").increment(0);
-                        continue;
-                    }
-                    let since = hub_for_idle.seconds_since_last_activity();
-                    let sse = hub_for_idle.active_streams();
-                    let state_idx = if sse > 0 || since < idle_secs {
-                        0
-                    } else if since < long_secs {
-                        1
-                    } else if since < deep_secs {
-                        2
-                    } else {
-                        3
-                    };
-                    metrics::gauge!("idle_state").set(state_idx as f64);
-                    let dry_depth = if dryrun_enabled && state_idx > 0 {
-                        dry_depth_env
-                    } else {
-                        0
-                    };
-                    metrics::gauge!("microtask_queue_depth").set(dry_depth as f64);
-                    metrics::gauge!("time_since_activity_seconds").set(since as f64);
+    if anti_idle::is_enabled() {
+        let hub_for_idle = hub.clone();
+        tokio::spawn(async move {
+            use std::time::Duration;
+            let t = *anti_idle::thresholds();
+            let idle_secs = t.idle_secs;
+            let long_secs = t.long_secs;
+            let deep_secs = t.deep_secs;
+            let alpha = anti_idle::ema_alpha();
+            let dry_depth_env = anti_idle::dryrun_queue_depth();
+            let dryrun_enabled = std::env::var("LEARNING_MICROTASKS_DRYRUN")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false);
+            let mut accum_idle_secs: u64 = 0;
+            let mut idle_ema: f64 = 0.0;
+            loop {
+                tokio::time::sleep(Duration::from_secs(5)).await;
+                if !anti_idle::is_enabled() {
+                    metrics::gauge!("idle_state").set(0.0);
+                    metrics::gauge!("microtask_queue_depth").set(0.0);
+                    metrics::gauge!("time_since_activity_seconds").set(0.0);
                     metrics::counter!("autonomous_time_spent_seconds").increment(0);
-                    // EMA smoothing for idle_state
-                    idle_ema = if idle_ema == 0.0 {
-                        state_idx as f64
-                    } else {
-                        alpha * (state_idx as f64) + (1.0 - alpha) * idle_ema
-                    };
-                    metrics::gauge!("idle_state_smoothed").set(idle_ema);
-                    if state_idx > 0 {
-                        accum_idle_secs += 5;
-                        if accum_idle_secs >= 60 {
-                            let mins = accum_idle_secs / 60;
-                            accum_idle_secs %= 60;
-                            metrics::counter!("idle_minutes_today").increment(mins as u64);
-                        }
-                    } else {
-                        accum_idle_secs = 0;
-                    }
+                    continue;
                 }
-            });
-        }
+                let (state_idx, since) = anti_idle::idle_state(hub_for_idle.active_streams());
+                metrics::gauge!("idle_state").set(state_idx as f64);
+                let dry_depth = if dryrun_enabled && state_idx > 0 {
+                    dry_depth_env
+                } else {
+                    0
+                };
+                metrics::gauge!("microtask_queue_depth").set(dry_depth as f64);
+                metrics::gauge!("time_since_activity_seconds").set(since as f64);
+                metrics::counter!("autonomous_time_spent_seconds").increment(0);
+                idle_ema = if idle_ema == 0.0 {
+                    state_idx as f64
+                } else {
+                    alpha * (state_idx as f64) + (1.0 - alpha) * idle_ema
+                };
+                metrics::gauge!("idle_state_smoothed").set(idle_ema);
+                if state_idx > 0 {
+                    accum_idle_secs += 5;
+                    if accum_idle_secs >= 60 {
+                        let mins = accum_idle_secs / 60;
+                        accum_idle_secs %= 60;
+                        metrics::counter!("idle_minutes_today").increment(mins as u64);
+                    }
+                } else {
+                    accum_idle_secs = 0;
+                }
+            }
+        });
     }
 
     let mut app = Router::new()
@@ -2345,7 +2322,7 @@ async fn main() {
         Json(mut req): Json<AnalysisRequest>,
     ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, axum::http::StatusCode> {
         // Anti-Idle: mark user activity
-        state.hub.mark_activity();
+        anti_idle::mark_activity();
         if req.auth.trim().is_empty() {
             if let Some(h) = auth_from_headers(&headers) {
                 req.auth = h;
@@ -2380,7 +2357,7 @@ async fn main() {
                         let elapsed = start.elapsed().as_millis() as u64;
                         let mut prog = serde_json::json!({"elapsed_ms": elapsed});
                         if let Some(b) = req.budget_ms { let pct = ((elapsed as f64)/(b.max(1) as f64)).min(1.0); prog["time_ratio"] = serde_json::json!(pct); }
-                        hub_for_progress.mark_activity();
+                        anti_idle::mark_activity();
                         yield Ok(Event::default().event("progress").data(prog.to_string()));
                         if let Some(b) = req.budget_ms { if elapsed >= b { token.cancel(); } }
                     }
@@ -2468,31 +2445,9 @@ async fn main() {
             .and_then(|v| v.parse().ok())
             .unwrap_or(300_000);
         // Anti-Idle snapshot
-        let anti_idle_enabled = state.hub.is_anti_idle_enabled();
-        let since = state.hub.seconds_since_last_activity();
-        let idle_threshold = std::env::var("IDLE_THRESHOLD_SECONDS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(30);
-        let long_secs = std::env::var("LONG_IDLE_THRESHOLD_MINUTES")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(5)
-            * 60;
-        let deep_secs = std::env::var("DEEP_IDLE_THRESHOLD_MINUTES")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(30)
-            * 60;
-        let idle_state = if active > 0 || since < idle_threshold {
-            0
-        } else if since < long_secs {
-            1
-        } else if since < deep_secs {
-            2
-        } else {
-            3
-        };
+        let anti_idle_enabled = anti_idle::is_enabled();
+        let (idle_state, since) = anti_idle::idle_state(active);
+        let t = *anti_idle::thresholds();
         metrics::gauge!("time_since_activity_seconds").set(since as f64);
         let caps = serde_json::json!({
             "trace_requests": state.hub.is_trace_enabled(),
@@ -2513,36 +2468,12 @@ async fn main() {
             "queues": {"fast": qf, "standard": qs, "long": ql},
             "backpressure": bp,
             "watchdogs": {"soft_ms": soft_ms, "hard_ms": hard_ms},
-            "anti_idle": {"enabled": anti_idle_enabled, "idle_state": idle_state, "idle_label": match idle_state {0=>"active",1=>"short",2=>"long",_=>"deep"}, "since_seconds": since, "thresholds": {"idle": idle_threshold, "long": long_secs, "deep": deep_secs}, "microtasks": {"dryrun_depth": std::env::var("IDLE_DRYRUN_QUEUE_DEPTH").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(0) }}
+            "anti_idle": {"enabled": anti_idle_enabled, "idle_state": idle_state, "idle_label": match idle_state {0=>"active",1=>"short",2=>"long",_=>"deep"}, "since_seconds": since, "thresholds": {"idle": t.idle_secs, "long": t.long_secs, "deep": t.deep_secs}, "microtasks": {"dryrun_depth": anti_idle::dryrun_queue_depth() }}
             ,"factory": {"records_total": factory_total, "active": factory_active}
         })))
     }
     app = app.route("/api/neira/introspection/status", get(introspection_status));
-
-    // Anti-Idle runtime toggle (admin)
-    #[derive(serde::Deserialize)]
-    struct AntiIdleToggle {
-        auth: String,
-        enabled: Option<bool>,
-    }
-    async fn anti_idle_toggle(
-        State(state): State<AppState>,
-        Json(req): Json<AntiIdleToggle>,
-    ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
-        if !state.hub.check_auth(&req.auth) {
-            return Err(axum::http::StatusCode::UNAUTHORIZED);
-        }
-        if !state
-            .hub
-            .check_scope(&req.auth, backend::interaction_hub::Scope::Admin)
-        {
-            return Err(axum::http::StatusCode::FORBIDDEN);
-        }
-        let new_state = req.enabled.unwrap_or(!state.hub.is_anti_idle_enabled());
-        state.hub.set_anti_idle_enabled(new_state);
-        Ok(Json(serde_json::json!({"enabled": new_state})))
-    }
-    app = app.route("/api/neira/anti_idle/toggle", post(anti_idle_toggle));
+    app = app.merge(anti_idle::router::<AppState>());
 
     // Runtime Extensibility (read-only): plugins and UI tools listing
     async fn list_plugins() -> Result<Json<serde_json::Value>, axum::http::StatusCode> {

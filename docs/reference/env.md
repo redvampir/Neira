@@ -47,6 +47,11 @@ id: NEI-20260214-loop-detector-env-docs
 intent: docs
 summary: Добавлена переменная LOOP_ENTROPY_MIN для детектора повторов.
 -->
+<!-- neira:meta
+id: NEI-20260301-idle-env-docs
+intent: docs
+summary: Описаны IDLE_EMA_ALPHA и IDLE_DRYRUN_QUEUE_DEPTH.
+-->
 
 | Ключ                         | Тип             | По умолчанию          | Где используется        | Влияние                                                                                                 |
 | ---------------------------- | --------------- | --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -97,6 +102,10 @@ summary: Добавлена переменная LOOP_ENTROPY_MIN для дет�
 | ------------------------------------- | ------ | -------------- | ---------------- | ----------------------------- |
 | IDLE_THRESHOLD_SECONDS                | int    | 30             | idle detection   | Порог простоя (сек)           |
 | DEEP_IDLE_THRESHOLD_MINUTES           | int    | 30             | idle detection   | Глубокий простой (мин)        |
+| IDLE_EMA_ALPHA                        | float  | 0.3            | idle detection   | Вес EMA сглаживания idle_state     |
+                 |
+| IDLE_DRYRUN_QUEUE_DEPTH               | int    | 0              | idle microtasks  | Размер очереди микрозадач в простое |
+                 |
 | IDLE_MICRO_TASK_MAX_DURATION          | string | 10min          | anti-idle limits | Максимум одной микрозадачи    |
 | IDLE_SESSION_MAX_DURATION             | string | 30min          | anti-idle limits | Максимум одной сессии         |
 | IDLE_DAILY_AUTONOMOUS_LIMIT           | string | 4hours         | anti-idle limits | Дневной лимит автономии       |
@@ -179,6 +188,10 @@ summary: Добавлена переменная LOOP_ENTROPY_MIN для дет�
 | IDLE_THRESHOLD_SECONDS                | int    | 30             | idle detection   | Порог простоя (сек)                                       |
 | LONG_IDLE_THRESHOLD_MINUTES           | int    | 5              | idle detection   | Длительный простой (мин)                                  |
 | DEEP_IDLE_THRESHOLD_MINUTES           | int    | 30             | idle detection   | Глубокий простой (мин)                                    |
+| IDLE_EMA_ALPHA                        | float  | 0.3            | idle detection   | Вес EMA сглаживания idle_state     |
+                 |
+| IDLE_DRYRUN_QUEUE_DEPTH               | int    | 0              | idle microtasks  | Размер очереди микрозадач в простое |
+                 |
 | IDLE_MICRO_TASK_MAX_DURATION          | string | 10min          | anti-idle limits | Максимум одной микрозадачи                                |
 | IDLE_SESSION_MAX_DURATION             | string | 30min          | anti-idle limits | Максимум одной сессии                                     |
 | IDLE_DAILY_AUTONOMOUS_LIMIT           | string | 4hours         | anti-idle limits | Дневной лимит автономии                                   |
