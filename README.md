@@ -11,6 +11,7 @@ Assistant Quick Links
 
 Documentation Index
 - docs/index.md — карта документации (DocMap) для GitHub/IDE
+- docs/README.md — вход в документацию
 ## Навигация
 
 - [Узлы действий](docs/nodes/action-nodes.md)
