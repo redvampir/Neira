@@ -27,7 +27,20 @@ intent: docs
 summary: Добавлены детали про пульс и метрику `sse_active`.
 -->
 
+<!-- neira:meta
+id: NEI-20240601-nervous-toc-env-links
+intent: docs
+summary: Добавлено оглавление и ссылки на ENV и метрики.
+-->
+
 # Нервная система (Nervous System)
+
+## Оглавление
+- [Цели](#цели)
+- [Границы ответственности](#границы-ответственности)
+- [Компоненты](#компоненты)
+- [Интеграции](#интеграции-хуки)
+- [Переменные окружения](#env-минимум)
 
 Цели
 - Прозрачность и самонаблюдение: сбор RED/USE метрик, состояние очередей, живость SSE, тайминги узлов.
@@ -76,6 +89,11 @@ ENV (минимум)
 - WATCHDOG_REASONING_SOFT_MS / WATCHDOG_REASONING_HARD_MS — таймауты.
 - BACKPRESSURE_HIGH_WATERMARK / BACKPRESSURE_THROTTLE_MS — пороги и базовый сон; AUTO_BACKOFF_ENABLED/BP_MAX_BACKOFF_MS — авто‑бэкофф.
 
+Полный перечень:
+[env.md#watchdog](../reference/env.md#watchdog),
+[env.md#homeostasis--control-дополнение](../reference/env.md#homeostasis--control-дополнение)
+и [env_anti_idle.md#anti-idle-env-addendum](../reference/env_anti_idle.md#anti-idle-env-addendum).
+
 ## WATCHDOG* переменные
 
 Настройки сторожей времени задаются через окружение:
@@ -85,7 +103,9 @@ ENV (минимум)
 - `WATCHDOG_SOFT_MS_<NODEID>` / `WATCHDOG_HARD_MS_<NODEID>` — переопределения для узлов (ID в UPPER_SNAKE_CASE).
 
 Метрики (ссылки)
-- См. [docs/reference/metrics.md](../reference/metrics.md): `host_*`, `io_*`, `sse_active`, [`throttle_events_total`](../reference/metrics.md#homeostasis--control-дополнение), `watchdog_*`, [`backpressure`](../reference/metrics.md#реестр-метрик-истина), а также блоки Anti‑Idle (`idle_*`).
+- См. [реестр](../reference/metrics.md#реестр-метрик-истина) и раздел
+  [Homeostasis & Control](../reference/metrics.md#homeostasis--control-дополнение)
+  для `watchdog_*`, `loop_detected_total`, `backpressure`, `sse_active` и блоков Anti‑Idle (`idle_*`).
 
 Диагностика и SLO
 - Базовые панели: загрузка CPU/Mem, длины очередей, время отклика узлов, число активных SSE, срабатывания watchdog.
