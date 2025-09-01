@@ -17,7 +17,8 @@ use std::convert::Infallible;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::net::TcpListener;
-use tracing::{error, info};
+use tracing::error;
+use backend::hearing;
 
 use backend::action::chat_node::EchoChatNode;
 use backend::action::diagnostics_node::DiagnosticsNode;
@@ -223,7 +224,10 @@ async fn organ_status(
         }
         None => {
             metrics::counter!("organ_status_not_found_total").increment(1);
-            tracing::warn!(organ_id = %id, reason = "not_found", "organ status missing");
+            hearing::warn(&format!(
+                "organ status missing; organ_id={} reason=not_found",
+                id
+            ));
             Err(axum::http::StatusCode::NOT_FOUND)
         }
     }
@@ -965,7 +969,13 @@ async fn chat_stream(
                     }
                     if ratio >= loop_thresh || (entropy_min > 0.0 && ent < entropy_min) {
                         metrics::counter!("loop_detected_total").increment(1);
-                        tracing::warn!(chat_id=%req.chat_id, session_id=%req.session_id.clone().unwrap_or_default(), window=loop_win, ratio=%ratio, "loop detected in SSE stream; terminating early");
+                        hearing::warn(&format!(
+                            "loop detected in SSE stream; terminating early; chat_id={} session_id={} window={} ratio={}",
+                            req.chat_id,
+                            req.session_id.clone().unwrap_or_default(),
+                            loop_win,
+                            ratio
+                        ));
                         break;
                     }
                 }
@@ -983,7 +993,14 @@ async fn chat_stream(
         yield Ok(Event::default().event("progress").data(prog.to_string()));
         yield Ok(Event::default().event("done").data("true"));
         metrics::gauge!("sse_active").decrement(1.0);
-        if (elapsed * 1000.0) as u64 > warn_after_ms { tracing::warn!(duration_ms=(elapsed*1000.0) as u64, chat_id=%req.chat_id, session_id=%req.session_id.clone().unwrap_or_default(), "sse stream slow"); }
+        if (elapsed * 1000.0) as u64 > warn_after_ms {
+            hearing::warn(&format!(
+                "sse stream slow; duration_ms={} chat_id={} session_id={}",
+                (elapsed * 1000.0) as u64,
+                req.chat_id,
+                req.session_id.clone().unwrap_or_default()
+            ));
+        }
         if let Some(rid) = req_id2.as_deref() {
             hub_for_trace.trace_event(Some(rid), "chat.stream.done", serde_json::json!({"chat_id": chat_id2}));
         }
@@ -1759,9 +1776,15 @@ async fn main() {
                 metrics::counter!("sse_cancellations_total").increment(n as u64);
             }
             metrics::counter!("pause_drain_events_total").increment(1);
-            tracing::info!(auth=%auth, reason=%reason, cancelled_streams=n, "control: pause with drain");
+            hearing::info(&format!(
+                "control: pause with drain; auth={} reason={} cancelled_streams={}",
+                auth, reason, n
+            ));
         }
-        tracing::info!(request_id=%request_id, auth=%auth, reason=%reason, "control: pause");
+        hearing::info(&format!(
+            "control: pause; request_id={} auth={} reason={}",
+            request_id, auth, reason
+        ));
         let now_ms = chrono::Utc::now().timestamp_millis();
         Ok(Json(
             serde_json::json!({"paused": true, "reason": reason, "paused_since_ts_ms": now_ms}),
@@ -1798,7 +1821,10 @@ async fn main() {
             .paused
             .store(false, std::sync::atomic::Ordering::Relaxed);
         metrics::gauge!("paused_state").set(0.0);
-        tracing::info!(request_id=%request_id, auth=%auth, "control: resume");
+        hearing::info(&format!(
+            "control: resume; request_id={} auth={}",
+            request_id, auth
+        ));
         Ok(Json(serde_json::json!({"paused": false})))
     }
     async fn control_status(
@@ -1859,7 +1885,10 @@ async fn main() {
             .get("request_id")
             .and_then(|v| v.as_str())
             .unwrap_or("");
-        tracing::warn!(request_id=%request_id, auth=%auth, grace_ms=grace_ms, "control: kill (graceful)");
+        hearing::warn(&format!(
+            "control: kill (graceful); request_id={} auth={} grace_ms={}",
+            request_id, auth, grace_ms
+        ));
         metrics::counter!("kill_switch_total").increment(1);
         // Инициируем graceful shutdown сервера
         state.shutdown.cancel();
@@ -1976,7 +2005,7 @@ async fn main() {
                 obj["trace_file"] = serde_json::json!(tf.to_string_lossy());
             }
         }
-        tracing::info!("control: snapshot created");
+        hearing::info("control: snapshot created");
         let _ = std::fs::create_dir_all(&dir);
         let _ = std::fs::write(
             &path,

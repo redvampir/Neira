@@ -13,6 +13,7 @@ pub mod security;
 pub mod system;
 pub mod task_scheduler;
 pub mod trigger_detector;
+pub mod hearing;
 // duplicates removed
 
 // Global hub reference (optional), used for lightweight signals like Anti-Idle activity marks
