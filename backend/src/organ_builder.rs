@@ -4,7 +4,8 @@ intent: code
 summary: |-
   Асинхронная сборка органов со стадиями Draft→Canary→Experimental→Stable,
   сохранением шаблонов на диск, удалением по TTL после стабилизации,
-  метрикой времени сборки и остановкой при ручном изменении статуса.
+  метрикой времени сборки, остановкой при ручном изменении статуса и
+  восстановлением счётчика идентификаторов при рестарте.
 */
 
 use std::collections::HashMap;
@@ -67,6 +68,7 @@ impl OrganBuilder {
         });
         if enabled {
             let mut restored = 0u64;
+            let mut max_id = 0u64;
             if let Ok(entries) = std::fs::read_dir(&this.templates_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
@@ -74,12 +76,16 @@ impl OrganBuilder {
                         continue;
                     }
                     if let Some(id) = path.file_stem().and_then(|s| s.to_str()) {
+                        if let Some(num) = id.strip_prefix("organ-") {
+                            if let Ok(n) = num.parse::<u64>() {
+                                if n > max_id {
+                                    max_id = n;
+                                }
+                            }
+                        }
                         if let Ok(data) = std::fs::read_to_string(&path) {
                             if let Ok(tpl) = serde_json::from_str::<Value>(&data) {
-                                this.templates
-                                    .write()
-                                    .unwrap()
-                                    .insert(id.to_string(), tpl);
+                                this.templates.write().unwrap().insert(id.to_string(), tpl);
                                 this.statuses
                                     .write()
                                     .unwrap()
@@ -90,6 +96,7 @@ impl OrganBuilder {
                     }
                 }
             }
+            this.counter.store(max_id + 1, Ordering::Relaxed);
             metrics::counter!("organ_build_restored_total").increment(restored);
             info!(restored, "organ builder restored organs");
         }
