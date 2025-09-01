@@ -1,7 +1,8 @@
 /* neira:meta
 id: NEI-20251010-organ-builder-test
 intent: test
-summary: Проверяет переходы стадий органа, ручное обновление, удержание статуса `Failed` и очистку шаблонов по TTL.
+summary: Проверяет переходы стадий органа, ручное обновление, удержание статуса `Failed`,
+  очистку шаблонов по TTL и восстановление счётчика идентификаторов при рестарте.
 */
 use backend::organ_builder::{OrganBuilder, OrganState};
 use serial_test::serial;
@@ -70,6 +71,29 @@ async fn organ_builder_restores_statuses_from_disk() {
     drop(builder);
     let builder = OrganBuilder::new();
     assert_eq!(builder.status(&id), Some(OrganState::Stable));
+    std::env::remove_var("ORGANS_BUILDER_ENABLED");
+    std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
+}
+
+#[tokio::test]
+#[serial]
+async fn organ_builder_resumes_counter_from_disk() {
+    std::env::set_var("ORGANS_BUILDER_ENABLED", "true");
+    let dir = tempfile::tempdir().unwrap();
+    std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
+    {
+        let builder = OrganBuilder::new();
+        let _ = builder.start_build(serde_json::json!({"kind": "one"}));
+        let id2 = builder.start_build(serde_json::json!({"kind": "two"}));
+        std::fs::rename(
+            dir.path().join(format!("{id2}.json")),
+            dir.path().join("organ-5.json"),
+        )
+        .unwrap();
+    }
+    let builder = OrganBuilder::new();
+    let new_id = builder.start_build(serde_json::json!({"kind": "new"}));
+    assert_eq!(new_id, "organ-6");
     std::env::remove_var("ORGANS_BUILDER_ENABLED");
     std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
 }
