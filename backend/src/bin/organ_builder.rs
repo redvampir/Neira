@@ -29,11 +29,17 @@ async fn run() -> Result<(), String> {
                 .send()
                 .await
                 .map_err(|e| format!("request failed: {e}"))?;
-            let text = resp
-                .text()
-                .await
-                .map_err(|e| format!("response read failed: {e}"))?;
-            println!("{text}");
+            if resp.status().is_success() {
+                let text = resp
+                    .text()
+                    .await
+                    .map_err(|e| format!("response read failed: {e}"))?;
+                println!("{text}");
+            } else {
+                let status = resp.status();
+                let text = resp.text().await.unwrap_or_else(|_| String::new());
+                return Err(format!("status {status}: {text}"));
+            }
         }
         "status" => {
             let id = args.next().ok_or_else(usage)?;
