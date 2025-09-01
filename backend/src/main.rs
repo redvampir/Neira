@@ -267,7 +267,7 @@ async fn organ_status(
 /* neira:meta
 id: NEI-20260501-organ-stream-route
 intent: code
-summary: добавлен WS /organs/:id/stream для трансляции смен статуса.
+summary: добавлен WS /organs/{id}/stream для трансляции смен статуса.
 */
 async fn organ_stream(
     State(state): State<AppState>,
@@ -305,7 +305,7 @@ struct OrganStatusUpdateReq {
 /* neira:meta
 id: NEI-20251010-organ-status-update-route
 intent: code
-summary: добавлен POST /organs/:id/status для ручного изменения стадии.
+summary: добавлен POST /organs/{id}/status для ручного изменения стадии.
 */
 async fn organ_update_status(
     State(state): State<AppState>,
@@ -358,7 +358,7 @@ async fn organ_update_status(
 /* neira:meta
 id: NEI-20251115-organ-cancel-build-route
 intent: code
-summary: добавлен DELETE /organs/:id/build для остановки сборки органа.
+summary: добавлен DELETE /organs/{id}/build для остановки сборки органа.
 */
 async fn organ_cancel_build(
     State(state): State<AppState>,
@@ -385,7 +385,7 @@ async fn organ_cancel_build(
 /* neira:meta
 id: NEI-20251205-organ-rebuild-route
 intent: code
-summary: добавлен POST /organs/:id/rebuild для перезапуска сборки органа.
+summary: добавлен POST /organs/{id}/rebuild для перезапуска сборки органа.
 */
 async fn organ_rebuild(
     State(state): State<AppState>,
@@ -1775,36 +1775,41 @@ async fn main() {
                 }
             }),
         )
+        /* neira:meta
+        id: NEI-20250607-axum-route-syntax
+        intent: refactor
+        summary: обновлён синтаксис параметров маршрутов для axum >=0.7.
+        */
         .route("/nodes", post(register_node))
-        .route("/nodes/:id", get(get_node_latest))
-        .route("/nodes/:id/:version", get(get_node))
+        .route("/nodes/{id}", get(get_node_latest))
+        .route("/nodes/{id}/{version}", get(get_node))
         // Factory API (draft)
         .route("/factory/nodes/dryrun", post(factory_dryrun))
         .route("/factory/nodes", post(factory_create))
-        .route("/factory/nodes/:fid/approve", post(factory_approve))
-        .route("/factory/nodes/:fid/disable", post(factory_disable))
-        .route("/factory/nodes/:fid/rollback", post(factory_rollback))
+        .route("/factory/nodes/{fid}/approve", post(factory_approve))
+        .route("/factory/nodes/{fid}/disable", post(factory_disable))
+        .route("/factory/nodes/{fid}/rollback", post(factory_rollback))
         // Organ builder
         .route("/organs", get(organs_list))
         .route("/organs/build", post(organ_build))
-        .route("/organs/:id/build", delete(organ_cancel_build))
-        .route("/organs/:id/rebuild", post(organ_rebuild))
+        .route("/organs/{id}/build", delete(organ_cancel_build))
+        .route("/organs/{id}/rebuild", post(organ_rebuild))
         .route(
-            "/organs/:id/status",
+            "/organs/{id}/status",
             get(organ_status).post(organ_update_status),
         )
-        .route("/organs/:id/stream", get(organ_stream))
+        .route("/organs/{id}/stream", get(organ_stream))
         .route("/api/neira/analysis", post(analyze_request))
         .route("/api/neira/analysis/resume", post(resume_request))
         .route("/api/neira/chat", post(chat_request))
         .route("/api/neira/chat/stream", post(chat_stream))
         .route("/api/neira/chat/session/new", post(new_session))
         .route(
-            "/api/neira/chat/:chat_id/:session_id",
+            "/api/neira/chat/{chat_id}/{session_id}",
             delete(delete_session),
         )
         .route(
-            "/api/neira/chat/:chat_id/:session_id/rename",
+            "/api/neira/chat/{chat_id}/{session_id}/rename",
             post(rename_session),
         )
         .route(
@@ -1825,9 +1830,9 @@ async fn main() {
             get(masking_config_view),
         )
         .route("/api/neira/context/masking/dry_run", post(masking_dry_run))
-        .route("/api/neira/probes/:name/toggle", post(toggle_probe))
+        .route("/api/neira/probes/{name}/toggle", post(toggle_probe))
         .route(
-            "/context/*path",
+            "/context/{*path}",
             get(|Path(path): Path<String>| async move {
                 let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
                 let full = std::path::Path::new(&base).join(path);
@@ -1847,18 +1852,18 @@ async fn main() {
                 }
             }),
         )
-        .route("/api/neira/chat/:chat_id/export", get(export_chat))
+        .route("/api/neira/chat/{chat_id}/export", get(export_chat))
         .route(
-            "/api/neira/chat/:chat_id/import/:session_id",
+            "/api/neira/chat/{chat_id}/import/{session_id}",
             post(import_chat),
         )
-        .route("/api/neira/chat/:chat_id/index", get(get_chat_index))
+        .route("/api/neira/chat/{chat_id}/index", get(get_chat_index))
         .route(
-            "/api/neira/chat/:chat_id/:session_id",
+            "/api/neira/chat/{chat_id}/{session_id}",
             get(get_chat_session),
         )
         .route(
-            "/api/neira/chat/:chat_id/:session_id/search",
+            "/api/neira/chat/{chat_id}/{session_id}/search",
             get(search_chat),
         )
         .route("/api/neira/chat/stream/cancel", post(cancel_stream))
@@ -2209,7 +2214,7 @@ async fn main() {
         .route("/api/neira/control/status", get(control_status))
         .route("/api/neira/control/kill", post(control_kill))
         .route("/api/neira/inspect/snapshot", get(inspect_snapshot))
-        .route("/api/neira/trace/:request_id", get(trace_request));
+        .route("/api/neira/trace/{request_id}", get(trace_request));
 
     async fn queues_status(
         State(state): State<AppState>,
@@ -2471,7 +2476,7 @@ async fn main() {
 
     // Serve snapshots directory (download links)
     app = app.route(
-        "/snapshots/*path",
+        "/snapshots/{*path}",
         get(|Path(path): Path<String>| async move {
             let base =
                 std::env::var("CONTROL_SNAPSHOT_DIR").unwrap_or_else(|_| "./snapshots".into());
@@ -2873,7 +2878,7 @@ endpoints:
   - POST /api/neira/chat
   - POST /api/neira/chat/stream
   - POST /api/neira/chat/stream/cancel
-  - GET /api/neira/chat/:chat_id/:session_id/search
+  - GET /api/neira/chat/{chat_id}/{session_id}/search
   - POST /api/neira/context/masking
   - GET /api/neira/context/masking/config
   - POST /api/neira/context/masking/dry_run
