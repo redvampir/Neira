@@ -41,6 +41,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 use serde::Serialize;
 use serde_json::Value;
+use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tracing::info;
 
@@ -66,6 +67,7 @@ pub struct OrganBuilder {
     enabled: bool,
     ttl: Duration,
     stages: Vec<(OrganState, u64)>,
+    events_tx: broadcast::Sender<(String, OrganState)>,
 }
 
 impl OrganBuilder {
@@ -97,6 +99,7 @@ impl OrganBuilder {
         if enabled {
             let _ = std::fs::create_dir_all(&templates_dir);
         }
+        let (events_tx, _rx) = broadcast::channel(16);
         let this = Arc::new(Self {
             templates: RwLock::new(HashMap::new()),
             statuses: RwLock::new(HashMap::new()),
@@ -107,6 +110,7 @@ impl OrganBuilder {
             enabled,
             ttl: Duration::from_secs(ttl_secs),
             stages,
+            events_tx,
         });
         if enabled {
             let restored = this.restore_existing();
@@ -185,6 +189,7 @@ impl OrganBuilder {
             }
             let _ = std::fs::write(path, tpl.to_string());
         }
+        let _ = self.events_tx.send((id.clone(), OrganState::Draft));
         metrics::counter!("organ_build_attempts_total").increment(1);
         info!(organ_id = %id, "organ build started");
         let this = Arc::clone(self);
@@ -238,6 +243,7 @@ impl OrganBuilder {
         let _ = std::fs::write(path, tpl.to_string());
         metrics::counter!("organ_rebuild_attempts_total").increment(1);
         info!(organ_id = %id, "organ rebuild started");
+        let _ = self.events_tx.send((id.to_string(), OrganState::Draft));
         let this = Arc::clone(self);
         let build_id = id.to_string();
         let stages = self.stages.clone();
@@ -265,8 +271,7 @@ impl OrganBuilder {
     /// Возвращает все известные органы и их статусы.
     pub fn list(&self) -> Vec<(String, OrganState)> {
         metrics::counter!("organ_build_list_queries_total").increment(1);
-        self
-            .statuses
+        self.statuses
             .read()
             .unwrap()
             .iter()
@@ -296,6 +301,7 @@ impl OrganBuilder {
             }
         };
         *prev = state;
+        let _ = self.events_tx.send((id.to_string(), state));
         if state == OrganState::Stable {
             if let Some(start) = self.start_times.write().unwrap().remove(id) {
                 let ms = start.elapsed().as_millis() as f64;
@@ -314,6 +320,16 @@ impl OrganBuilder {
             }
         }
         Some(*prev)
+    }
+
+    /* neira:meta
+    id: NEI-20260501-organ-status-broadcast
+    intent: code
+    summary: добавлен канал оповещений о смене статуса органа.
+    */
+    /// Подписка на события изменения статусов.
+    pub fn subscribe(&self) -> broadcast::Receiver<(String, OrganState)> {
+        self.events_tx.subscribe()
     }
 
     /// Удаляет просроченные шаблоны и статусы.

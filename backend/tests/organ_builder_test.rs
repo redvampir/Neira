@@ -194,3 +194,26 @@ async fn organ_builder_lists_all_organs() {
     std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
     std::env::remove_var("ORGANS_BUILDER_STAGE_DELAYS");
 }
+
+/* neira:meta
+id: NEI-20260501-organ-status-events-test
+intent: test
+summary: проверяет отправку событий при смене статуса органа.
+*/
+#[tokio::test]
+#[serial]
+async fn organ_builder_emits_status_events() {
+    std::env::set_var("ORGANS_BUILDER_ENABLED", "true");
+    let dir = tempfile::tempdir().unwrap();
+    std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
+    let builder = OrganBuilder::new();
+    let mut rx = builder.subscribe();
+    let id = builder.start_build(serde_json::json!({"kind": "test"}));
+    let (eid, st) = rx.recv().await.unwrap();
+    assert_eq!(eid, id);
+    assert_eq!(st, OrganState::Draft);
+    let (eid2, _st2) = rx.recv().await.unwrap();
+    assert_eq!(eid2, id);
+    std::env::remove_var("ORGANS_BUILDER_ENABLED");
+    std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
+}
