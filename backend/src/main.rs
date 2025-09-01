@@ -208,6 +208,28 @@ async fn organ_build(
     Ok(Json(serde_json::json!({"organ_id": id, "state": "draft"})))
 }
 
+/* neira:meta
+id: NEI-20260407-organs-list-route
+intent: code
+summary: добавлен GET /organs для выдачи id и state всех органов.
+*/
+async fn organs_list(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let pe = PolicyEngine::new();
+    if let Err(_e) = pe.require_capability(&state.hub, Capability::OrgansBuilder) {
+        return Err(axum::http::StatusCode::FORBIDDEN);
+    }
+    let organs: Vec<_> = state
+        .hub
+        .organ_list()
+        .into_iter()
+        .map(|(id, st)| serde_json::json!({"id": id, "state": format_organ_state(st)}))
+        .collect();
+    hearing::info(&format!("organs list queried; count={}", organs.len()));
+    Ok(Json(serde_json::Value::Array(organs)))
+}
+
 async fn organ_status(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -1722,6 +1744,7 @@ async fn main() {
         .route("/factory/nodes/:fid/disable", post(factory_disable))
         .route("/factory/nodes/:fid/rollback", post(factory_rollback))
         // Organ builder
+        .route("/organs", get(organs_list))
         .route("/organs/build", post(organ_build))
         .route("/organs/:id/build", delete(organ_cancel_build))
         .route("/organs/:id/rebuild", post(organ_rebuild))
