@@ -17,19 +17,20 @@ summary: Удалён неиспользуемый клон InteractionHub пр�
 */
 use async_stream::stream;
 use axum::{
-    Json, Router,
     extract::{
-        Path, State,
         ws::{Message, WebSocket, WebSocketUpgrade},
+        Path, State,
     },
     http::HeaderMap,
     response::sse::{Event, Sse},
     routing::{delete, get, post},
+    Json, Router,
 };
 use backend::context::context_storage::set_runtime_mask_config;
 use backend::hearing;
 use backend::nervous_system::anti_idle;
 use backend::nervous_system::backpressure_probe::BackpressureProbe;
+use backend::nervous_system::heartbeat;
 use backend::nervous_system::loop_detector;
 use backend::nervous_system::watchdog::Watchdog;
 use dotenvy::dotenv;
@@ -1003,7 +1004,7 @@ async fn chat_stream(
             .hub
             .register_stream_cancel(&req.chat_id, sid, cancel.clone());
     }
-    metrics::gauge!("sse_active").increment(1.0);
+    heartbeat::increment_active();
     let warn_after_ms = std::env::var("SSE_WARN_AFTER_MS")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
@@ -1092,7 +1093,7 @@ async fn chat_stream(
         let prog = serde_json::json!({"tokens": sent, "tokens_per_sec": tps, "partial_len": chars});
         yield Ok(Event::default().event("progress").data(prog.to_string()));
         yield Ok(Event::default().event("done").data("true"));
-        metrics::gauge!("sse_active").decrement(1.0);
+        heartbeat::decrement_active();
         if (elapsed * 1000.0) as u64 > warn_after_ms {
             hearing::warn(&format!(
                 "sse stream slow; duration_ms={} chat_id={} session_id={}",
@@ -2595,7 +2596,7 @@ async fn main() {
                 return Err(axum::http::StatusCode::FORBIDDEN);
             }
             let cancel = tokio_util::sync::CancellationToken::new();
-            metrics::gauge!("sse_active").increment(1.0);
+            heartbeat::increment_active();
             let delay = std::env::var("SSE_DEV_DELAY_MS")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
@@ -2606,7 +2607,7 @@ async fn main() {
                 .unwrap_or(200);
             let stream = stream! {
                 for i in 0..count { if cancel.is_cancelled(){ break; } yield Ok(Event::default().event("message").data(format!("x{}", i))); tokio::time::sleep(std::time::Duration::from_millis(delay)).await; if i%10==0 { yield Ok(Event::default().event("progress").data(serde_json::json!({"tokens": i}).to_string())); } }
-                yield Ok(Event::default().event("done").data("true")); metrics::gauge!("sse_active").decrement(1.0);
+                yield Ok(Event::default().event("done").data("true")); heartbeat::decrement_active();
             };
             Ok(Sse::new(stream))
         }

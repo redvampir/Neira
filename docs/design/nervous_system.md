@@ -21,6 +21,12 @@ intent: docs
 summary: Добавлены пороги простоя и ручка `/api/neira/anti_idle/toggle`.
 -->
 
+<!-- neira:meta
+id: NEI-20270323-heartbeat-docs
+intent: docs
+summary: Добавлены детали про пульс и метрику `sse_active`.
+-->
+
 # Нервная система (Nervous System)
 
 Цели
@@ -42,6 +48,11 @@ summary: Добавлены пороги простоя и ручка `/api/neir
 - Watchdogs: soft/hard таймауты выполнения анализа/потоков, счётчики и рекомендации по ENV.
 - Loop Detector: анализирует поток SSE на повторы и низкую энтропию, публикует `loop_detected_total`.
 - Интроспекция: `/api/neira/introspection/status` блоки `watchdogs`, `queues/backpressure`, `anti_idle`, `capabilities`.
+
+## Heartbeat
+
+- Отслеживает число активных SSE-подключений.
+- Метрика `sse_active` увеличивается при открытии потока и уменьшается при закрытии.
 
 ## Anti-Idle
 
