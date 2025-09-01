@@ -12,7 +12,7 @@ summary: Добавлены переменные управления порог
 <!-- neira:meta
 id: NEI-20251010-organ-builder-env
 intent: docs
-summary: описаны переменные ORGANS_BUILDER_ENABLED и ORGANS_BUILDER_TEMPLATES_DIR.
+summary: описаны переменные ORGANS_BUILDER_ENABLED, ORGANS_BUILDER_TEMPLATES_DIR и ORGANS_BUILDER_TTL_SECS.
 -->
 
 Backend environment variables
@@ -65,6 +65,7 @@ Masking presets
 - MASK_PRESETS_DIR: directory with regex preset files named <preset>.txt (default: config/mask_presets)
 - ORGANS_BUILDER_ENABLED: enable organ builder module (default: false)
 - ORGANS_BUILDER_TEMPLATES_DIR: directory to store organ templates (default: organ_templates)
+- ORGANS_BUILDER_TTL_SECS: seconds to keep organ templates after stabilization (default: 3600)
 
 ## Автоматическое определение `INTEGRITY_ROOT`
 

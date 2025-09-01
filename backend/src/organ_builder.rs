@@ -3,8 +3,8 @@ id: NEI-20251010-organ-builder
 intent: code
 summary: |-
   Асинхронная сборка органов со стадиями Draft→Canary→Experimental→Stable,
-  сохранением шаблонов на диск, метрикой времени сборки и остановкой при
-  ручном изменении статуса.
+  сохранением шаблонов на диск, удалением по TTL после стабилизации,
+  метрикой времени сборки и остановкой при ручном изменении статуса.
 */
 
 use std::collections::HashMap;
@@ -36,6 +36,7 @@ pub struct OrganBuilder {
     counter: AtomicU64,
     templates_dir: PathBuf,
     enabled: bool,
+    ttl: Duration,
 }
 
 impl OrganBuilder {
@@ -48,6 +49,10 @@ impl OrganBuilder {
         let dir = std::env::var("ORGANS_BUILDER_TEMPLATES_DIR")
             .unwrap_or_else(|_| "organ_templates".into());
         let templates_dir = PathBuf::from(dir);
+        let ttl_secs = std::env::var("ORGANS_BUILDER_TTL_SECS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(3600);
         if enabled {
             let _ = std::fs::create_dir_all(&templates_dir);
         }
@@ -58,6 +63,7 @@ impl OrganBuilder {
             counter: AtomicU64::new(1),
             templates_dir,
             enabled,
+            ttl: Duration::from_secs(ttl_secs),
         })
     }
 
@@ -117,7 +123,7 @@ impl OrganBuilder {
     }
 
     /// Ручное обновление статуса.
-    pub fn update_status(&self, id: &str, state: OrganState) -> Option<OrganState> {
+    pub fn update_status(self: &Arc<Self>, id: &str, state: OrganState) -> Option<OrganState> {
         let mut statuses = self.statuses.write().unwrap();
         let prev = statuses.get_mut(id)?;
         *prev = state;
@@ -125,6 +131,16 @@ impl OrganBuilder {
             if let Some(start) = self.start_times.write().unwrap().remove(id) {
                 let ms = start.elapsed().as_millis() as f64;
                 metrics::histogram!("organ_build_duration_ms").record(ms);
+            }
+            if self.ttl.as_secs() > 0 {
+                let this = Arc::clone(self);
+                let id = id.to_string();
+                let path = this.templates_dir.join(format!("{id}.json"));
+                tokio::spawn(async move {
+                    tokio::time::sleep(this.ttl).await;
+                    this.templates.write().unwrap().remove(&id);
+                    let _ = tokio::fs::remove_file(path).await;
+                });
             }
         }
         Some(*prev)
