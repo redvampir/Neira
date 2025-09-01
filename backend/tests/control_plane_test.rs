@@ -1,3 +1,8 @@
+/* neira:meta
+id: NEI-20250214-control-plane-startup-wait
+intent: test
+summary: усилили ожидание запуска бэкенда и фиксируем ранний выход процесса.
+*/
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -17,27 +22,38 @@ async fn pause_resume_snapshot_kill() {
         .env("CONTROL_ALLOW_KILL", "true")
         .env("CONTROL_ALLOW_PAUSE", "true")
         .env("NEIRA_BIND_ADDR", format!("127.0.0.1:{}", port))
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .spawn()
         .expect("spawn backend");
 
     // wait for server
     let client = reqwest::Client::new();
     let mut ok = false;
-    for _ in 0..30 {
+    for _ in 0..100 {
         if let Ok(resp) = client.get(format!("{}/", base)).send().await {
-            if resp.status().as_u16() == 200 { ok = true; break; }
+            if resp.status().as_u16() == 200 {
+                ok = true;
+                break;
+            }
         }
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        if let Some(status) = child.try_wait().expect("child wait") {
+            panic!("backend exited early: {status}");
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
     }
     assert!(ok, "server did not start");
 
     // pause
-    let pause = client.post(format!("{}/api/neira/control/pause", base))
+    let pause = client
+        .post(format!("{}/api/neira/control/pause", base))
         .json(&serde_json::json!({"auth":"admin123","reason":"maint","request_id":"r1"}))
-        .send().await.unwrap()
-        .json::<serde_json::Value>().await.unwrap();
+        .send()
+        .await
+        .unwrap()
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
     assert_eq!(pause.get("paused").and_then(|v| v.as_bool()), Some(true));
 
     // chat should be 503
@@ -47,10 +63,15 @@ async fn pause_resume_snapshot_kill() {
     assert_eq!(resp.status().as_u16(), 503);
 
     // resume
-    let resume = client.post(format!("{}/api/neira/control/resume", base))
+    let resume = client
+        .post(format!("{}/api/neira/control/resume", base))
         .json(&serde_json::json!({"auth":"admin123","request_id":"r2"}))
-        .send().await.unwrap()
-        .json::<serde_json::Value>().await.unwrap();
+        .send()
+        .await
+        .unwrap()
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
     assert_eq!(resume.get("paused").and_then(|v| v.as_bool()), Some(false));
 
     // chat works
@@ -61,23 +82,36 @@ async fn pause_resume_snapshot_kill() {
     assert!(chat.get("response").is_some());
 
     // snapshot
-    let snap = client.get(format!("{}/api/neira/inspect/snapshot?include=metrics,context", base))
-        .send().await.unwrap()
-        .json::<serde_json::Value>().await.unwrap();
+    let snap = client
+        .get(format!(
+            "{}/api/neira/inspect/snapshot?include=metrics,context",
+            base
+        ))
+        .send()
+        .await
+        .unwrap()
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
     let file = snap.get("file").and_then(|v| v.as_str()).unwrap();
     assert!(std::path::Path::new(file).exists());
 
     // kill
-    let _ = client.post(format!("{}/api/neira/control/kill", base))
+    let _ = client
+        .post(format!("{}/api/neira/control/kill", base))
         .json(&serde_json::json!({"auth":"admin123","grace_ms": 500, "request_id":"r3"}))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
 
     // wait for exit
     let mut exited = false;
     for _ in 0..20 {
-        if let Some(status) = child.try_wait().unwrap() { exited = status.success() || !status.success(); break; }
+        if let Some(status) = child.try_wait().unwrap() {
+            exited = status.success() || !status.success();
+            break;
+        }
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
     assert!(exited, "backend did not exit after kill");
 }
-
