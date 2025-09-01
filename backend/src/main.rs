@@ -5,6 +5,11 @@ id: NEI-20250603-axum-ws-api
 intent: refactor
 summary: обновлена интеграция WebSocket для axum 0.8.
 */
+/* neira:meta
+id: NEI-20250214-watchdog-metrics
+intent: refactor
+summary: Парсинг счётчиков watchdog вынесен в модуль nervous_system::watchdog.
+*/
 use async_stream::stream;
 use axum::{
     extract::{
@@ -18,6 +23,7 @@ use axum::{
 };
 use backend::context::context_storage::set_runtime_mask_config;
 use backend::hearing;
+use backend::nervous_system::watchdog::Watchdog;
 use dotenvy::dotenv;
 use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
@@ -2326,8 +2332,7 @@ async fn main() {
                 0.0
             }
         };
-        let hard_to = re_gauge("watchdog_timeouts_total", Some("kind=\"hard\""));
-        let soft_to = re_gauge("watchdog_timeouts_total", Some("kind=\"soft\""));
+        let (soft_to, hard_to) = Watchdog::parse_metrics(&txt);
         let drains = re_gauge("pause_drain_events_total", None);
         let throttles = re_gauge("throttle_events_total", None);
         let sse_active = re_gauge("sse_active", None);

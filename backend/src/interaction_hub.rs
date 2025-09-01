@@ -5,6 +5,11 @@ summary: |
   Очереди анализа выбирают адаптивные пороги на основе истории и
   переопределяются через переменные окружения.
 */
+/* neira:meta
+id: NEI-20250214-watchdog-refactor
+intent: refactor
+summary: Логика watchdog вынесена в модуль nervous_system::watchdog.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -15,7 +20,9 @@ use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::factory::{FabricatorNode, FactoryService, SelectorNode};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
-use crate::nervous_system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProbe};
+use crate::nervous_system::{
+    host_metrics::HostMetrics, io_watcher::IoWatcher, watchdog::Watchdog, SystemProbe,
+};
 use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
 use crate::security::quarantine_node::QuarantineNode;
@@ -800,33 +807,10 @@ impl InteractionHub {
             }
         });
 
-        // Watchdog timeouts from ENV (soft/hard) with per-node overrides
-        fn env_ms(key: &str, default_ms: u64) -> u64 {
-            std::env::var(key)
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(default_ms)
-        }
-        let base_soft = env_ms("WATCHDOG_REASONING_SOFT_MS", 30_000);
-        let base_hard = env_ms("WATCHDOG_REASONING_HARD_MS", cfg.global_time_budget);
-        // per-node override: WATCHDOG_SOFT_MS_<ID>, WATCHDOG_HARD_MS_<ID> (ID upcased, non-alnum -> '_')
-        let mut up = id
-            .chars()
-            .map(|c| {
-                if c.is_ascii_alphanumeric() {
-                    c.to_ascii_uppercase()
-                } else {
-                    '_'
-                }
-            })
-            .collect::<String>();
-        if up.is_empty() {
-            up = "DEFAULT".into();
-        }
-        let soft_key = format!("WATCHDOG_SOFT_MS_{}", up);
-        let hard_key = format!("WATCHDOG_HARD_MS_{}", up);
-        let soft_ms = env_ms(&soft_key, base_soft);
-        let hard_ms = env_ms(&hard_key, base_hard);
+        // Конфигурация watchdog для узла
+        let wd = Watchdog::for_node(id, cfg.global_time_budget);
+        let soft_ms = wd.soft_ms;
+        let hard_ms = wd.hard_ms;
         let mut soft_fired = false;
         let result_opt: Option<AnalysisResult>;
         loop {
@@ -837,8 +821,7 @@ impl InteractionHub {
                         let mut r = AnalysisResult::new(id, "", vec![]);
                         r.status = NodeStatus::Error;
                         self.memory.save_checkpoint(id, &r);
-                        metrics::counter!("watchdog_timeouts_total", "kind" => "hard").increment(1);
-                        if let Ok(url) = std::env::var("INCIDENT_WEBHOOK_URL") { let payload = json!({"type":"watchdog_hard","id": id, "ts": chrono::Utc::now().to_rfc3339()}); let _= tokio::spawn(async move { let _ = reqwest::Client::new().post(url).json(&payload).send().await; }); }
+                        wd.hard_timeout(id);
                         metrics::counter!("analysis_errors_total").increment(1);
                         hearing::info(&format!(
                             "analysis_id={} kind=hard watchdog timeout hard; cancelled",
@@ -891,7 +874,7 @@ impl InteractionHub {
                 tokio::select! {
                     _ = sleep(Duration::from_millis(soft_ms)) => {
                         soft_fired = true;
-                        metrics::counter!("watchdog_timeouts_total", "kind" => "soft").increment(1);
+                        wd.soft_timeout();
                         let auto_requeue = std::env::var("AUTO_REQUEUE_ON_SOFT").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false);
                         if auto_requeue {
                             // Re-enqueue into Long queue with lower priority and return draft result now
