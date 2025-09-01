@@ -55,8 +55,8 @@ summary: добавлена переменная ORGANS_BUILDER_TTL_SECS для 
 | SSE_WARN_AFTER_MS           | int             | 60000                 | SSE                     | Варнинг при долгом стриме                |
 | NERVOUS_SYSTEM_JSON_LOGS    | bool            | false                 | logging                 | JSON‑логи включить                       |
 | MASK_PRESETS_DIR            | string          | config/mask_presets   | masking                 | Каталог пресетов масок                   |
-| ORGANS_BUILDER_ENABLED     | bool            | false                 | organ builder           | Включить модуль орган-билдера            |
-| ORGANS_BUILDER_TEMPLATES_DIR | string        | organ_templates       | organ builder           | Каталог шаблонов органов                 |
+| ORGANS_BUILDER_ENABLED     | bool            | false                 | organ builder           | Включить модуль; при запуске восстанавливает статусы из каталога |
+| ORGANS_BUILDER_TEMPLATES_DIR | string        | organ_templates       | organ builder           | Каталог шаблонов органов (все *.json загружаются как stable) |
 | ORGANS_BUILDER_TTL_SECS    | int             | 3600                  | organ builder           | Время хранения шаблонов после стабилизации (сек) |
 
 Лимиты `CONTEXT_MAX_LINES` и `CONTEXT_MAX_BYTES` при отсутствии в окружении

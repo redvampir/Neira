@@ -56,7 +56,7 @@ impl OrganBuilder {
         if enabled {
             let _ = std::fs::create_dir_all(&templates_dir);
         }
-        Arc::new(Self {
+        let this = Arc::new(Self {
             templates: RwLock::new(HashMap::new()),
             statuses: RwLock::new(HashMap::new()),
             start_times: RwLock::new(HashMap::new()),
@@ -64,7 +64,36 @@ impl OrganBuilder {
             templates_dir,
             enabled,
             ttl: Duration::from_secs(ttl_secs),
-        })
+        });
+        if enabled {
+            let mut restored = 0u64;
+            if let Ok(entries) = std::fs::read_dir(&this.templates_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                        continue;
+                    }
+                    if let Some(id) = path.file_stem().and_then(|s| s.to_str()) {
+                        if let Ok(data) = std::fs::read_to_string(&path) {
+                            if let Ok(tpl) = serde_json::from_str::<Value>(&data) {
+                                this.templates
+                                    .write()
+                                    .unwrap()
+                                    .insert(id.to_string(), tpl);
+                                this.statuses
+                                    .write()
+                                    .unwrap()
+                                    .insert(id.to_string(), OrganState::Stable);
+                                restored += 1;
+                            }
+                        }
+                    }
+                }
+            }
+            metrics::counter!("organ_build_restored_total").increment(restored);
+            info!(restored, "organ builder restored organs");
+        }
+        this
     }
 
     pub fn is_enabled(&self) -> bool {

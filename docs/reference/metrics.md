@@ -98,5 +98,6 @@ summary: добавлена метрика organ_build_duration_ms и стату
 | organ_build_status_queries_total | counter | ops | OrganBuilder | Запросы статуса органа |
 | organ_build_duration_ms | histogram | ms | OrganBuilder | Время от Draft до Stable |
 | organ_status_not_found_total | counter | ops | OrganBuilder | Запросы статуса к несуществующим органам |
+| organ_build_restored_total | counter | ops | OrganBuilder | Восстановленные органы при запуске |
 | training_iterations_total | counter | iters | Training | Итерации обучения новых узлов |
 | training_converged_total | counter | iters | Training | Конвергировали до стабильности |

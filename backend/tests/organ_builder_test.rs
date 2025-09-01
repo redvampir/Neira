@@ -57,3 +57,19 @@ async fn organ_builder_removes_template_after_ttl() {
     std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
     std::env::remove_var("ORGANS_BUILDER_TTL_SECS");
 }
+
+#[tokio::test]
+#[serial]
+async fn organ_builder_restores_statuses_from_disk() {
+    std::env::set_var("ORGANS_BUILDER_ENABLED", "true");
+    let dir = tempfile::tempdir().unwrap();
+    std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
+    let builder = OrganBuilder::new();
+    let id = builder.start_build(serde_json::json!({"kind": "test"}));
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    drop(builder);
+    let builder = OrganBuilder::new();
+    assert_eq!(builder.status(&id), Some(OrganState::Stable));
+    std::env::remove_var("ORGANS_BUILDER_ENABLED");
+    std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
+}
