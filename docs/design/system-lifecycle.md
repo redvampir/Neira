@@ -31,4 +31,4 @@ summary: Согласованная схема слоёв и жизненный 
 9) Деактивация/Откат: быстрый rollback/quarantine, миграция трафика.
 
 См. также
-- docs/design/nervous-system.md, docs/design/policy-engine.md, docs/design/factory-system.md, docs/design/organ-systems.md, docs/design/homeostasis.md.
+- docs/design/nervous_system.md, docs/design/policy-engine.md, docs/design/factory-system.md, docs/design/organ-systems.md, docs/design/homeostasis.md.

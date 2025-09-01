@@ -68,5 +68,5 @@ ENV (ÑĞ¼. docs/reference/env.md)
 
 
 
-Ñì. òàêæå: design/anti-idle-system.md, design/nervous-system.md
+. : design/anti-idle-system.md, design/nervous_system.md
 
