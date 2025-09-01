@@ -60,7 +60,7 @@ pub struct InteractionHub {
     pub memory: Arc<MemoryNode>,
     metrics: Arc<MetricsCollectorNode>,
     trigger_detector: Arc<TriggerDetector>,
-    scheduler: RwLock<TaskScheduler>,
+    pub(crate) scheduler: RwLock<TaskScheduler>,
     queue_cfg: RwLock<QueueConfig>,
     allowed_tokens: RwLock<std::collections::HashMap<String, TokenInfo>>,
     rate: RwLock<std::collections::HashMap<String, (u64, u32)>>,
@@ -393,11 +393,6 @@ impl InteractionHub {
         n
     }
 
-    /// Длины очередей планировщика (fast, standard, long)
-    pub fn queue_lengths(&self) -> (usize, usize, usize) {
-        self.scheduler.read().unwrap().queue_lengths()
-    }
-
     pub fn add_auth_token(&self, token: impl Into<String>) {
         // backwards compatible: full scopes
         self.add_token_with_scopes(token, &[Scope::Read, Scope::Write, Scope::Admin]);
@@ -411,11 +406,6 @@ impl InteractionHub {
                 scopes: scopes.to_vec(),
             },
         );
-    }
-
-    pub fn backpressure_sum(&self) -> u64 {
-        let (a, b, c) = self.queue_lengths();
-        (a + b + c) as u64
     }
 
     pub fn is_safe_mode(&self) -> bool {

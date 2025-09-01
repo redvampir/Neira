@@ -165,7 +165,7 @@ impl TaskScheduler {
     }
 
     /// Возвращает длины очередей (fast, standard, long) для оценки backpressure
-    pub fn queue_lengths(&self) -> (usize, usize, usize) {
+    pub(crate) fn queue_lengths(&self) -> (usize, usize, usize) {
         (self.fast.len(), self.standard.len(), self.long.len())
     }
 }

@@ -19,3 +19,4 @@ pub mod host_metrics;
 pub mod io_watcher;
 pub mod watchdog;
 pub mod loop_detector;
+pub mod backpressure_probe;
