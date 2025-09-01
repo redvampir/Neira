@@ -184,7 +184,7 @@ capabilities:
 
   nervous_metrics_core:
     state: stable
-    notes: /metrics, базовые счётчики/гистограммы, warn для длинных SSE
+    notes: /metrics, базовые счётчики/гистограммы, warn для длинных SSE; ядро Системы раздражителей
     signals: [docs/reference/metrics.md]
 
   probes_capability:
@@ -247,7 +247,10 @@ capabilities:
 
   organ_hearing:
     state: locked
-    notes: аудиозахват + STT с маскированием; высокий риск приватности
+    notes: |
+      Аудиозахват + STT с маскированием; часть Системы раздражителей.
+      Включается фразой «Разблокируй organ_hearing».
+    signals: [stimuli_events_total]
 
   organ_voice:
     state: experimental

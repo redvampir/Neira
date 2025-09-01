@@ -25,7 +25,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use crate::hearing;
 
 use crate::analysis_node::{AnalysisResult, NodeStatus};
 use crate::memory_node::MemoryNode;
@@ -659,15 +659,15 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                 parent_id: None,
             };
             let _ = storage.save_message(chat_id, sid, &msg);
-            tracing::info!(
-                safe_mode = self.safe_mode.is_safe_mode(),
-                chat_id = %chat_id,
-                session_id = %sid,
-                source = %msg.source.clone().unwrap_or_default(),
-                thread_id = %msg.thread_id.clone().unwrap_or_default(),
-                trace_id = %request_id.clone().unwrap_or_else(|| "<none>".into()),
-                "user message saved"
-            );
+            hearing::info(&format!(
+                "user message saved; safe_mode={} chat_id={} session_id={} source={} thread_id={} trace_id={}",
+                self.safe_mode.is_safe_mode(),
+                chat_id,
+                sid,
+                msg.source.clone().unwrap_or_default(),
+                msg.thread_id.clone().unwrap_or_default(),
+                request_id.clone().unwrap_or_else(|| "<none>".into())
+            ));
         }
 
         let t0 = Instant::now();
@@ -698,7 +698,10 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
         // Metrics for response
         // metrics could be recorded here via `metrics` crate
 
-        tracing::info!(rate_limit=self.rate_limit_per_min, rate_remaining=%remaining, "chat rate updated");
+        hearing::info(&format!(
+            "chat rate updated; rate_limit={} rate_remaining={}",
+            self.rate_limit_per_min, remaining
+        ));
         Ok(ChatOutput {
             response,
             session_id: sid_effective,
