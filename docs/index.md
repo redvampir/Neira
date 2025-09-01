@@ -1,114 +1,79 @@
 <!-- neira:meta
-id: NEI-20250830-Docs-Index-Cleanup
+id: NEI-20250901-210555-doc-map
 intent: docs
-summary: Централизованный DocMap: чистая структура, актуальные ссылки, добавлены Homeostasis, Persona, Nervous System. -->
-
-<!-- neira:meta
-id: NEI-20250221-reference-backend-env
-intent: docs
-summary: Добавлена ссылка на backend/ENV.md в раздел Reference.
+summary: |
+  Автогенерированный список файлов документации.
 -->
 
-# Neira — Документация (DocMap)
+# Документация — оглавление
 
-Центральная навигация по проекту.
-
-## Обзор и Инструкции (корень)
-- Начать здесь: ../AGENTS.md
-- Командная работа: ../TEAMWORK.md
-- Рабочий процесс: ../WORKFLOW.md
-- Комментарии и neira:meta: ../COMMENTING.md, ../META_COVERAGE.md
-- Код‑гайд: ../CODING_GUIDELINES.md
-- Архитектурные решения (ADR): ../DECISIONS.md
-- Способности/фичефлаги: ../CAPABILITIES.md
-- Журналирование: ../JOURNALING.md
-
-## API
-- Backend API: api/backend.md
-- Chat endpoint: api/chat.md
- - Factory API: api/factory.md
-
-## Руководства (Guides)
-- Практический гид: guides/practical-guide.md
-- Интеграция с IDE: guides/ide-integration.md
-- Примеры (CLI/Web): guides/usage-example.md, guides/web-interface.md
-- Тестирование: guides/testing.md
-- Обучение и тренировка: guides/training.md
-- Деплой: guides/deployment.md
-- Factory Shim (внешний оркестратор): guides/factory-shim.md
-- Voice v1 — Runbook: guides/voice-v1-runbook.md
-
-## Примеры (Examples)
-- cURL: examples/curl.md
-
-## Узлы (Nodes)
-- Action Nodes: nodes/action-nodes.md
-- Analysis Nodes: nodes/analysis-nodes.md
-- Memory Nodes: nodes/memory-nodes.md
-- Автозаполнение: nodes/automatic-population.md
-- API узла: nodes/node-api-guide.md
-- Жизненный цикл узла: nodes/node-lifecycle.md
-- Шаблон узла: nodes/node-template.md
-- Каналы между узлами: channels.md
-- Идентификаторы узлов: node-ids.md
-
-## Система (System)
-- Архитектура анализа: system/analysis-architecture.md
-- Низкоуровневый тулчейн: system/low-level-toolchain.md
-- Модули MVP: system/mvp-modules.md
-- Самообновляющаяся система: system/self-updating-system.md
-- Источники/политика: system/source-policy.md
-- Подсистемы поддержки: system/support-systems.md
-- Иммунная система: immune_system.md
-- Управление (governance): system/governance-structure.md
-- Диаграмма архитектуры: system/architecture.svg
-
-## Дизайн (Design)
-- Anti‑Idle System: design/anti-idle-system.md
-- Орган‑системы: design/organ-systems.md
-- Runtime Extensibility: design/runtime-extensibility.md
- - Factory System: design/factory-system.md
-- Homeostasis & Adaptive Control: design/homeostasis.md
-- Nervous System: design/nervous_system.md
-
-## Справочник (Reference)
-- Переменные окружения: reference/env.md
-- Пример .env backend: ../backend/ENV.md
-- Метрики: reference/metrics.md
-- Метрики личности: reference/persona-metrics.md
-- Метрики узлов: metrics_nodes.md
-- Стандартные порты: reference/ports.md
-
-## Метадокументы (Meta)
-- Глоссарий: meta/glossary.md
-- FAQ: meta/faq.md
-- Мотивация/видение: meta/motivation.md
-- Личность (overview): meta/personality.md
-- Ядро личности (Persona Kernel): meta/persona-kernel.md
-- Вклад (CONTRIBUTING): meta/CONTRIBUTING.md
-
-## Дорожная карта
-- Roadmap: roadmap.md
-
-## Наследие (Legacy)
-- Примеры (история): legacy/usage-example.md
-- Деплой (история): legacy/deployment.md
-- Тестирование (история): legacy/testing.md
-
----
-
-### Reference Additions
-- Anti‑Idle ENV Addendum: reference/env_anti_idle.md
-
----
-
-### Design Additions
-- Policy Engine: design/policy-engine.md
-- System Lifecycle: design/system-lifecycle.md
-- State & Recovery: design/state-and-recovery.md
-
-### Meta Additions
-- Taxonomy: meta/taxonomy.md
-- Control & Homeostasis Capabilities: meta/capabilities-control.md
-- Persona Capabilities: meta/capabilities-persona.md
-- Roadmap redirect: meta/roadmap.md
+- api/
+  - [backend](api/backend.md)
+  - [chat](api/chat.md)
+  - [factory](api/factory.md)
+- [backend-api](backend-api.md)
+- [channels](channels.md)
+- design/
+  - [anti-idle-system](design/anti-idle-system.md)
+  - [factory-system](design/factory-system.md)
+  - [homeostasis](design/homeostasis.md)
+  - [nervous_system](design/nervous_system.md)
+  - [organ-systems](design/organ-systems.md)
+  - [policy-engine](design/policy-engine.md)
+  - [runtime-extensibility](design/runtime-extensibility.md)
+  - [state-and-recovery](design/state-and-recovery.md)
+  - [system-lifecycle](design/system-lifecycle.md)
+- examples/
+  - [curl](examples/curl.md)
+- guides/
+  - [deployment](guides/deployment.md)
+  - [factory-shim](guides/factory-shim.md)
+  - [ide-integration](guides/ide-integration.md)
+  - [practical-guide](guides/practical-guide.md)
+  - [testing](guides/testing.md)
+  - [training](guides/training.md)
+  - [usage-example](guides/usage-example.md)
+  - [voice-v1-runbook](guides/voice-v1-runbook.md)
+  - [web-interface](guides/web-interface.md)
+- [immune_system](immune_system.md)
+- legacy/
+  - [deployment](legacy/deployment.md)
+  - [testing](legacy/testing.md)
+  - [usage-example](legacy/usage-example.md)
+- meta/
+  - [capabilities-control](meta/capabilities-control.md)
+  - [capabilities-persona](meta/capabilities-persona.md)
+  - [CONTRIBUTING](meta/CONTRIBUTING.md)
+  - [faq](meta/faq.md)
+  - [glossary](meta/glossary.md)
+  - [motivation](meta/motivation.md)
+  - [persona-kernel](meta/persona-kernel.md)
+  - [personality](meta/personality.md)
+  - [roadmap](meta/roadmap.md)
+  - [taxonomy](meta/taxonomy.md)
+- [metrics_nodes](metrics_nodes.md)
+- [node-ids](node-ids.md)
+- nodes/
+  - [action-nodes](nodes/action-nodes.md)
+  - [analysis-nodes](nodes/analysis-nodes.md)
+  - [automatic-population](nodes/automatic-population.md)
+  - [memory-nodes](nodes/memory-nodes.md)
+  - [node-api-guide](nodes/node-api-guide.md)
+  - [node-lifecycle](nodes/node-lifecycle.md)
+  - [node-template](nodes/node-template.md)
+- [README](README.md)
+- reference/
+  - [env_anti_idle](reference/env_anti_idle.md)
+  - [env](reference/env.md)
+  - [metrics](reference/metrics.md)
+  - [persona-metrics](reference/persona-metrics.md)
+  - [ports](reference/ports.md)
+- [roadmap](roadmap.md)
+- system/
+  - [analysis-architecture](system/analysis-architecture.md)
+  - [governance-structure](system/governance-structure.md)
+  - [low-level-toolchain](system/low-level-toolchain.md)
+  - [mvp-modules](system/mvp-modules.md)
+  - [self-updating-system](system/self-updating-system.md)
+  - [source-policy](system/source-policy.md)
+  - [support-systems](system/support-systems.md)

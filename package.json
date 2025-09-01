@@ -11,7 +11,8 @@
     "frontend:test": "npm test --prefix frontend",
     "check-examples": "node scripts/validate-examples.mjs",
     "check-examples:watch": "node scripts/validate-examples.mjs --watch",
-    "generate-node-docs": "node scripts/generate-node-docs.mjs"
+    "generate-node-docs": "node scripts/generate-node-docs.mjs",
+    "gen-doc-map": "node scripts/gen-doc-map.mjs"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
