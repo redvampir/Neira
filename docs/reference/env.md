@@ -42,7 +42,11 @@ intent: docs
 summary: Добавлен раздел с переменными WATCHDOG*.
 -->
 
-# ENV Reference (Истина)
+<!-- neira:meta
+id: NEI-20260214-loop-detector-env-docs
+intent: docs
+summary: Добавлена переменная LOOP_ENTROPY_MIN для детектора повторов.
+-->
 
 | Ключ                         | Тип             | По умолчанию          | Где используется        | Влияние                                                                                                 |
 | ---------------------------- | --------------- | --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -137,7 +141,10 @@ summary: Добавлен раздел с переменными WATCHDOG*.
 | LOOP_DETECT_ENABLED            | bool   | true               | watchdog    | Включить детектор циклов/повторов                                                           |
 | LOOP_WINDOW_TOKENS             | int    | 256                | watchdog    | Окно анализа повторов                                                                       |
 | LOOP_REPEAT_THRESHOLD          | float  | 0.6                | watchdog    | Порог повторяемости (0..1)                                                                  |
+| LOOP_ENTROPY_MIN               | float  | 0.0                | watchdog    | Минимальная энтропия окна (0 — отключено)
+                                                   |
 | CONTROL_ALLOW_PAUSE            | bool   | true               | control     | Разрешить pause/resume (admin)                                                              |
+                                                   |
 | CONTROL_ALLOW_KILL             | bool   | true               | control     | Разрешить аварийную остановку (admin)                                                       |
 | CONTROL_SNAPSHOT_DIR           | string | ./snapshots        | control     | Каталог для snapshot‑срезов                                                                 |
 | TRACE_ENABLED                  | bool   | false              | control     | Включить генерацию трасс по request_id                                                      |

@@ -10,6 +10,12 @@ intent: docs
 summary: Добавлен раздел про WATCHDOG* переменные.
 -->
 
+<!-- neira:meta
+id: NEI-20260214-loop-detector-docs
+intent: docs
+summary: Описан детектор повторов SSE и переменные LOOP_*.
+-->
+
 # Нервная система (Nervous System)
 
 Цели
@@ -29,6 +35,7 @@ summary: Добавлен раздел про WATCHDOG* переменные.
   - IO Watcher: latency ввода/вывода, `io_*` histogram, событийные `system.io.*` записи.
   - Heartbeat/Живость: `sse_active` gauge, пульс через admin UI.
 - Watchdogs: soft/hard таймауты выполнения анализа/потоков, счётчики и рекомендации по ENV.
+- Loop Detector: анализирует поток SSE на повторы и низкую энтропию, публикует `loop_detected_total`.
 - Интроспекция: `/api/neira/introspection/status` блоки `watchdogs`, `queues/backpressure`, `anti_idle`, `capabilities`.
 
 Интеграции (хуки)
