@@ -198,7 +198,7 @@ async fn organ_build(
     }
     if body.dryrun {
         metrics::counter!("organ_build_dryrun_total").increment(1);
-        info!("organ build dry-run");
+        hearing::info("organ build dry-run");
         return Ok(Json(
             serde_json::json!({"organ_id": serde_json::Value::Null, "state": "dry_run"}),
         ));
@@ -217,7 +217,7 @@ async fn organ_status(
     }
     match state.hub.organ_status(&id) {
         Some(st) => {
-            info!(organ_id = %id, "organ status queried");
+            hearing::info(&format!("organ status queried; organ_id={}", id));
             Ok(Json(
                 serde_json::json!({"id": id, "state": format_organ_state(st)}),
             ))
@@ -262,7 +262,10 @@ async fn organ_update_status(
     };
     match state.hub.organ_update_status(&id, st) {
         Some(st) => {
-            info!(organ_id = %id, new_state = %body.state, "organ status updated");
+            hearing::info(&format!(
+                "organ status updated; organ_id={} new_state={}",
+                id, body.state
+            ));
             Ok(Json(
                 serde_json::json!({"id": id, "state": format_organ_state(st)}),
             ))
@@ -2693,7 +2696,10 @@ async fn main() {
             }
         });
     }
-    info!("Listening on http://{}", listener.local_addr().unwrap());
+    hearing::info(&format!(
+        "Listening on http://{}",
+        listener.local_addr().unwrap()
+    ));
 
     let server = axum::serve(listener, app).with_graceful_shutdown(async move {
         shutdown_token.cancelled().await;
