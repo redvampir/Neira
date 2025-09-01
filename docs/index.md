@@ -3,6 +3,12 @@ id: NEI-20250830-Docs-Index-Cleanup
 intent: docs
 summary: Централизованный DocMap: чистая структура, актуальные ссылки, добавлены Homeostasis, Persona, Nervous System. -->
 
+<!-- neira:meta
+id: NEI-20250221-reference-backend-env
+intent: docs
+summary: Добавлена ссылка на backend/ENV.md в раздел Reference.
+-->
+
 # Neira — Документация (DocMap)
 
 Центральная навигация по проекту.
@@ -67,6 +73,7 @@ summary: Централизованный DocMap: чистая структур�
 
 ## Справочник (Reference)
 - Переменные окружения: reference/env.md
+- Пример .env backend: ../backend/ENV.md
 - Метрики: reference/metrics.md
 - Метрики личности: reference/persona-metrics.md
 - Метрики узлов: metrics_nodes.md
