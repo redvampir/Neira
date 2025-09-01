@@ -25,7 +25,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use crate::hearing;
 
 use crate::analysis_node::{AnalysisResult, NodeStatus};
 use crate::memory_node::MemoryNode;
@@ -659,15 +659,15 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                 parent_id: None,
             };
             let _ = storage.save_message(chat_id, sid, &msg);
-            tracing::info!(
-                safe_mode = self.safe_mode.is_safe_mode(),
-                chat_id = %chat_id,
-                session_id = %sid,
-                source = %msg.source.clone().unwrap_or_default(),
-                thread_id = %msg.thread_id.clone().unwrap_or_default(),
-                trace_id = %request_id.clone().unwrap_or_else(|| "<none>".into()),
-                "user message saved"
-            );
+            hearing::info(&format!(
+                "user message saved; safe_mode={} chat_id={} session_id={} source={} thread_id={} trace_id={}",
+                self.safe_mode.is_safe_mode(),
+                chat_id,
+                sid,
+                msg.source.clone().unwrap_or_default(),
+                msg.thread_id.clone().unwrap_or_default(),
+                request_id.clone().unwrap_or_else(|| "<none>".into())
+            ));
         }
 
         let t0 = Instant::now();
@@ -698,7 +698,10 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
         // Metrics for response
         // metrics could be recorded here via `metrics` crate
 
-        tracing::info!(rate_limit=self.rate_limit_per_min, rate_remaining=%remaining, "chat rate updated");
+        hearing::info(&format!(
+            "chat rate updated; rate_limit={} rate_remaining={}",
+            self.rate_limit_per_min, remaining
+        ));
         Ok(ChatOutput {
             response,
             session_id: sid_effective,
@@ -803,7 +806,10 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                         metrics::counter!("watchdog_timeouts_total", "kind" => "hard").increment(1);
                         if let Ok(url) = std::env::var("INCIDENT_WEBHOOK_URL") { let payload = json!({"type":"watchdog_hard","id": id, "ts": chrono::Utc::now().to_rfc3339()}); let _= tokio::spawn(async move { let _ = reqwest::Client::new().post(url).json(&payload).send().await; }); }
                         metrics::counter!("analysis_errors_total").increment(1);
-                        info!(analysis_id=%id, kind="hard", "watchdog timeout hard; cancelled");
+                        hearing::info(&format!(
+                            "analysis_id={} kind=hard watchdog timeout hard; cancelled",
+                            id
+                        ));
                         result_opt = Some(r);
                         break;
                     }
@@ -812,7 +818,7 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                         r.status = NodeStatus::Error;
                         self.memory.save_checkpoint(id, &r);
                         metrics::counter!("analysis_errors_total").increment(1);
-                        info!(analysis_id=%id, "analysis cancelled");
+                        hearing::info(&format!("analysis {} cancelled", id));
                         result_opt = Some(r);
                         break;
                     }
@@ -835,7 +841,10 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                             metrics::histogram!("analysis_node_request_duration_ms").record(elapsed as f64);
                             metrics::histogram!("analysis_node_request_duration_ms_p95").record(elapsed as f64);
                             metrics::histogram!("analysis_node_request_duration_ms_p99").record(elapsed as f64);
-                            info!(analysis_id=%id, duration_ms=elapsed, soft_timeout=true, "analysis completed after soft timeout");
+                            hearing::info(&format!(
+                                "analysis_id={} duration_ms={} soft_timeout=true analysis completed after soft timeout",
+                                id, elapsed
+                            ));
                             result_opt = Some(result);
                             break;
                         } else {
@@ -864,11 +873,17 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                             r.status = NodeStatus::Draft;
                             r.explanation = Some("Re-queued to long after soft timeout".into());
                             self.memory.save_checkpoint(id, &r);
-                            info!(analysis_id=%id, kind="soft", requeued=true, "watchdog soft timeout; re-queued to long and returning draft");
+                            hearing::info(&format!(
+                                "analysis_id={} kind=soft requeued=true watchdog soft timeout; re-queued to long and returning draft",
+                                id
+                            ));
                             result_opt = Some(r);
                             break;
                         } else {
-                            info!(analysis_id=%id, kind="soft", "watchdog soft timeout; allowing grace until hard");
+                            hearing::info(&format!(
+                                "analysis_id={} kind=soft watchdog soft timeout; allowing grace until hard",
+                                id
+                            ));
                             continue;
                         }
                     }
@@ -877,7 +892,7 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                         r.status = NodeStatus::Error;
                         self.memory.save_checkpoint(id, &r);
                         metrics::counter!("analysis_errors_total").increment(1);
-                        info!(analysis_id=%id, "analysis cancelled");
+                        hearing::info(&format!("analysis {} cancelled", id));
                         result_opt = Some(r);
                         break;
                     }
@@ -899,7 +914,10 @@ pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState
                             metrics::histogram!("analysis_node_request_duration_ms").record(elapsed as f64);
                             metrics::histogram!("analysis_node_request_duration_ms_p95").record(elapsed as f64);
                             metrics::histogram!("analysis_node_request_duration_ms_p99").record(elapsed as f64);
-                            info!(analysis_id=%id, duration_ms=elapsed, soft_timeout=false, "analysis completed");
+                            hearing::info(&format!(
+                                "analysis_id={} duration_ms={} soft_timeout=false analysis completed",
+                                id, elapsed
+                            ));
                             result_opt = Some(result);
                             break;
                         } else { metrics::counter!("analysis_errors_total").increment(1); result_opt=None; break; }
