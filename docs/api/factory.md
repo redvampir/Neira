@@ -33,6 +33,11 @@ id: NEI-20250219-organs-panel-doc
 intent: docs
 summary: добавлен раздел о запуске панели органов.
 -->
+<!-- neira:meta
+id: NEI-20250210-factory-template-schema-doc
+intent: docs
+summary: описана структура шаблона узла.
+-->
 
 # Factory API (Draft)
 
@@ -79,6 +84,24 @@ Adapter Contracts (обязательные хуки)
 
 - DELETE `/organs/:id/build`
   - Останавливает сборку органа и переводит его в `failed`
+
+## Template Schema
+
+```json
+{
+  "id": "string",
+  "version": "semver",
+  "analysis_type": "string",
+  "links": ["string"],
+  "metadata": { "schema": "v1" }
+}
+```
+
+- `id` — уникальный идентификатор узла
+- `version` — версия шаблона в формате SemVer
+- `analysis_type` — тип анализа/действия узла
+- `links` — список зависимостей
+- `metadata.schema` — версия используемой JSON‑схемы
 
 ## Examples
 

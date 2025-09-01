@@ -151,7 +151,14 @@ impl NodeRegistry {
     }
 
     /// Регистрация узла по структуре `NodeTemplate` с сохранением на диск.
+    /* neira:meta
+    id: NEI-20250210-register-template-validate
+    intent: bugfix
+    summary: Проверяет шаблон узла перед сохранением на диск.
+    */
     pub fn register_template(&self, tpl: NodeTemplate) -> Result<(), String> {
+        let value = tpl.to_json();
+        validate_template(&value).map_err(|errs| errs.join(", "))?;
         let file = format!("{}-{}.json", tpl.id, tpl.version);
         let path = self.root.join(file);
         let content = serde_json::to_string(&tpl).map_err(|e| e.to_string())?;
