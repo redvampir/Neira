@@ -25,11 +25,17 @@ intent: docs
 summary: переменная переименована в ORGANS_BUILDER_STAGE_DELAYS.
 -->
 
+<!-- neira:meta
+id: NEI-20250221-env-reference-link
+intent: docs
+summary: Исправлена ссылка на основной справочник переменных окружения.
+-->
+
 Backend environment variables
 
 Note
 
-- Источником истины по переменным окружения является `docs/reference/env.md`.
+- Источником истины по переменным окружения является [docs/reference/env.md](../docs/reference/env.md).
 - Этот файл сохраняет обзор и пример `.env`, но при расхождениях доверяйте справочнику.
 
 - CONTEXT_DIR: base dir for chat history (default: context)
