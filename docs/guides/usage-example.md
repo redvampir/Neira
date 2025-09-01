@@ -50,3 +50,18 @@ npm run dev
 - `POST /api/neira/interact` — общий вход для пользовательских запросов.
 - `POST /api/neira/analysis` — выполнение конкретного `AnalysisNode`.
 - `POST /api/neira/action` — запуск `ActionNode`.
+
+## Organ Builder CLI
+
+```bash
+# запуск сборки органа из шаблона
+cargo run -p backend --bin organ_builder -- build organ.json
+# проверка статуса
+cargo run -p backend --bin organ_builder -- status organ-1
+# отмена сборки
+cargo run -p backend --bin organ_builder -- cancel organ-1
+```
+
+По умолчанию используется адрес `http://127.0.0.1:3000`. Иной URL можно
+передать последним аргументом или через переменную окружения
+`NEIRA_API_BASE`.

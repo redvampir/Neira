@@ -25,6 +25,7 @@ Documentation Index
 - [Низкоуровневая цепочка инструментов](docs/system/low-level-toolchain.md)
 - [Система самообновления](docs/system/self-updating-system.md)
 - [Пример использования](docs/guides/usage-example.md)
+- [Орган билдер CLI](docs/guides/usage-example.md#organ-builder-cli)
 - [CLI‑утилита валидации шаблонов](docs/legacy/usage-example.md)
 - [Практическое руководство](docs/guides/practical-guide.md)
 - [Глоссарий](docs/meta/glossary.md)
