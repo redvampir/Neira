@@ -2,7 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use async_stream::stream;
 use axum::{
-    extract::{Path, State},
+    extract::{
+        ws::{Message, WebSocket, WebSocketUpgrade},
+        Path, State,
+    },
     http::HeaderMap,
     response::sse::{Event, Sse},
     routing::{delete, get, post},
@@ -252,6 +255,35 @@ async fn organ_status(
                 id
             ));
             Err(axum::http::StatusCode::NOT_FOUND)
+        }
+    }
+}
+
+/* neira:meta
+id: NEI-20260501-organ-stream-route
+intent: code
+summary: добавлен WS /organs/:id/stream для трансляции смен статуса.
+*/
+async fn organ_stream(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    ws: WebSocketUpgrade,
+) -> Result<impl axum::response::IntoResponse, axum::http::StatusCode> {
+    let pe = PolicyEngine::new();
+    if let Err(_e) = pe.require_capability(&state.hub, Capability::OrgansBuilder) {
+        return Err(axum::http::StatusCode::FORBIDDEN);
+    }
+    Ok(ws.on_upgrade(move |sock| organ_stream_ws(sock, id, state.hub.clone())))
+}
+
+async fn organ_stream_ws(mut socket: WebSocket, id: String, hub: Arc<InteractionHub>) {
+    let mut rx = hub.organ_subscribe();
+    while let Ok((oid, st)) = rx.recv().await {
+        if oid == id {
+            let msg = serde_json::json!({"id": oid, "state": format_organ_state(st)});
+            if socket.send(Message::Text(msg.to_string())).await.is_err() {
+                break;
+            }
         }
     }
 }
@@ -1752,6 +1784,7 @@ async fn main() {
             "/organs/:id/status",
             get(organ_status).post(organ_update_status),
         )
+        .route("/organs/:id/stream", get(organ_stream))
         .route("/api/neira/analysis", post(analyze_request))
         .route("/api/neira/analysis/resume", post(resume_request))
         .route("/api/neira/chat", post(chat_request))

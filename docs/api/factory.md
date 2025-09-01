@@ -19,6 +19,11 @@ intent: docs
 summary: пример обновлён под ORGANS_BUILDER_STAGE_DELAYS.
 -->
 <!-- neira:meta
+id: NEI-20260501-organ-stream-doc
+intent: docs
+summary: описан WS /organs/:id/stream с примером подключения.
+-->
+<!-- neira:meta
 id: NEI-20251115-organ-cancel-build-doc
 intent: docs
 summary: описан DELETE /organs/:id/build для отмены сборки.
@@ -81,6 +86,14 @@ Adapter Contracts (обязательные хуки)
   - Body: { state: 'draft'|'canary'|'experimental'|'stable'|'failed' }
   - Resp: { id, state }
   - Позволяет вручную продвигать орган по стадиям
+
+- WS `/organs/:id/stream`
+  - При каждом изменении стадии отправляет `{ id, state }`
+  - Пример:
+    ```js
+    const ws = new WebSocket('ws://localhost:3000/organs/organ-1/stream');
+    ws.onmessage = ev => console.log(ev.data);
+    ```
 
 - DELETE `/organs/:id/build`
   - Останавливает сборку органа и переводит его в `failed`

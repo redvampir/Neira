@@ -23,6 +23,7 @@ use crate::system::{host_metrics::HostMetrics, io_watcher::IoWatcher, SystemProb
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use tokio::sync::broadcast;
 use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
@@ -339,6 +340,14 @@ impl InteractionHub {
     }
     pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState> {
         self.organ_builder.update_status(id, st)
+    }
+    /* neira:meta
+    id: NEI-20260501-organ-builder-subscribe
+    intent: code
+    summary: проксирует подписку на события смены статуса органа.
+    */
+    pub fn organ_subscribe(&self) -> broadcast::Receiver<(String, OrganState)> {
+        self.organ_builder.subscribe()
     }
     /* neira:meta
     id: NEI-20251115-organ-cancel-build-method
