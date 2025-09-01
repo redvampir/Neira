@@ -12,6 +12,11 @@ id: NEI-20251101-organ-builder-stage-delays
 intent: code
 summary: Задержки переходов между стадиями читаются из ORGANS_BUILDER_STAGE_DELAYS_MS.
 */
+/* neira:meta
+id: NEI-20251115-organ-cancel-build
+intent: code
+summary: сохраняются JoinHandle задач и добавлен cancel_build для их остановки.
+*/
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -21,6 +26,7 @@ use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use serde_json::Value;
+use tokio::task::JoinHandle;
 use tracing::info;
 
 /// Состояние сборки органа.
@@ -39,6 +45,7 @@ pub struct OrganBuilder {
     templates: RwLock<HashMap<String, Value>>,
     statuses: RwLock<HashMap<String, OrganState>>,
     start_times: RwLock<HashMap<String, Instant>>,
+    handles: RwLock<HashMap<String, JoinHandle<()>>>,
     counter: AtomicU64,
     templates_dir: PathBuf,
     enabled: bool,
@@ -70,6 +77,7 @@ impl OrganBuilder {
             templates: RwLock::new(HashMap::new()),
             statuses: RwLock::new(HashMap::new()),
             start_times: RwLock::new(HashMap::new()),
+            handles: RwLock::new(HashMap::new()),
             counter: AtomicU64::new(1),
             templates_dir,
             enabled,
@@ -144,7 +152,7 @@ impl OrganBuilder {
         let this = Arc::clone(self);
         let build_id = id.clone();
         let stages = self.stages.clone();
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             let mut expected = OrganState::Draft;
             for (state, delay) in stages {
                 tokio::time::sleep(Duration::from_millis(delay)).await;
@@ -154,7 +162,9 @@ impl OrganBuilder {
                 this.update_status(&build_id, state);
                 expected = state;
             }
+            this.handles.write().unwrap().remove(&build_id);
         });
+        self.handles.write().unwrap().insert(id.clone(), handle);
         id
     }
 
@@ -187,6 +197,19 @@ impl OrganBuilder {
         }
         Some(*prev)
     }
+
+    /// Отменяет сборку органа по идентификатору.
+    pub fn cancel_build(self: &Arc<Self>, id: &str) -> bool {
+        if let Some(handle) = self.handles.write().unwrap().remove(id) {
+            handle.abort();
+            self.start_times.write().unwrap().remove(id);
+            self.update_status(id, OrganState::Failed);
+            info!(organ_id = %id, "organ build cancelled");
+            true
+        } else {
+            false
+        }
+    }
 }
 
 fn parse_stage_delays(input: &str) -> Vec<(OrganState, u64)> {
@@ -207,4 +230,24 @@ fn parse_stage_delays(input: &str) -> Vec<(OrganState, u64)> {
     .into_iter()
     .zip(delays)
     .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn cancel_build_stops_task() {
+        std::env::set_var("ORGANS_BUILDER_ENABLED", "1");
+        std::env::set_var("ORGANS_BUILDER_STAGE_DELAYS_MS", "1000,1000,1000");
+        let dir = tempfile::tempdir().unwrap();
+        std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
+        let builder = OrganBuilder::new();
+        let id = builder.start_build(serde_json::json!({}));
+        assert_eq!(builder.status(&id), Some(OrganState::Draft));
+        assert!(builder.cancel_build(&id));
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        assert_eq!(builder.status(&id), Some(OrganState::Failed));
+        assert!(!builder.handles.read().unwrap().contains_key(&id));
+    }
 }

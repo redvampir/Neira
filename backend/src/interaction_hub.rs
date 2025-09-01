@@ -13,6 +13,7 @@ use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord}
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::factory::{FabricatorNode, FactoryService, SelectorNode};
+use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
 use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_node::IntegrityCheckerNode;
@@ -25,7 +26,6 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
-use crate::hearing;
 
 use crate::analysis_node::{AnalysisResult, NodeStatus};
 use crate::memory_node::MemoryNode;
@@ -313,25 +313,32 @@ impl InteractionHub {
         self.factory.counts()
     }
 
-// Organ builder accessors
-pub fn organ_builder_enabled(&self) -> bool {
-    self.organ_builder.is_enabled()
-}
-/* neira:meta
-id: NEI-20251010-organ-builder-update
-intent: code
-summary: добавлены методы обновления и получения статусов органа.
-*/
-pub fn organ_build(&self, tpl: serde_json::Value) -> String {
-    self.organ_builder.start_build(tpl)
-}
-pub fn organ_status(&self, id: &str) -> Option<OrganState> {
-    self.organ_builder.status(id)
-}
-pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState> {
-    self.organ_builder.update_status(id, st)
-}
-
+    // Organ builder accessors
+    pub fn organ_builder_enabled(&self) -> bool {
+        self.organ_builder.is_enabled()
+    }
+    /* neira:meta
+    id: NEI-20251010-organ-builder-update
+    intent: code
+    summary: добавлены методы обновления и получения статусов органа.
+    */
+    pub fn organ_build(&self, tpl: serde_json::Value) -> String {
+        self.organ_builder.start_build(tpl)
+    }
+    pub fn organ_status(&self, id: &str) -> Option<OrganState> {
+        self.organ_builder.status(id)
+    }
+    pub fn organ_update_status(&self, id: &str, st: OrganState) -> Option<OrganState> {
+        self.organ_builder.update_status(id, st)
+    }
+    /* neira:meta
+    id: NEI-20251115-organ-cancel-build-method
+    intent: code
+    summary: добавлен метод отмены сборки органа.
+    */
+    pub fn organ_cancel_build(&self, id: &str) -> bool {
+        self.organ_builder.cancel_build(id)
+    }
 
     pub fn is_trace_enabled(&self) -> bool {
         self.trace_enabled.load(Ordering::Relaxed)

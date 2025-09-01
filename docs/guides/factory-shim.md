@@ -3,6 +3,11 @@ id: NEI-20250831-factory-shim-guide
 intent: docs
 summary: Внешний оркестратор (Shim) для фабрики: CLI, LLM-агент, безопасные команды dry-run/create/approve без прямой связи с ядром Нейры.
 -->
+<!-- neira:meta
+id: NEI-20251115-organ-cancel-build-guide
+intent: docs
+summary: добавлена ссылка на DELETE /organs/:id/build как зарезервированный маршрут.
+-->
 
 # Factory Shim (External Orchestrator)
 
@@ -20,7 +25,7 @@ Endpoints (реализовано сейчас)
 
 Черновик (в доках, но ещё не реализовано в backend)
 
-- POST `/organs/build`, GET `/organs/:id/status` — зарезервированы для Organ Builder v0.
+- POST `/organs/build`, GET `/organs/:id/status`, DELETE `/organs/:id/build` — зарезервированы для Organ Builder v0.
 
 Safety & Policies
 

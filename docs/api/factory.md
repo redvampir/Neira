@@ -13,6 +13,11 @@ id: NEI-20251101-organ-builder-stage-delays-doc
 intent: docs
 summary: добавлен пример настройки ORGANS_BUILDER_STAGE_DELAYS_MS.
 -->
+<!-- neira:meta
+id: NEI-20251115-organ-cancel-build-doc
+intent: docs
+summary: описан DELETE /organs/:id/build для отмены сборки.
+-->
 
 # Factory API (Draft)
 
@@ -56,6 +61,9 @@ Adapter Contracts (обязательные хуки)
   - Body: { state: 'draft'|'canary'|'experimental'|'stable'|'failed' }
   - Resp: { id, state }
   - Позволяет вручную продвигать орган по стадиям
+
+- DELETE `/organs/:id/build`
+  - Останавливает сборку органа и переводит его в `failed`
 
 ## Examples
 

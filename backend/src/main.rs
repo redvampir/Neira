@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use backend::context::context_storage::set_runtime_mask_config;
+use backend::hearing;
 use dotenvy::dotenv;
 use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
@@ -18,7 +19,6 @@ use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::net::TcpListener;
 use tracing::error;
-use backend::hearing;
 
 use backend::action::chat_node::EchoChatNode;
 use backend::action::diagnostics_node::DiagnosticsNode;
@@ -274,6 +274,33 @@ async fn organ_update_status(
     }
 }
 
+/* neira:meta
+id: NEI-20251115-organ-cancel-build-route
+intent: code
+summary: добавлен DELETE /organs/:id/build для остановки сборки органа.
+*/
+async fn organ_cancel_build(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> axum::http::StatusCode {
+    let pe = PolicyEngine::new();
+    if let Err(_e) = pe.require_capability(&state.hub, Capability::OrgansBuilder) {
+        return axum::http::StatusCode::FORBIDDEN;
+    }
+    if state.hub.organ_cancel_build(&id) {
+        metrics::counter!("organ_cancel_build_total").increment(1);
+        hearing::info(&format!("organ build cancelled; organ_id={}", id));
+        axum::http::StatusCode::NO_CONTENT
+    } else {
+        metrics::counter!("organ_cancel_not_found_total").increment(1);
+        hearing::warn(&format!(
+            "organ build cancel missing; organ_id={} reason=not_found",
+            id
+        ));
+        axum::http::StatusCode::NOT_FOUND
+    }
+}
+
 fn format_organ_state(st: backend::organ_builder::OrganState) -> &'static str {
     match st {
         backend::organ_builder::OrganState::Draft => "draft",
@@ -283,7 +310,6 @@ fn format_organ_state(st: backend::organ_builder::OrganState) -> &'static str {
         backend::organ_builder::OrganState::Failed => "failed",
     }
 }
-
 
 fn format_state(st: FabricationState) -> &'static str {
     match st {
@@ -1609,7 +1635,7 @@ async fn main() {
         }
     }
 
-   let mut app = Router::new()
+    let mut app = Router::new()
         .route("/", get(|| async { "Hello, world!" }))
         .route(
             "/admin",
@@ -1652,6 +1678,7 @@ async fn main() {
         .route("/factory/nodes/:fid/rollback", post(factory_rollback))
         // Organ builder
         .route("/organs/build", post(organ_build))
+        .route("/organs/:id/build", delete(organ_cancel_build))
         .route(
             "/organs/:id/status",
             get(organ_status).post(organ_update_status),
