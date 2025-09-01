@@ -10,16 +10,21 @@ id: NEI-20250214-watchdog-metrics
 intent: refactor
 summary: Парсинг счётчиков watchdog вынесен в модуль nervous_system::watchdog.
 */
+/* neira:meta
+id: NEI-20241004-hub-progress-cleanup
+intent: refactor
+summary: Удалён неиспользуемый клон InteractionHub при отправке прогресса анализа.
+*/
 use async_stream::stream;
 use axum::{
+    Json, Router,
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         Path, State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     http::HeaderMap,
     response::sse::{Event, Sse},
     routing::{delete, get, post},
-    Json, Router,
 };
 use backend::context::context_storage::set_runtime_mask_config;
 use backend::hearing;
@@ -1358,7 +1363,7 @@ async fn import_chat(
                 return Err((
                     axum::http::StatusCode::BAD_REQUEST,
                     format!("invalid ndjson: {e}"),
-                ))
+                ));
             }
         }
     }
@@ -2345,7 +2350,6 @@ async fn main() {
         let t2 = token.clone();
         let mut handle =
             tokio::task::spawn(async move { hub.analyze(&id, &input, &auth, &t2).await });
-        let hub_for_progress = state.hub.clone();
         state.hub.register_analysis_cancel(&req.id, token.clone());
         let stream = async_stream::stream! {
             yield Ok(Event::default().event("meta").data(serde_json::json!({"id": req.id, "budget_ms": req.budget_ms}).to_string()));
