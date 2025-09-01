@@ -1,0 +1,21 @@
+<!-- neira:meta
+id: NEI-20250219-organs-page
+intent: docs
+summary: |
+  Страница просмотра органов с диаграммой метрик.
+-->
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Органы</title>
+  </head>
+  <body>
+    <canvas id="chart" width="400" height="200"></canvas>
+    <script type="module">
+      import { renderMetrics } from './diagram.js';
+      const canvas = document.getElementById('chart');
+      renderMetrics(canvas);
+    </script>
+  </body>
+</html>

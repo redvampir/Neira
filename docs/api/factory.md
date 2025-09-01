@@ -23,6 +23,11 @@ id: NEI-20250207-factory-sample-templates-doc
 intent: docs
 summary: добавлен раздел Sample Templates с примерами органных шаблонов.
 -->
+<!-- neira:meta
+id: NEI-20250219-organs-panel-doc
+intent: docs
+summary: добавлен раздел о запуске панели органов.
+-->
 
 # Factory API (Draft)
 
@@ -107,6 +112,11 @@ ORGANS_BUILDER_STAGE_DELAYS_MS=50,100,200
 
 - [examples/organs/organ.echo.v1.json](../../examples/organs/organ.echo.v1.json) — минимальный эхо‑орган.
 - [examples/organs/organ.reverse.v1.json](../../examples/organs/organ.reverse.v1.json) — орган, разворачивающий текст.
+
+## Organs Panel
+
+1. `npm run frontend:dev`
+2. Открыть `http://localhost:5173/src/organs.html`.
 
 Notes
 
