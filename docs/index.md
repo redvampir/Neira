@@ -1,7 +1,7 @@
 <!-- neira:meta
 id: NEI-20250830-Docs-Index-Cleanup
 intent: docs
-summary: Централизованный DocMap: чистая структура, актуальные ссылки, добавлены Homeostasis и Persona. -->
+summary: Централизованный DocMap: чистая структура, актуальные ссылки, добавлены Homeostasis, Persona, Nervous System. -->
 
 # Neira — Документация (DocMap)
 
@@ -58,6 +58,7 @@ summary: Централизованный DocMap: чистая структур�
 - Runtime Extensibility: design/runtime-extensibility.md
  - Factory System: design/factory-system.md
 - Homeostasis & Adaptive Control: design/homeostasis.md
+- Nervous System: design/nervous_system.md
 
 ## Справочник (Reference)
 - Переменные окружения: reference/env.md
@@ -89,7 +90,6 @@ summary: Централизованный DocMap: чистая структур�
 ---
 
 ### Design Additions
-- Nervous System: design/nervous_system.md
 - Policy Engine: design/policy-engine.md
 - System Lifecycle: design/system-lifecycle.md
 - State & Recovery: design/state-and-recovery.md
