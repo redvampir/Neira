@@ -1,0 +1,9 @@
+{
+  "id": "action.speak_adapter.v1",
+  "version": "0.1.0",
+  "action_type": "speak_adapter",
+  "links": [
+    "analysis.speak_adapter.v1"
+  ],
+  "metadata": { "schema": "v1" }
+}

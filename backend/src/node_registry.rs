@@ -19,7 +19,9 @@ use crate::action::scripted_training_node::ScriptedTrainingNode;
 use crate::action_node::ActionNode;
 use crate::analysis_node::AnalysisNode;
 use crate::memory_node::MemoryNode;
-use crate::node_template::{validate_template, NodeTemplate};
+use crate::node_template::{
+    validate_action_template, validate_template, ActionNodeTemplate, NodeTemplate,
+};
 
 /* neira:meta
 id: NEI-20241010-154500-load-template
@@ -43,11 +45,34 @@ fn load_template(path: &Path) -> Result<NodeTemplate, String> {
     serde_json::from_value(value).map_err(|e| format!("deserialize NodeTemplate: {e}"))
 }
 
+/* neira:meta
+id: NEI-20250214-153500-load-action-template
+intent: feature
+summary: |
+  Загружает `ActionNodeTemplate` из файла JSON или YAML.
+*/
+fn load_action_template(path: &Path) -> Result<ActionNodeTemplate, String> {
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("failed to read {}: {e}", path.display()))?;
+    let value: Value = if let Some("yaml") | Some("yml") = path.extension().and_then(|s| s.to_str())
+    {
+        let yaml: serde_yaml::Value =
+            serde_yaml::from_str(&content).map_err(|e| format!("invalid YAML: {e}"))?;
+        serde_json::to_value(yaml).map_err(|e| format!("YAML to JSON: {e}"))?
+    } else {
+        serde_json::from_str(&content).map_err(|e| format!("invalid JSON: {e}"))?
+    };
+    validate_action_template(&value).map_err(|errs| errs.join(", "))?;
+    serde_json::from_value(value).map_err(|e| format!("deserialize ActionNodeTemplate: {e}"))
+}
+
 /// Реестр узлов: хранит метаданные и следит за изменениями файлов.
 pub struct NodeRegistry {
     root: PathBuf,
     nodes: Arc<RwLock<HashMap<String, NodeTemplate>>>,
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
+    action_templates: Arc<RwLock<HashMap<String, ActionNodeTemplate>>>,
+    action_paths: Arc<RwLock<HashMap<PathBuf, String>>>,
     analysis_nodes: Arc<RwLock<HashMap<String, Arc<dyn AnalysisNode + Send + Sync>>>>,
     action_nodes: Arc<RwLock<Vec<Arc<dyn ActionNode>>>>,
     chat_nodes: Arc<RwLock<HashMap<String, Arc<dyn ChatNode + Send + Sync>>>>,
@@ -60,6 +85,8 @@ impl NodeRegistry {
         let dir = dir.as_ref().to_path_buf();
         let nodes = Arc::new(RwLock::new(HashMap::new()));
         let paths = Arc::new(RwLock::new(HashMap::new()));
+        let action_templates = Arc::new(RwLock::new(HashMap::new()));
+        let action_paths = Arc::new(RwLock::new(HashMap::new()));
         let analysis_nodes = Arc::new(RwLock::new(HashMap::new()));
         let action_nodes = Arc::new(RwLock::new(Vec::new()));
         let chat_nodes = Arc::new(RwLock::new(HashMap::new()));
@@ -68,18 +95,28 @@ impl NodeRegistry {
         for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir {}: {e}", dir.display()))? {
             let path = entry.map_err(|e| e.to_string())?.path();
             if path.is_file() {
-                match load_template(&path) {
-                    Ok(tpl) => {
-                        paths.write().unwrap().insert(path.clone(), tpl.id.clone());
-                        nodes.write().unwrap().insert(tpl.id.clone(), tpl);
-                    }
-                    Err(e) => error!("{}", e),
+                if let Ok(tpl) = load_template(&path) {
+                    paths.write().unwrap().insert(path.clone(), tpl.id.clone());
+                    nodes.write().unwrap().insert(tpl.id.clone(), tpl);
+                } else if let Ok(tpl) = load_action_template(&path) {
+                    action_paths
+                        .write()
+                        .unwrap()
+                        .insert(path.clone(), tpl.id.clone());
+                    action_templates
+                        .write()
+                        .unwrap()
+                        .insert(tpl.id.clone(), tpl);
+                } else {
+                    error!("failed to load template {}", path.display());
                 }
             }
         }
 
         let nodes_w = nodes.clone();
         let paths_w = paths.clone();
+        let action_tpls_w = action_templates.clone();
+        let action_paths_w = action_paths.clone();
         let mut watcher: RecommendedWatcher = RecommendedWatcher::new(
             move |res: Result<notify::Event, notify::Error>| match res {
                 Ok(event) => {
@@ -92,19 +129,32 @@ impl NodeRegistry {
                                 if let Some(id) = paths_w.write().unwrap().remove(&path) {
                                     nodes_w.write().unwrap().remove(&id);
                                     info!("Removed node {}", id);
+                                } else if let Some(id) =
+                                    action_paths_w.write().unwrap().remove(&path)
+                                {
+                                    action_tpls_w.write().unwrap().remove(&id);
+                                    info!("Removed action node {}", id);
                                 }
                             }
-                            _ => match load_template(&path) {
-                                Ok(tpl) => {
+                            _ => {
+                                if let Ok(tpl) = load_template(&path) {
                                     paths_w
                                         .write()
                                         .unwrap()
                                         .insert(path.clone(), tpl.id.clone());
                                     nodes_w.write().unwrap().insert(tpl.id.clone(), tpl);
                                     info!("Loaded node template {}", path.display());
+                                } else if let Ok(tpl) = load_action_template(&path) {
+                                    action_paths_w
+                                        .write()
+                                        .unwrap()
+                                        .insert(path.clone(), tpl.id.clone());
+                                    action_tpls_w.write().unwrap().insert(tpl.id.clone(), tpl);
+                                    info!("Loaded action node template {}", path.display());
+                                } else {
+                                    error!("failed to load template {}", path.display());
                                 }
-                                Err(e) => error!("{e}"),
-                            },
+                            }
                         }
                     }
                 }
@@ -122,6 +172,8 @@ impl NodeRegistry {
             root: dir,
             nodes,
             paths,
+            action_templates,
+            action_paths,
             analysis_nodes,
             action_nodes,
             chat_nodes,
@@ -141,12 +193,23 @@ impl NodeRegistry {
 
     /// Регистрация или обновление узла из файла.
     pub fn register(&self, path: &Path) -> Result<(), String> {
-        let tpl = load_template(path)?;
-        self.paths
-            .write()
-            .unwrap()
-            .insert(path.to_path_buf(), tpl.id.clone());
-        self.nodes.write().unwrap().insert(tpl.id.clone(), tpl);
+        if let Ok(tpl) = load_template(path) {
+            self.paths
+                .write()
+                .unwrap()
+                .insert(path.to_path_buf(), tpl.id.clone());
+            self.nodes.write().unwrap().insert(tpl.id.clone(), tpl);
+        } else {
+            let tpl = load_action_template(path)?;
+            self.action_paths
+                .write()
+                .unwrap()
+                .insert(path.to_path_buf(), tpl.id.clone());
+            self.action_templates
+                .write()
+                .unwrap()
+                .insert(tpl.id.clone(), tpl);
+        }
         Ok(())
     }
 
@@ -166,9 +229,29 @@ impl NodeRegistry {
         self.register(&path)
     }
 
+    /* neira:meta
+    id: NEI-20250214-154000-register-action-template
+    intent: feature
+    summary: Регистрирует шаблон узла действия и сохраняет его на диск.
+    */
+    pub fn register_action_template(&self, tpl: ActionNodeTemplate) -> Result<(), String> {
+        let value = tpl.to_json();
+        validate_action_template(&value).map_err(|errs| errs.join(", "))?;
+        let file = format!("{}-{}.json", tpl.id, tpl.version);
+        let path = self.root.join(file);
+        let content = serde_json::to_string(&tpl).map_err(|e| e.to_string())?;
+        fs::write(&path, content).map_err(|e| e.to_string())?;
+        self.register(&path)
+    }
+
     /// Получение метаданных узла по идентификатору.
     pub fn get(&self, id: &str) -> Option<NodeTemplate> {
         self.nodes.read().unwrap().get(id).cloned()
+    }
+
+    /// Получение шаблона узла действия по идентификатору.
+    pub fn get_action_template(&self, id: &str) -> Option<ActionNodeTemplate> {
+        self.action_templates.read().unwrap().get(id).cloned()
     }
 
     /// Регистрация реализации `AnalysisNode`.

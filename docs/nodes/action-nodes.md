@@ -1,5 +1,11 @@
 # Узлы действий
 
+<!-- neira:meta
+id: NEI-20250214-155000-action-node-schema-doc
+intent: docs
+summary: Добавлено описание схемы шаблонов и пример для узлов действий.
+-->
+
 ## Навигация
 - [Обзор Нейры](README.md)
 - [Узлы действий](action-nodes.md)
@@ -58,6 +64,13 @@
    ```
 
 Дополнительные ActionNodes (работа с файлами, внешние API и т.п.) будут добавлены после MVP.
+
+### Шаблоны
+
+Шаблон узла действия описывается JSON‑файлом, соответствующим схеме
+[`schemas/v1/action-node-template.schema.json`](../../schemas/v1/action-node-template.schema.json).
+Пример реализации —
+[`examples/factory/voice-v1/action.speak_adapter.v1.json`](../../examples/factory/voice-v1/action.speak_adapter.v1.json).
 
 ### Пример HTTP/JSON/TOML вызова
 

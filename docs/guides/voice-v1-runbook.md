@@ -10,8 +10,9 @@ Goal
 
 - Зарегистрировать 3 шаблона узлов (NodeTemplate) для конвейера Voice v1:
   - `analysis.text_normalize.v1`
-  - `analysis.text_to_phonemes.v1`
-  - `analysis.speak_adapter.v1`
+- `analysis.text_to_phonemes.v1`
+- `analysis.speak_adapter.v1`
+- `action.speak_adapter.v1` (ActionNodeTemplate)
 - Прогнать dry-run, создать записи (draft), при необходимости продвинуть до canary.
 - Убедиться в автоподхвате шаблонов при перезапуске (NodeRegistry watcher).
 
@@ -34,14 +35,17 @@ Steps (PowerShell)
 node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/analysis.text_normalize.v1.json
 node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/analysis.text_to_phonemes.v1.json
 node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/analysis.speak_adapter.v1.json
+node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/action.speak_adapter.v1.json
 2. Создать записи (draft) и сохранить в `templates/`
 node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/analysis.text_normalize.v1.json
 node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/analysis.text_to_phonemes.v1.json
 node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/analysis.speak_adapter.v1.json
+node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/action.speak_adapter.v1.json
 3. (Опционально) Аппрув до canary
 node scripts/factory-shim/index.mjs approve-node --id adapter:analysis.text_normalize.v1 --yes
 node scripts/factory-shim/index.mjs approve-node --id adapter:analysis.text_to_phonemes.v1 --yes
 node scripts/factory-shim/index.mjs approve-node --id adapter:analysis.speak_adapter.v1 --yes
+node scripts/factory-shim/index.mjs approve-node --id adapter:action.speak_adapter.v1 --yes
 4. Проверка автоподхвата
 - Убедитесь, что в каталоге `templates/` появились файлы `analysis.*.json`.
 - Перезапустите backend — NodeRegistry загрузит шаблоны из каталога (есть файловый watcher).
