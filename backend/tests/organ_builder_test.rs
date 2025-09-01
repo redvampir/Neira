@@ -56,7 +56,30 @@ async fn organ_builder_removes_template_after_ttl() {
     assert!(dir.path().join(format!("{id}.json")).exists());
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
     assert!(!dir.path().join(format!("{id}.json")).exists());
-    assert_eq!(builder.status(&id), Some(OrganState::Stable));
+    assert!(builder.status(&id).is_none());
+    std::env::remove_var("ORGANS_BUILDER_ENABLED");
+    std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
+    std::env::remove_var("ORGANS_BUILDER_TTL_SECS");
+}
+
+/* neira:meta
+id: NEI-20251220-organ-builder-cleanup-test
+intent: test
+summary: проверяет фоновую очистку просроченных шаблонов и статусов.
+*/
+#[tokio::test]
+#[serial]
+async fn organ_builder_cleans_expired_templates_in_background() {
+    std::env::set_var("ORGANS_BUILDER_ENABLED", "true");
+    std::env::set_var("ORGANS_BUILDER_TTL_SECS", "1");
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("organ-1.json"), "{}").unwrap();
+    std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
+    let builder = OrganBuilder::new();
+    assert_eq!(builder.status("organ-1"), Some(OrganState::Stable));
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    assert!(!dir.path().join("organ-1.json").exists());
+    assert!(builder.status("organ-1").is_none());
     std::env::remove_var("ORGANS_BUILDER_ENABLED");
     std::env::remove_var("ORGANS_BUILDER_TEMPLATES_DIR");
     std::env::remove_var("ORGANS_BUILDER_TTL_SECS");
