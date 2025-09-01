@@ -29,6 +29,8 @@ summary: Централизованный DocMap: чистая структур�
 - Тестирование: guides/testing.md
 - Обучение и тренировка: guides/training.md
 - Деплой: guides/deployment.md
+- Factory Shim (внешний оркестратор): guides/factory-shim.md
+- Voice v1 — Runbook: guides/voice-v1-runbook.md
 
 ## Примеры (Examples)
 - cURL: examples/curl.md
@@ -41,6 +43,8 @@ summary: Централизованный DocMap: чистая структур�
 - API узла: nodes/node-api-guide.md
 - Жизненный цикл узла: nodes/node-lifecycle.md
 - Шаблон узла: nodes/node-template.md
+- Каналы между узлами: channels.md
+- Идентификаторы узлов: node-ids.md
 
 ## Система (System)
 - Архитектура анализа: system/analysis-architecture.md
@@ -51,6 +55,7 @@ summary: Централизованный DocMap: чистая структур�
 - Подсистемы поддержки: system/support-systems.md
 - Иммунная система: immune_system.md
 - Управление (governance): system/governance-structure.md
+- Диаграмма архитектуры: system/architecture.svg
 
 ## Дизайн (Design)
 - Anti‑Idle System: design/anti-idle-system.md
@@ -65,6 +70,7 @@ summary: Централизованный DocMap: чистая структур�
 - Метрики: reference/metrics.md
 - Метрики личности: reference/persona-metrics.md
 - Метрики узлов: metrics_nodes.md
+- Стандартные порты: reference/ports.md
 
 ## Метадокументы (Meta)
 - Глоссарий: meta/glossary.md
@@ -96,3 +102,6 @@ summary: Централизованный DocMap: чистая структур�
 
 ### Meta Additions
 - Taxonomy: meta/taxonomy.md
+- Control & Homeostasis Capabilities: meta/capabilities-control.md
+- Persona Capabilities: meta/capabilities-persona.md
+- Roadmap redirect: meta/roadmap.md
