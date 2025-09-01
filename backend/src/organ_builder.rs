@@ -22,6 +22,11 @@ id: NEI-20251220-organ-builder-cleanup
 intent: code
 summary: добавлен фоновый таймер очистки и удаление записей templates/statuses вместе с файлом.
 */
+/* neira:meta
+id: NEI-20250601-organ-builder-restore
+intent: code
+summary: выделено восстановление шаблонов из templates_dir с логированием количества.
+*/
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -90,38 +95,9 @@ impl OrganBuilder {
             stages,
         });
         if enabled {
-            let mut restored = 0u64;
-            let mut max_id = 0u64;
-            if let Ok(entries) = std::fs::read_dir(&this.templates_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.extension().and_then(|e| e.to_str()) != Some("json") {
-                        continue;
-                    }
-                    if let Some(id) = path.file_stem().and_then(|s| s.to_str()) {
-                        if let Some(num) = id.strip_prefix("organ-") {
-                            if let Ok(n) = num.parse::<u64>() {
-                                if n > max_id {
-                                    max_id = n;
-                                }
-                            }
-                        }
-                        if let Ok(data) = std::fs::read_to_string(&path) {
-                            if let Ok(tpl) = serde_json::from_str::<Value>(&data) {
-                                this.templates.write().unwrap().insert(id.to_string(), tpl);
-                                this.statuses
-                                    .write()
-                                    .unwrap()
-                                    .insert(id.to_string(), OrganState::Stable);
-                                restored += 1;
-                            }
-                        }
-                    }
-                }
-            }
-            this.counter.store(max_id + 1, Ordering::Relaxed);
+            let restored = this.restore_existing();
             metrics::counter!("organ_build_restored_total").increment(restored);
-            info!(restored, "organ builder restored organs");
+            info!(restored_count = restored, "organ builder restored organs");
         }
         if enabled && ttl_secs > 0 {
             let this_bg = Arc::clone(&this);
@@ -134,6 +110,39 @@ impl OrganBuilder {
             });
         }
         this
+    }
+
+    /// Загружает сохранённые шаблоны и статусы с диска.
+    fn restore_existing(&self) -> u64 {
+        let mut restored = 0u64;
+        let mut max_id = 0u64;
+        if let Ok(entries) = std::fs::read_dir(&self.templates_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                    continue;
+                }
+                if let Some(id) = path.file_stem().and_then(|s| s.to_str()) {
+                    if let Some(num) = id.strip_prefix("organ-") {
+                        if let Ok(n) = num.parse::<u64>() {
+                            max_id = max_id.max(n);
+                        }
+                    }
+                    if let Ok(data) = std::fs::read_to_string(&path) {
+                        if let Ok(tpl) = serde_json::from_str::<Value>(&data) {
+                            self.templates.write().unwrap().insert(id.to_string(), tpl);
+                            self.statuses
+                                .write()
+                                .unwrap()
+                                .insert(id.to_string(), OrganState::Stable);
+                            restored += 1;
+                        }
+                    }
+                }
+            }
+        }
+        self.counter.store(max_id + 1, Ordering::Relaxed);
+        restored
     }
 
     pub fn is_enabled(&self) -> bool {
