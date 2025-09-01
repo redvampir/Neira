@@ -1,5 +1,10 @@
 use std::sync::{Arc, Mutex};
 
+/* neira:meta
+id: NEI-20250603-axum-ws-api
+intent: refactor
+summary: обновлена интеграция WebSocket для axum 0.8.
+*/
 use async_stream::stream;
 use axum::{
     extract::{
@@ -281,7 +286,11 @@ async fn organ_stream_ws(mut socket: WebSocket, id: String, hub: Arc<Interaction
     while let Ok((oid, st)) = rx.recv().await {
         if oid == id {
             let msg = serde_json::json!({"id": oid, "state": format_organ_state(st)});
-            if socket.send(Message::Text(msg.to_string())).await.is_err() {
+            if socket
+                .send(Message::Text(msg.to_string().into()))
+                .await
+                .is_err()
+            {
                 break;
             }
         }

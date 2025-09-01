@@ -6,7 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.7", features = ["ws"] }
+# neira:meta
+# id: NEI-20250603-axum-0-8-bump
+# intent: chore
+# summary: |
+#   Обновлен axum до 0.8 и добавлен tokio-tungstenite 0.27 для WebSocket API.
+axum = { git = "https://github.com/tokio-rs/axum", rev = "ee1519c82f60fc3a14890d34c66581b9737df150", features = ["ws"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -38,6 +43,7 @@ tokio-stream = "0.1"
 futures = "0.3"
 futures-core = "0.3"
 metrics = "0.24"
+tokio-tungstenite = "0.27"
 sysinfo = "0.30"
 sha2 = "0.10"
 zip = { version = "0.6", default-features = false, features = ["deflate"] }
