@@ -7,6 +7,11 @@ summary: |-
   метрикой времени сборки, остановкой при ручном изменении статуса и
   восстановлением счётчика идентификаторов при рестарте.
 */
+/* neira:meta
+id: NEI-20251101-organ-builder-stage-delays
+intent: code
+summary: Задержки переходов между стадиями читаются из ORGANS_BUILDER_STAGE_DELAYS_MS.
+*/
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -38,6 +43,7 @@ pub struct OrganBuilder {
     templates_dir: PathBuf,
     enabled: bool,
     ttl: Duration,
+    stages: Vec<(OrganState, u64)>,
 }
 
 impl OrganBuilder {
@@ -54,6 +60,9 @@ impl OrganBuilder {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(3600);
+        let stages_env =
+            std::env::var("ORGANS_BUILDER_STAGE_DELAYS_MS").unwrap_or_else(|_| "50,50,50".into());
+        let stages = parse_stage_delays(&stages_env);
         if enabled {
             let _ = std::fs::create_dir_all(&templates_dir);
         }
@@ -65,6 +74,7 @@ impl OrganBuilder {
             templates_dir,
             enabled,
             ttl: Duration::from_secs(ttl_secs),
+            stages,
         });
         if enabled {
             let mut restored = 0u64;
@@ -133,12 +143,8 @@ impl OrganBuilder {
         info!(organ_id = %id, "organ build started");
         let this = Arc::clone(self);
         let build_id = id.clone();
+        let stages = self.stages.clone();
         tokio::spawn(async move {
-            let stages = [
-                (OrganState::Canary, 50u64),
-                (OrganState::Experimental, 50u64),
-                (OrganState::Stable, 50u64),
-            ];
             let mut expected = OrganState::Draft;
             for (state, delay) in stages {
                 tokio::time::sleep(Duration::from_millis(delay)).await;
@@ -181,4 +187,24 @@ impl OrganBuilder {
         }
         Some(*prev)
     }
+}
+
+fn parse_stage_delays(input: &str) -> Vec<(OrganState, u64)> {
+    let mut delays = [50u64, 50, 50];
+    for (i, part) in input.split(',').enumerate() {
+        if i >= delays.len() {
+            break;
+        }
+        if let Ok(ms) = part.trim().parse::<u64>() {
+            delays[i] = ms;
+        }
+    }
+    [
+        OrganState::Canary,
+        OrganState::Experimental,
+        OrganState::Stable,
+    ]
+    .into_iter()
+    .zip(delays)
+    .collect()
 }
