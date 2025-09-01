@@ -89,10 +89,10 @@ summary: Централизованный DocMap: чистая структур�
 ---
 
 ### Design Additions
-- Nervous System: design/nervous-system.md
+- Nervous System: design/nervous_system.md
 - Policy Engine: design/policy-engine.md
 - System Lifecycle: design/system-lifecycle.md
- - State & Recovery: design/state-and-recovery.md
+- State & Recovery: design/state-and-recovery.md
 
 ### Meta Additions
 - Taxonomy: meta/taxonomy.md
