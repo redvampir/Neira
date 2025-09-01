@@ -24,46 +24,40 @@ use crate::node_template::{
 };
 
 /* neira:meta
-id: NEI-20241010-154500-load-template
+id: NEI-20250309-125000-load-template-impl
 intent: refactor
 summary: |
-  Упростил определение формата шаблона через `if let` вместо `match`.
+  Объединяет чтение файла и валидацию шаблонов узлов в общую функцию.
 */
-/// Загружает `NodeTemplate` из файла JSON или YAML.
-fn load_template(path: &Path) -> Result<NodeTemplate, String> {
+fn load_template_impl<T, F>(path: &Path, validate_fn: F) -> Result<T, String>
+where
+    T: serde::de::DeserializeOwned,
+    F: Fn(&Value) -> Result<(), Vec<String>>,
+{
     let content =
         fs::read_to_string(path).map_err(|e| format!("failed to read {}: {e}", path.display()))?;
-    let value: Value = if let Some("yaml") | Some("yml") = path.extension().and_then(|s| s.to_str())
-    {
+    let value: Value = if matches!(
+        path.extension().and_then(|s| s.to_str()),
+        Some("yaml") | Some("yml")
+    ) {
         let yaml: serde_yaml::Value =
             serde_yaml::from_str(&content).map_err(|e| format!("invalid YAML: {e}"))?;
         serde_json::to_value(yaml).map_err(|e| format!("YAML to JSON: {e}"))?
     } else {
         serde_json::from_str(&content).map_err(|e| format!("invalid JSON: {e}"))?
     };
-    validate_template(&value).map_err(|errs| errs.join(", "))?;
-    serde_json::from_value(value).map_err(|e| format!("deserialize NodeTemplate: {e}"))
+    validate_fn(&value).map_err(|errs| errs.join(", "))?;
+    serde_json::from_value(value).map_err(|e| format!("deserialize: {e}"))
 }
 
-/* neira:meta
-id: NEI-20250214-153500-load-action-template
-intent: feature
-summary: |
-  Загружает `ActionNodeTemplate` из файла JSON или YAML.
-*/
+/// Загружает `NodeTemplate` из файла.
+fn load_template(path: &Path) -> Result<NodeTemplate, String> {
+    load_template_impl(path, validate_template)
+}
+
+/// Загружает `ActionNodeTemplate` из файла.
 fn load_action_template(path: &Path) -> Result<ActionNodeTemplate, String> {
-    let content =
-        fs::read_to_string(path).map_err(|e| format!("failed to read {}: {e}", path.display()))?;
-    let value: Value = if let Some("yaml") | Some("yml") = path.extension().and_then(|s| s.to_str())
-    {
-        let yaml: serde_yaml::Value =
-            serde_yaml::from_str(&content).map_err(|e| format!("invalid YAML: {e}"))?;
-        serde_json::to_value(yaml).map_err(|e| format!("YAML to JSON: {e}"))?
-    } else {
-        serde_json::from_str(&content).map_err(|e| format!("invalid JSON: {e}"))?
-    };
-    validate_action_template(&value).map_err(|errs| errs.join(", "))?;
-    serde_json::from_value(value).map_err(|e| format!("deserialize ActionNodeTemplate: {e}"))
+    load_template_impl(path, validate_action_template)
 }
 
 /// Реестр узлов: хранит метаданные и следит за изменениями файлов.
