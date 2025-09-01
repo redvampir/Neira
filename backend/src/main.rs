@@ -252,13 +252,24 @@ async fn organ_update_status(
     if let Err(_e) = pe.require_capability(&state.hub, Capability::OrgansBuilder) {
         return Err(axum::http::StatusCode::FORBIDDEN);
     }
+    /* neira:meta
+    id: NEI-20250317-organ-status-update-errors
+    intent: code
+    summary: logs rejection reasons and maps errors to 404/409 codes.
+    */
     let st = match body.state.as_str() {
         "draft" => backend::organ_builder::OrganState::Draft,
         "canary" => backend::organ_builder::OrganState::Canary,
         "experimental" => backend::organ_builder::OrganState::Experimental,
         "stable" => backend::organ_builder::OrganState::Stable,
         "failed" => backend::organ_builder::OrganState::Failed,
-        _ => return Err(axum::http::StatusCode::BAD_REQUEST),
+        _ => {
+            hearing::warn(&format!(
+                "organ status update rejected; organ_id={} reason=invalid_state",
+                id
+            ));
+            return Err(axum::http::StatusCode::CONFLICT);
+        }
     };
     match state.hub.organ_update_status(&id, st) {
         Some(st) => {
@@ -270,7 +281,13 @@ async fn organ_update_status(
                 serde_json::json!({"id": id, "state": format_organ_state(st)}),
             ))
         }
-        None => Err(axum::http::StatusCode::NOT_FOUND),
+        None => {
+            hearing::warn(&format!(
+                "organ status update rejected; organ_id={} reason=not_found",
+                id
+            ));
+            Err(axum::http::StatusCode::NOT_FOUND)
+        }
     }
 }
 
