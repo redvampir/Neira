@@ -10,7 +10,12 @@ summary: |-
 /* neira:meta
 id: NEI-20251101-organ-builder-stage-delays
 intent: code
-summary: Задержки переходов между стадиями читаются из ORGANS_BUILDER_STAGE_DELAYS_MS.
+summary: Задержки переходов между стадиями читаются из ORGANS_BUILDER_STAGE_DELAYS.
+*/
+/* neira:meta
+id: NEI-20250620-organ-builder-stage-delays-env
+intent: code
+summary: переименована переменная на ORGANS_BUILDER_STAGE_DELAYS.
 */
 /* neira:meta
 id: NEI-20251115-organ-cancel-build
@@ -78,7 +83,7 @@ impl OrganBuilder {
             .and_then(|v| v.parse().ok())
             .unwrap_or(3600);
         let stages_env =
-            std::env::var("ORGANS_BUILDER_STAGE_DELAYS_MS").unwrap_or_else(|_| "50,50,50".into());
+            std::env::var("ORGANS_BUILDER_STAGE_DELAYS").unwrap_or_else(|_| "50,50,50".into());
         let stages = parse_stage_delays(&stages_env);
         if enabled {
             let _ = std::fs::create_dir_all(&templates_dir);
@@ -353,7 +358,7 @@ mod tests {
     #[tokio::test]
     async fn cancel_build_stops_task() {
         std::env::set_var("ORGANS_BUILDER_ENABLED", "1");
-        std::env::set_var("ORGANS_BUILDER_STAGE_DELAYS_MS", "1000,1000,1000");
+        std::env::set_var("ORGANS_BUILDER_STAGE_DELAYS", "1000,1000,1000");
         let dir = tempfile::tempdir().unwrap();
         std::env::set_var("ORGANS_BUILDER_TEMPLATES_DIR", dir.path());
         let builder = OrganBuilder::new();
