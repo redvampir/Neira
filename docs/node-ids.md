@@ -12,3 +12,11 @@ summary: |
 - analysis.text_normalize.v1
 - analysis.text_to_phonemes.v1
 - analysis.speak_adapter.v1
+
+## organ.echo.v1
+
+- analysis.echo_adapter.v1
+
+## organ.reverse.v1
+
+- analysis.reverse_adapter.v1
