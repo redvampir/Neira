@@ -1,6 +1,11 @@
 //! Implementations of the different drafts of JSON schema.
 //!
 
+/* neira:meta
+id: NEI-20241004-jsonschema-valid-lifetime
+intent: refactor
+summary: Добавлены явные времени жизни для возвращаемого Validator.
+*/
 use lazy_static::lazy_static;
 use serde_json::Value;
 
@@ -23,7 +28,7 @@ pub enum Draft {
 }
 
 impl Draft {
-    pub(crate) fn get_validator(self, key: &str) -> Option<Validator> {
+    pub(crate) fn get_validator(self, key: &str) -> Option<Validator<'_>> {
         match self {
             Draft::Draft4 => draft4::get_validator(key),
             Draft::Draft6 => draft6::get_validator(key),
@@ -62,7 +67,7 @@ impl Draft {
 mod draft7 {
     use super::*;
 
-    pub(super) fn get_validator(key: &str) -> Option<Validator> {
+    pub(super) fn get_validator(key: &str) -> Option<Validator<'_>> {
         match key {
             "$ref" => Some(validators::ref_ as Validator),
             "additionalItems" => Some(validators::additionalItems as Validator),
@@ -132,7 +137,7 @@ mod draft7 {
 mod draft6 {
     use super::*;
 
-    pub(super) fn get_validator(key: &str) -> Option<Validator> {
+    pub(super) fn get_validator(key: &str) -> Option<Validator<'_>> {
         match key {
             "$ref" => Some(validators::ref_ as Validator),
             "additionalItems" => Some(validators::additionalItems as Validator),
@@ -198,7 +203,7 @@ mod draft6 {
 mod draft4 {
     use super::*;
 
-    pub(super) fn get_validator(key: &str) -> Option<Validator> {
+    pub(super) fn get_validator(key: &str) -> Option<Validator<'_>> {
         match key {
             "$ref" => Some(validators::ref_ as Validator),
             "additionalItems" => Some(validators::additionalItems as Validator),
