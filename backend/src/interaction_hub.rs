@@ -80,10 +80,6 @@ pub struct InteractionHub {
     traces: RwLock<std::collections::HashMap<String, Vec<serde_json::Value>>>,
     trace_enabled: AtomicBool,
     trace_max_events: usize,
-    // Anti-Idle: timestamp (epoch seconds) of last observed user activity
-    last_activity_secs: std::sync::atomic::AtomicU64,
-    // Anti-Idle: runtime toggle flag
-    anti_idle_enabled: AtomicBool,
     // Factory service (adapter-only for now)
     factory: Arc<FactoryService>,
     organ_builder: Arc<OrganBuilder>,
@@ -159,13 +155,6 @@ impl InteractionHub {
 
         let queue_cfg = QueueConfig::new(&memory);
 
-        let now_secs = {
-            use std::time::{SystemTime, UNIX_EPOCH};
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs()
-        };
         let hub = Self {
             registry,
             memory,
@@ -195,12 +184,6 @@ impl InteractionHub {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(200),
-            last_activity_secs: std::sync::atomic::AtomicU64::new(now_secs),
-            anti_idle_enabled: AtomicBool::new(
-                std::env::var("ANTI_IDLE_ENABLED")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(true),
-            ),
             factory: FactoryService::new(),
             organ_builder: OrganBuilder::new(),
         };
@@ -263,35 +246,6 @@ impl InteractionHub {
     /// Количество активных SSE-стримов (по зарегистрированным токенам отмены)
     pub fn active_streams(&self) -> usize {
         self.cancels.read().unwrap().len()
-    }
-
-    /// Отметить пользовательскую активность (chat/analysis/API вызовы)
-    pub fn mark_activity(&self) {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        self.last_activity_secs.store(now, Ordering::Relaxed);
-    }
-
-    /// Сколько секунд прошло с момента последней зафиксированной активности
-    pub fn seconds_since_last_activity(&self) -> u64 {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        let last = self.last_activity_secs.load(Ordering::Relaxed);
-        now.saturating_sub(last)
-    }
-
-    pub fn is_anti_idle_enabled(&self) -> bool {
-        self.anti_idle_enabled.load(Ordering::Relaxed)
-    }
-
-    pub fn set_anti_idle_enabled(&self, enabled: bool) {
-        self.anti_idle_enabled.store(enabled, Ordering::Relaxed);
     }
 
     // Factory service accessors (adapter-only for now)

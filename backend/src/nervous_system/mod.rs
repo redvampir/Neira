@@ -14,9 +14,10 @@ pub trait SystemProbe: Send + Sync {
     fn collect(&mut self) {}
 }
 
+pub mod anti_idle;
+pub mod backpressure_probe;
 pub mod base_path_resolver;
 pub mod host_metrics;
 pub mod io_watcher;
-pub mod watchdog;
 pub mod loop_detector;
-pub mod backpressure_probe;
+pub mod watchdog;
