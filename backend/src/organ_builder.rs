@@ -168,6 +168,57 @@ impl OrganBuilder {
         id
     }
 
+    /* neira:meta
+    id: NEI-20251205-organ-rebuild
+    intent: code
+    summary: добавлен метод `rebuild` для повторного запуска сборки по сохранённому шаблону.
+    */
+    /// Перезапускает сборку органа с тем же идентификатором.
+    pub fn rebuild(self: &Arc<Self>, id: &str) -> bool {
+        let tpl = {
+            let templates = self.templates.read().unwrap();
+            match templates.get(id) {
+                Some(t) => t.clone(),
+                None => return false,
+            }
+        };
+        if let Some(handle) = self.handles.write().unwrap().remove(id) {
+            handle.abort();
+        }
+        self.statuses
+            .write()
+            .unwrap()
+            .insert(id.to_string(), OrganState::Draft);
+        self.start_times
+            .write()
+            .unwrap()
+            .insert(id.to_string(), Instant::now());
+        let path = self.templates_dir.join(format!("{id}.json"));
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::write(path, tpl.to_string());
+        metrics::counter!("organ_rebuild_attempts_total").increment(1);
+        info!(organ_id = %id, "organ rebuild started");
+        let this = Arc::clone(self);
+        let build_id = id.to_string();
+        let stages = self.stages.clone();
+        let handle = tokio::spawn(async move {
+            let mut expected = OrganState::Draft;
+            for (state, delay) in stages {
+                tokio::time::sleep(Duration::from_millis(delay)).await;
+                if this.status(&build_id) != Some(expected) {
+                    break;
+                }
+                this.update_status(&build_id, state);
+                expected = state;
+            }
+            this.handles.write().unwrap().remove(&build_id);
+        });
+        self.handles.write().unwrap().insert(id.to_string(), handle);
+        true
+    }
+
     /// Возвращает статус сборки.
     pub fn status(&self, id: &str) -> Option<OrganState> {
         metrics::counter!("organ_build_status_queries_total").increment(1);

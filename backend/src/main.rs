@@ -318,6 +318,33 @@ async fn organ_cancel_build(
     }
 }
 
+/* neira:meta
+id: NEI-20251205-organ-rebuild-route
+intent: code
+summary: добавлен POST /organs/:id/rebuild для перезапуска сборки органа.
+*/
+async fn organ_rebuild(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let pe = PolicyEngine::new();
+    if let Err(_e) = pe.require_capability(&state.hub, Capability::OrgansBuilder) {
+        return Err(axum::http::StatusCode::FORBIDDEN);
+    }
+    if state.hub.organ_rebuild(&id) {
+        metrics::counter!("organ_rebuild_total").increment(1);
+        hearing::info(&format!("organ rebuild started; organ_id={}", id));
+        Ok(Json(serde_json::json!({"organ_id": id, "state": "draft"})))
+    } else {
+        metrics::counter!("organ_rebuild_not_found_total").increment(1);
+        hearing::warn(&format!(
+            "organ rebuild missing; organ_id={} reason=not_found",
+            id
+        ));
+        Err(axum::http::StatusCode::NOT_FOUND)
+    }
+}
+
 fn format_organ_state(st: backend::organ_builder::OrganState) -> &'static str {
     match st {
         backend::organ_builder::OrganState::Draft => "draft",
@@ -1696,6 +1723,7 @@ async fn main() {
         // Organ builder
         .route("/organs/build", post(organ_build))
         .route("/organs/:id/build", delete(organ_cancel_build))
+        .route("/organs/:id/rebuild", post(organ_rebuild))
         .route(
             "/organs/:id/status",
             get(organ_status).post(organ_update_status),

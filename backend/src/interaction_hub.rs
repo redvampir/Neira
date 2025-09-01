@@ -340,6 +340,15 @@ impl InteractionHub {
         self.organ_builder.cancel_build(id)
     }
 
+    /* neira:meta
+    id: NEI-20251205-organ-rebuild-method
+    intent: code
+    summary: добавлен метод перезапуска сборки органа по шаблону.
+    */
+    pub fn organ_rebuild(&self, id: &str) -> bool {
+        self.organ_builder.rebuild(id)
+    }
+
     pub fn is_trace_enabled(&self) -> bool {
         self.trace_enabled.load(Ordering::Relaxed)
     }
