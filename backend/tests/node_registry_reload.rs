@@ -56,3 +56,23 @@ fn register_template_persists_to_disk() {
     let registry2 = NodeRegistry::new(dir.path()).unwrap();
     assert!(registry2.get("n2").is_some());
 }
+
+#[test]
+fn loads_template_from_subdir() {
+    let dir = tempdir().unwrap();
+    let registry = NodeRegistry::new(dir.path()).unwrap();
+
+    let sub = dir.path().join("nested");
+    fs::create_dir(&sub).unwrap();
+    let path = sub.join("n3-0.1.0.json");
+    let tpl = json!({
+        "id": "n3",
+        "version": "0.1.0",
+        "analysis_type": "a",
+        "metadata": {"schema": "1.0.0"}
+    });
+    fs::write(&path, serde_json::to_string(&tpl).unwrap()).unwrap();
+
+    thread::sleep(Duration::from_secs(1));
+    assert_eq!(registry.get("n3").unwrap().analysis_type, "a");
+}

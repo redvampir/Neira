@@ -158,8 +158,13 @@ impl NodeRegistry {
         )
         .map_err(|e| e.to_string())?;
 
+        /* neira:meta
+        id: NEI-20250310-node-registry-recursive
+        intent: fix
+        summary: Включено рекурсивное наблюдение за каталогом шаблонов узлов.
+        */
         watcher
-            .watch(&dir, RecursiveMode::NonRecursive)
+            .watch(&dir, RecursiveMode::Recursive)
             .map_err(|e| e.to_string())?;
 
         Ok(Self {
