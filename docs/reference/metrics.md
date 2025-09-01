@@ -96,6 +96,12 @@ summary: добавлена метрика organ_build_duration_ms и стату
 | organ_build_attempts_total | counter | ops | OrganBuilder | Попытки сборки органов |
 | organ_build_failures_total | counter | ops | OrganBuilder | Ошибки сборки органов |
 | organ_build_status_queries_total | counter | ops | OrganBuilder | Запросы статуса органа |
+<!-- neira:meta
+id: NEI-20250317-organ-status-error-metric
+intent: docs
+summary: document organ_build_status_errors_total metric.
+-->
+| organ_build_status_errors_total | counter | ops | OrganBuilder | Ошибки обновления статуса |
 | organ_build_duration_ms | histogram | ms | OrganBuilder | Время от Draft до Stable |
 | organ_status_not_found_total | counter | ops | OrganBuilder | Запросы статуса к несуществующим органам |
 | organ_build_restored_total | counter | ops | OrganBuilder | Восстановленные органы при запуске |

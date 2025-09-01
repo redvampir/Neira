@@ -174,10 +174,21 @@ impl OrganBuilder {
         self.statuses.read().unwrap().get(id).copied()
     }
 
+    /* neira:meta
+    id: NEI-20250317-organ-builder-status-error
+    intent: code
+    summary: increments error counter when updating status of missing organ.
+    */
     /// Ручное обновление статуса.
     pub fn update_status(self: &Arc<Self>, id: &str, state: OrganState) -> Option<OrganState> {
         let mut statuses = self.statuses.write().unwrap();
-        let prev = statuses.get_mut(id)?;
+        let prev = match statuses.get_mut(id) {
+            Some(prev) => prev,
+            None => {
+                metrics::counter!("organ_build_status_errors_total").increment(1);
+                return None;
+            }
+        };
         *prev = state;
         if state == OrganState::Stable {
             if let Some(start) = self.start_times.write().unwrap().remove(id) {
