@@ -142,6 +142,14 @@ impl StemCellFactory {
         None
     }
 
+    /* neira:meta
+    id: NEI-20250607-factory-disabled-gauge
+    intent: feature
+    summary: |
+      Добавлен gauge factory_cells_disabled, обновляемый при disable/rollback.
+    metrics:
+      - factory_cells_disabled
+    */
     pub fn disable(&self, id: &str) -> Option<StemCellState> {
         let mut map = self.records.write().unwrap();
         if let Some(rec) = map.get_mut(id) {
@@ -152,7 +160,10 @@ impl StemCellFactory {
                 "event": "factory.disable",
                 "id": id
             }));
-            return Some(rec.state);
+            let state = rec.state;
+            drop(map);
+            self.update_disabled_gauge();
+            return Some(state);
         }
         None
     }
@@ -167,9 +178,21 @@ impl StemCellFactory {
                 "event": "factory.rollback",
                 "id": id
             }));
-            return Some(rec.state);
+            let state = rec.state;
+            drop(map);
+            self.update_disabled_gauge();
+            return Some(state);
         }
         None
+    }
+
+    fn update_disabled_gauge(&self) {
+        let map = self.records.read().unwrap();
+        let disabled = map
+            .values()
+            .filter(|r| matches!(r.state, StemCellState::Disabled))
+            .count();
+        metrics::gauge!("factory_cells_disabled").set(disabled as f64);
     }
 
     /* neira:meta
