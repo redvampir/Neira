@@ -4,6 +4,11 @@ intent: docs
 summary: |
   Автогенерированный список файлов документации.
 -->
+<!-- neira:meta
+id: NEI-20250316-stemcell-rename
+intent: docs
+summary: Обновлён заголовок для stem-cell-factory.
+-->
 
 # Документация — оглавление
 
@@ -13,7 +18,7 @@ summary: |
 - [immune_system](immune_system.md)
 - design/
   - [anti-idle-system](design/anti-idle-system.md)
-  - [factory-system](design/factory-system.md)
+  - [stem-cell-factory](design/factory-system.md)
   - [homeostasis](design/homeostasis.md)
   - [nervous_system](design/nervous_system.md)
   - [organ-systems](design/organ-systems.md)

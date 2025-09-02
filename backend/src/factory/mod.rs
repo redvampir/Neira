@@ -4,6 +4,11 @@ intent: code
 summary: |
   Минимальный каркас фабрики узлов: сервис записей, простейший Fabricator (Adapter‑only) и Selector (reuse vs create) без исполнения кода.
 */
+/* neira:meta
+id: NEI-20250316-stemcell-rename
+intent: refactor
+summary: Переименованы FactoryService и FactoryRecord в StemCellFactory и StemCellRecord.
+*/
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -19,7 +24,7 @@ use crate::factory::format_state_local as _format_state_local_import;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FabricationState {
+pub enum StemCellState {
     Draft,
     Canary,
     Experimental,
@@ -29,21 +34,21 @@ pub enum FabricationState {
 }
 
 #[derive(Clone)]
-pub struct FactoryRecord {
+pub struct StemCellRecord {
     pub id: String,
     pub backend: String,
     pub template_id: String,
-    pub state: FabricationState,
+    pub state: StemCellState,
     pub created_at: DateTime<Utc>,
 }
 
 #[derive(Default)]
-pub struct FactoryService {
-    records: RwLock<HashMap<String, FactoryRecord>>,
+pub struct StemCellFactory {
+    records: RwLock<HashMap<String, StemCellRecord>>,
     adapter_enabled: bool,
 }
 
-impl FactoryService {
+impl StemCellFactory {
     pub fn new() -> Arc<Self> {
         let adapter_enabled = std::env::var("FACTORY_ADAPTER_ENABLED")
             .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
@@ -71,12 +76,12 @@ impl FactoryService {
         })
     }
 
-    pub fn create_record(&self, backend: &str, tpl: &CellTemplate) -> FactoryRecord {
-        let rec = FactoryRecord {
+    pub fn create_record(&self, backend: &str, tpl: &CellTemplate) -> StemCellRecord {
+        let rec = StemCellRecord {
             id: format!("{}:{}", backend, tpl.id),
             backend: backend.to_string(),
             template_id: tpl.id.clone(),
-            state: FabricationState::Draft,
+            state: StemCellState::Draft,
             created_at: Utc::now(),
         };
         self.records
@@ -94,13 +99,13 @@ impl FactoryService {
         rec
     }
 
-    pub fn advance(&self, id: &str) -> Option<FabricationState> {
+    pub fn advance(&self, id: &str) -> Option<StemCellState> {
         let mut map = self.records.write().unwrap();
         if let Some(rec) = map.get_mut(id) {
             rec.state = match rec.state {
-                FabricationState::Draft => FabricationState::Canary,
-                FabricationState::Canary => FabricationState::Experimental,
-                FabricationState::Experimental => FabricationState::Stable,
+                StemCellState::Draft => StemCellState::Canary,
+                StemCellState::Canary => StemCellState::Experimental,
+                StemCellState::Experimental => StemCellState::Stable,
                 s => s,
             };
             metrics::counter!("factory_approvals_total").increment(1);
@@ -115,10 +120,10 @@ impl FactoryService {
         None
     }
 
-    pub fn disable(&self, id: &str) -> Option<FabricationState> {
+    pub fn disable(&self, id: &str) -> Option<StemCellState> {
         let mut map = self.records.write().unwrap();
         if let Some(rec) = map.get_mut(id) {
-            rec.state = FabricationState::Disabled;
+            rec.state = StemCellState::Disabled;
             metrics::counter!("factory_rollbacks_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -130,10 +135,10 @@ impl FactoryService {
         None
     }
 
-    pub fn rollback(&self, id: &str) -> Option<FabricationState> {
+    pub fn rollback(&self, id: &str) -> Option<StemCellState> {
         let mut map = self.records.write().unwrap();
         if let Some(rec) = map.get_mut(id) {
-            rec.state = FabricationState::RolledBack;
+            rec.state = StemCellState::RolledBack;
             metrics::counter!("factory_rollbacks_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -153,10 +158,10 @@ impl FactoryService {
             .filter(|r| {
                 matches!(
                     r.state,
-                    FabricationState::Draft
-                        | FabricationState::Canary
-                        | FabricationState::Experimental
-                        | FabricationState::Stable
+                    StemCellState::Draft
+                        | StemCellState::Canary
+                        | StemCellState::Experimental
+                        | StemCellState::Stable
                 )
             })
             .count();
@@ -285,14 +290,14 @@ fn env_list(key: &str) -> Vec<String> {
 }
 
 // local helper for audit logs
-pub(crate) fn format_state_local(st: FabricationState) -> &'static str {
+pub(crate) fn format_state_local(st: StemCellState) -> &'static str {
     match st {
-        FabricationState::Draft => "draft",
-        FabricationState::Canary => "canary",
-        FabricationState::Experimental => "experimental",
-        FabricationState::Stable => "stable",
-        FabricationState::Disabled => "disabled",
-        FabricationState::RolledBack => "rolled_back",
+        StemCellState::Draft => "draft",
+        StemCellState::Canary => "canary",
+        StemCellState::Experimental => "experimental",
+        StemCellState::Stable => "stable",
+        StemCellState::Disabled => "disabled",
+        StemCellState::RolledBack => "rolled_back",
     }
 }
 
