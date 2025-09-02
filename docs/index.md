@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250902-072558-doc-map
+id: NEI-20250902-101341-doc-map
 intent: docs
 summary: |
   Автогенерированный список файлов документации.
@@ -8,6 +8,7 @@ summary: |
 # Документация — оглавление
 
 ## Системы (органы)
+
 - [README](README.md)
 - [immune_system](immune_system.md)
 - design/
@@ -31,6 +32,7 @@ summary: |
 - [roadmap](roadmap.md)
 
 ## Клеточные уровни
+
 - [cell-ids](cell-ids.md)
 - [metrics_cells](metrics_cells.md)
 - cells/
@@ -43,6 +45,7 @@ summary: |
   - [memory-cells](cells/memory-cells.md)
 
 ## Guides
+
 - examples/
   - [curl](examples/curl.md)
 - guides/
@@ -57,12 +60,13 @@ summary: |
   - [web-interface](guides/web-interface.md)
 
 ## Reference
+
 - api/
   - [backend](api/backend.md)
   - [chat](api/chat.md)
   - [factory](api/factory.md)
 - [backend-api](backend-api.md)
-- [channels](channels.md)
+- [pathways](pathways.md)
 - meta/
   - [biology-glossary](meta/biology-glossary.md)
   - [capabilities-control](meta/capabilities-control.md)
@@ -83,6 +87,7 @@ summary: |
   - [ports](reference/ports.md)
 
 ## Legacy
+
 - legacy/
   - [deployment](legacy/deployment.md)
   - [testing](legacy/testing.md)

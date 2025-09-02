@@ -1,17 +1,13 @@
 {
   "id": "organ.voice.v1",
   "version": "0.1.0",
-  "roles": [
-    "text_normalize",
-    "text_to_phonemes",
-    "speak_adapter"
-  ],
+  "roles": ["text_normalize", "text_to_phonemes", "speak_adapter"],
   "cells": [
     "analysis.text_normalize.v1",
     "analysis.text_to_phonemes.v1",
     "analysis.speak_adapter.v1"
   ],
-  "channels": [
+  "pathways": [
     {
       "name": "speech",
       "cells": ["analysis.speak_adapter.v1"]
@@ -22,4 +18,3 @@
     "hitl": true
   }
 }
-
