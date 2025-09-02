@@ -9,12 +9,18 @@ id: NEI-20251115-organ-cancel-build-design
 intent: design
 summary: упомянут DELETE /organs/:id/build в API эскизе.
 -->
+<!-- neira:meta
+id: NEI-20250316-stemcell-rename
+intent: docs
+summary: Термины обновлены на StemCellFactory/StemCellRecord/StemCellState.
+-->
 
-# Factory System (Фабрикаторы)
+# Stem Cell Factory System (Фабрикаторы)
 
 Purpose
 - Создавать новые клетки (Analysis/Action/Memory) из дескрипторов с безопасными бэкендами исполнения и управлением рисками.
 - Обеспечить повторное использование готовых клеток, автоподключение к ключевым системам, и «человек в петле» для обучения/стабилизации.
+- Центральный сервис управления — **StemCellFactory**; записи о созданных клетках хранятся как **StemCellRecord** со статусами **StemCellState**.
 
 Components
 - FabricatorCell (Action): принимает FabricationRequest и создаёт клетки через бэкенды:

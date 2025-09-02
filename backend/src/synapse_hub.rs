@@ -10,6 +10,11 @@ id: NEI-20250214-watchdog-refactor
 intent: refactor
 summary: Логика watchdog вынесена в модуль nervous_system::watchdog.
 */
+/* neira:meta
+id: NEI-20250316-stemcell-rename
+intent: refactor
+summary: Обновлены ссылки на StemCellFactory и связанные типы.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -17,7 +22,7 @@ use crate::action::diagnostics_cell::DiagnosticsCell;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
-use crate::factory::{FabricatorCell, FactoryService, SelectorCell};
+use crate::factory::{FabricatorCell, SelectorCell, StemCellFactory};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
 use crate::nervous_system::{
@@ -81,7 +86,7 @@ pub struct SynapseHub {
     trace_enabled: AtomicBool,
     trace_max_events: usize,
     // Factory service (adapter-only for now)
-    factory: Arc<FactoryService>,
+    factory: Arc<StemCellFactory>,
     organ_builder: Arc<OrganBuilder>,
 }
 
@@ -184,7 +189,7 @@ impl SynapseHub {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(200),
-            factory: FactoryService::new(),
+            factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
         };
 
@@ -259,16 +264,16 @@ impl SynapseHub {
         &self,
         backend: &str,
         tpl: &crate::cell_template::CellTemplate,
-    ) -> crate::factory::FactoryRecord {
+    ) -> crate::factory::StemCellRecord {
         self.factory.create_record(backend, tpl)
     }
-    pub fn factory_advance(&self, id: &str) -> Option<crate::factory::FabricationState> {
+    pub fn factory_advance(&self, id: &str) -> Option<crate::factory::StemCellState> {
         self.factory.advance(id)
     }
-    pub fn factory_disable(&self, id: &str) -> Option<crate::factory::FabricationState> {
+    pub fn factory_disable(&self, id: &str) -> Option<crate::factory::StemCellState> {
         self.factory.disable(id)
     }
-    pub fn factory_rollback(&self, id: &str) -> Option<crate::factory::FabricationState> {
+    pub fn factory_rollback(&self, id: &str) -> Option<crate::factory::StemCellState> {
         self.factory.rollback(id)
     }
     pub fn factory_counts(&self) -> (usize, usize) {

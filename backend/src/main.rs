@@ -15,6 +15,11 @@ id: NEI-20241004-hub-progress-cleanup
 intent: refactor
 summary: Удалён неиспользуемый клон SynapseHub при отправке прогресса анализа.
 */
+/* neira:meta
+id: NEI-20250316-stemcell-rename
+intent: refactor
+summary: Обновлены перечисления FabricationState → StemCellState.
+*/
 use async_stream::stream;
 use axum::{
     extract::{
@@ -53,11 +58,11 @@ use backend::cell_registry::CellRegistry;
 use backend::cell_template::CellTemplate;
 use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
-use backend::factory::{AdapterBackend, CellTemplateAdapter, FabricationState};
-use backend::synapse_hub::SynapseHub;
+use backend::factory::{AdapterBackend, CellTemplateAdapter, StemCellState};
 use backend::memory_cell::MemoryCell;
 use backend::policy::{Capability, PolicyEngine};
 use backend::security::init_config_cell::InitConfigCell;
+use backend::synapse_hub::SynapseHub;
 mod http {
     pub mod training_routes;
 }
@@ -441,14 +446,14 @@ fn format_organ_state(st: backend::organ_builder::OrganState) -> &'static str {
     }
 }
 
-fn format_state(st: FabricationState) -> &'static str {
+fn format_state(st: StemCellState) -> &'static str {
     match st {
-        FabricationState::Draft => "draft",
-        FabricationState::Canary => "canary",
-        FabricationState::Experimental => "experimental",
-        FabricationState::Stable => "stable",
-        FabricationState::Disabled => "disabled",
-        FabricationState::RolledBack => "rolled_back",
+        StemCellState::Draft => "draft",
+        StemCellState::Canary => "canary",
+        StemCellState::Experimental => "experimental",
+        StemCellState::Stable => "stable",
+        StemCellState::Disabled => "disabled",
+        StemCellState::RolledBack => "rolled_back",
     }
 }
 
