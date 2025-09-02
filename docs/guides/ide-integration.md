@@ -1,5 +1,11 @@
 # Интеграция IDE
 
+<!-- neira:meta
+id: NEI-20250305-ide-cell-runtime
+intent: docs
+summary: Уточнено, что используется Cell runtime (Node.js).
+-->
+
 Этот документ описывает настройку редакторов для работы с проектом Neira.
 
 ## VS Code
@@ -46,7 +52,7 @@
 ## JetBrains IDE
 1. Установите плагины:
    - **Rust**
-   - **Node.js** и **TypeScript**
+   - **Cell runtime (Node.js)** и **TypeScript**
    - **ESLint**
 2. Создайте конфигурации запуска:
    - **Cargo Command** c `test` для Rust-тестов

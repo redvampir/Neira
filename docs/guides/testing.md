@@ -5,6 +5,11 @@ id: NEI-20250317-120300-testing-cell-template
 intent: docs
 summary: Обновлена ссылка на JSON-схему cell-template в разделе тестирования.
 -->
+<!-- neira:meta
+id: NEI-20250305-testing-runtime-term
+intent: docs
+summary: Заголовки установки переведены на Cell.js runtime.
+-->
 
 Этот документ описывает базовые уровни тестирования и минимальные бенчмарки для модуля Neira.
 
@@ -78,7 +83,7 @@ cargo run --example generate_cell
 
 ## Windows
 
-### Установка Node.js 20
+### Установка Cell.js 20
 
 ```powershell
 winget install OpenJS.CellJS.LTS --version 20
@@ -106,7 +111,7 @@ cargo test
 
 ## macOS
 
-### Установка Node.js 20
+### Установка Cell.js 20
 
 ```bash
 brew install cell@20

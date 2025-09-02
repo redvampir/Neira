@@ -1,4 +1,9 @@
-﻿# Нейра — саморазвивающийся ИИ‑модуль
+<!-- neira:meta
+id: NEI-20250305-readme-cell-examples
+intent: docs
+summary: Обновлены требования к runtime и пример с CellRegistry.
+-->
+# Нейра — саморазвивающийся ИИ‑модуль
 
 
 
@@ -113,7 +118,7 @@ cargo run -p backend
 - **RAM**: минимум 8 ГБ (рекомендуется 16 ГБ).
 - **Диск**: 10 ГБ свободного пространства.
 - **Сеть**: гигабитная LAN или выше, RTT <1 мс.
-- **Node.js**: версия 20 LTS или выше.
+- **Cell runtime**: Node.js 20 LTS или выше.
 - **Rust**: версия 1.75 или выше.
 
 GPU необязательна; для обучения и больших моделей желателен CUDA‑совместимый ускоритель с 6 ГБ VRAM.
@@ -154,33 +159,37 @@ Neira может использовать дополнительные уско�
 - [`cuda`](https://crates.io/crates/cuda) — API для NVIDIA GPU;
 - [`opencl`](https://crates.io/crates/opencl3) — интерфейс для OpenCL‑совместимых GPU/FPGA.
 
-Пример клетки, который требует GPU и проверяет его наличие:
+Пример `ActionCell`, который требует GPU и регистрируется в `CellRegistry` вместе с клетками анализа и памяти:
 
 ```rust
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use wgpu::Instance;
+use neira::{cells::{ActionCell, AnalysisCell, MemoryCell}, CellRegistry};
 
-enum Accelerator {
-    Gpu,
-    // другие варианты: Tpu, Fpga
-}
+struct GpuRender;
 
-struct Cell {
-    required_accelerator: Accelerator,
-}
-
-impl Cell {
+impl ActionCell for GpuRender {
     fn start(&self) -> Result<()> {
-        match self.required_accelerator {
-            Accelerator::Gpu => {
-                let instance = Instance::default();
-                if instance.enumerate_adapters(wgpu::Backends::all()).next().is_none() {
-                    bail!("GPU accelerator not available");
-                }
-            }
+        let instance = Instance::default();
+        if instance.enumerate_adapters(wgpu::Backends::all()).next().is_none() {
+            bail!("GPU accelerator not available");
         }
         Ok(())
     }
+}
+
+struct Plan;
+impl AnalysisCell for Plan {}
+
+struct Store;
+impl MemoryCell for Store {}
+
+fn main() -> Result<()> {
+    let mut registry = CellRegistry::default();
+    registry.register_action("render", Box::new(GpuRender));
+    registry.register_analysis("plan", Box::new(Plan));
+    registry.register_memory("store", Box::new(Store));
+    Ok(())
 }
 ```
 

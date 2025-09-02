@@ -1,13 +1,19 @@
 # Руководство по внесению вкладов
 
+<!-- neira:meta
+id: NEI-20250305-contrib-cell-runtime
+intent: docs
+summary: Уточнено, что используется Cell runtime (Node.js 20 LTS).
+-->
+
 ## Требования
 
-- Node.js 20 LTS (см. `.nvmrc`)
+- Cell runtime: Node.js 20 LTS (см. `.nvmrc`)
 - Rust 1.75+ (см. `rust-toolchain`)
 
 ## Установка сред разработки
 
-Установите Node.js через [nvm](https://github.com/nvm-sh/nvm):
+Установите Cell runtime (Node.js) через [nvm](https://github.com/nvm-sh/nvm):
 
 ```
 nvm install
@@ -23,7 +29,7 @@ rustup toolchain install 1.75
 
 ## Установка зависимостей и хуков
 
-После установки Node.js и Rust установите npm зависимости:
+После установки runtime и Rust установите npm зависимости:
 
 ```
 npm install
