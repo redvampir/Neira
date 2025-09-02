@@ -17,6 +17,11 @@ Assistant Quick Links
 Documentation Index
 - docs/index.md — карта документации (DocMap) для GitHub/IDE
 - docs/README.md — вход в документацию
+<!-- neira:meta
+id: NEI-20250325-factory-nav-link
+intent: docs
+summary: Добавлена ссылка на систему фабрикаторов в навигации.
+-->
 ## Навигация
 
 - [Клетки действий](docs/cells/action-cells.md)
@@ -30,6 +35,7 @@ Documentation Index
 - [Политика источников](docs/system/source-policy.md)
 - [Низкоуровневая цепочка инструментов](docs/system/low-level-toolchain.md)
 - [Система самообновления](docs/system/self-updating-system.md)
+- [Система фабрикаторов (Stem Cell Factory System)](docs/design/factory-system.md)
 - [Нервная система](docs/design/nervous_system.md)
 - [Пример использования](docs/guides/usage-example.md)
 - [Орган билдер CLI](docs/guides/usage-example.md#organ-builder-cli)
