@@ -1,5 +1,11 @@
+# neira:meta
+# id: NEI-20250602-150000-examplecell
+# intent: docs
+# summary: |
+#   Переименован тип анализа в примере в ExampleCell.
+
 id: example.template
-analysis_type: ExampleNode
+analysis_type: ExampleCell
 metadata:
   schema: "1.0.0"
   author: "Example"
