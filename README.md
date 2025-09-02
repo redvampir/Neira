@@ -7,11 +7,18 @@ Assistant Quick Links
 - Teamwork: TEAMWORK.md
 - Workflow: WORKFLOW.md
 - Coding Guidelines: CODING_GUIDELINES.md
+- Style Guide: docs/STYLE.md
 - Backend API: docs/api/backend.md
+<!-- neira:meta
+id: NEI-20250601-style-link
+intent: docs
+summary: Добавлена ссылка на правила стиля документации.
+-->
 
 Documentation Index
 - docs/index.md — карта документации (DocMap) для GitHub/IDE
 - docs/README.md — вход в документацию
+- docs/STYLE.md — правила стиля документации
 ## Навигация
 
 - [Узлы действий](docs/nodes/action-nodes.md)

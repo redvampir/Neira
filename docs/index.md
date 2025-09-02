@@ -4,6 +4,11 @@ intent: docs
 summary: |
   Автогенерированный список файлов документации.
 -->
+<!-- neira:meta
+id: NEI-20250601-style-link-docmap
+intent: docs
+summary: Добавлена запись о правилах стиля.
+-->
 
 # Документация — оглавление
 
@@ -63,6 +68,7 @@ summary: |
   - [node-lifecycle](nodes/node-lifecycle.md)
   - [node-template](nodes/node-template.md)
 - [README](README.md)
+- [STYLE](STYLE.md)
 - reference/
   - [env_anti_idle](reference/env_anti_idle.md)
   - [env](reference/env.md)
