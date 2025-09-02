@@ -1,6 +1,13 @@
 # Архитектура анализа
 
+<!-- neira:meta
+id: NEI-20250317-120500-analysis-architecture-cell-template
+intent: docs
+summary: Обновлена ссылка на JSON-схему cell-template.
+-->
+
 ## Навигация
+
 - [Обзор Нейры](README.md)
 - [Узлы действий](action-nodes.md)
 - [Узлы анализа](analysis-nodes.md)
@@ -13,11 +20,11 @@
 - [Механизм саморазвивающейся системы](self-updating-system.md)
 
 ## Оглавление
+
 - [Модули высокого уровня](#модули-высокого-уровня)
 - [API узлов](#api-узлов)
 - [Иерархия узлов](#иерархия-узлов)
 - [Пример расширения на Rust](#пример-расширения-на-rust)
-
 
 Документ описывает общий API узлов анализа, базовую иерархию типов и пример расширения системы на Rust.
 
@@ -29,7 +36,6 @@
 - **Модуль памяти и адаптации** — накопление опыта общения без разрушения базового ядра.
 - **Модуль интересов, творчества и игр** — обучение через игры, генерация новых узлов анализа.
 - **Модуль скепсиса и проверки** — вставка уточнений и проверка фактов.
-
 
 ## API узлов
 
@@ -139,7 +145,8 @@ pub fn register(registry: &mut NodeRegistry) {
 ## Схемы
 
 JSON‑схемы расположены в каталоге [schemas](schemas):
-- [v1/node-template.schema.json](schemas/v1/node-template.schema.json)
+
+- [v1/cell-template.schema.json](schemas/v1/cell-template.schema.json)
 - [analysis-result.schema.json](schemas/analysis-result.schema.json)
 
 При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
