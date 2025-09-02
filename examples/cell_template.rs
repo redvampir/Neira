@@ -1,3 +1,9 @@
+/* neira:meta
+id: NEI-20250602-150100-examplecell
+intent: docs
+summary: |
+  Переименован тип анализа в JSON-примере на ExampleCell.
+*/
 use backend::cell_template::{validate_template, CellTemplate};
 use serde_json::json;
 
@@ -5,7 +11,7 @@ fn main() {
     // Example template in JSON form
     let value = json!({
         "id": "example.template",
-        "analysis_type": "ExampleNode",
+        "analysis_type": "ExampleCell",
         "metadata": {
             "schema": "1.0.0",
             "author": "Example"
