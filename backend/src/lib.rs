@@ -1,3 +1,8 @@
+/* neira:meta
+id: NEI-20250215-immune-export
+intent: code
+summary: Экспортирован модуль immune_system.
+*/
 pub mod action;
 pub mod action_cell;
 pub mod analysis_cell;
@@ -7,11 +12,12 @@ pub mod config;
 pub mod context;
 pub mod hearing;
 pub mod idempotent_store;
-pub mod synapse_hub;
+pub mod immune_system;
 pub mod memory_cell;
 pub mod nervous_system;
 pub mod queue_config;
 pub mod security;
+pub mod synapse_hub;
 pub mod task_scheduler;
 pub mod trigger_detector;
 // duplicates removed
