@@ -3,7 +3,7 @@ name: CI
 # neira:meta
 # id: NEI-20250101-000006-ci-validate-examples
 # intent: ci
-# summary: Validate example organs and ensure node ID docs are up to date.
+# summary: Validate example organs and ensure cell ID docs are up to date.
 
 # neira:meta
 # id: NEI-20250310-cell-templates-ci-env
@@ -42,10 +42,10 @@ jobs:
         run: npm run lint
       - name: Validate examples
         run: npm run check-examples
-      - name: Verify node ID docs
+      - name: Verify cell ID docs
         run: |
-          npm run generate-node-docs
-          git diff --exit-code docs/node-ids.md
+          npm run generate-cell-docs
+          git diff --exit-code docs/cell-ids.md
       - name: Test backend
         run: cargo test --manifest-path backend/Cargo.toml
       - name: Test frontend
