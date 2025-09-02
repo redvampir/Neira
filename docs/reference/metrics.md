@@ -108,6 +108,11 @@ id: NEI-20250607-factory-disabled-gauge-docs
 intent: docs
 summary: документирован gauge factory_cells_disabled.
 -->
+<!-- neira:meta
+id: NEI-20250704-factory-state-transition-metric-docs
+intent: docs
+summary: документирован счётчик factory_state_transitions_total с лейблами from/to.
+-->
 | metric | type | unit | scope | description |
 |---|---|---|---|---|
 | factory_cells_created_total | counter | cells | Factory | Создано клеток (всего) |
@@ -117,6 +122,7 @@ summary: документирован gauge factory_cells_disabled.
 | factory_dryrun_requests_total | counter | req | Factory | Запросы dry‑run |
 | factory_approvals_total | counter | ops | Factory | Подтверждения HITL |
 | factory_rollbacks_total | counter | ops | Factory | Откаты клеток |
+| factory_state_transitions_total{from,to} | counter | ops | Factory | Переходы состояний (лейблы from,to) |
 | factory_auto_heals_total | counter | ops | Factory | Авто‑отключения по тревоге |
 | factory_auto_rollbacks_total | counter | ops | Factory | Авто‑откат по тревоге |
 | factory_auto_heal_failures_total | counter | ops | Factory | Неудачные авто‑отключения |
