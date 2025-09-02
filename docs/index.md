@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250901-210555-doc-map
+id: NEI-20250902-032729-doc-map
 intent: docs
 summary: |
   Автогенерированный список файлов документации.
@@ -7,12 +7,10 @@ summary: |
 
 # Документация — оглавление
 
-- api/
-  - [backend](api/backend.md)
-  - [chat](api/chat.md)
-  - [factory](api/factory.md)
-- [backend-api](backend-api.md)
-- [channels](channels.md)
+## Системы (органы)
+
+- [README](README.md)
+- [immune_system](immune_system.md)
 - design/
   - [anti-idle-system](design/anti-idle-system.md)
   - [factory-system](design/factory-system.md)
@@ -23,6 +21,31 @@ summary: |
   - [runtime-extensibility](design/runtime-extensibility.md)
   - [state-and-recovery](design/state-and-recovery.md)
   - [system-lifecycle](design/system-lifecycle.md)
+- system/
+  - [analysis-architecture](system/analysis-architecture.md)
+  - [governance-structure](system/governance-structure.md)
+  - [low-level-toolchain](system/low-level-toolchain.md)
+  - [mvp-modules](system/mvp-modules.md)
+  - [self-updating-system](system/self-updating-system.md)
+  - [source-policy](system/source-policy.md)
+  - [support-systems](system/support-systems.md)
+- [roadmap](roadmap.md)
+
+## Клеточные уровни
+
+- [node-ids](node-ids.md)
+- [metrics_nodes](metrics_nodes.md)
+- nodes/
+  - [action-nodes](nodes/action-nodes.md)
+  - [analysis-nodes](nodes/analysis-nodes.md)
+  - [automatic-population](nodes/automatic-population.md)
+  - [memory-nodes](nodes/memory-nodes.md)
+  - [node-api-guide](nodes/node-api-guide.md)
+  - [node-lifecycle](nodes/node-lifecycle.md)
+  - [node-template](nodes/node-template.md)
+
+## Guides
+
 - examples/
   - [curl](examples/curl.md)
 - guides/
@@ -35,11 +58,15 @@ summary: |
   - [usage-example](guides/usage-example.md)
   - [voice-v1-runbook](guides/voice-v1-runbook.md)
   - [web-interface](guides/web-interface.md)
-- [immune_system](immune_system.md)
-- legacy/
-  - [deployment](legacy/deployment.md)
-  - [testing](legacy/testing.md)
-  - [usage-example](legacy/usage-example.md)
+
+## Reference
+
+- api/
+  - [backend](api/backend.md)
+  - [chat](api/chat.md)
+  - [factory](api/factory.md)
+- [backend-api](backend-api.md)
+- [channels](channels.md)
 - meta/
   - [biology-glossary](meta/biology-glossary.md)
   - [capabilities-control](meta/capabilities-control.md)
@@ -52,29 +79,16 @@ summary: |
   - [personality](meta/personality.md)
   - [roadmap](meta/roadmap.md)
   - [taxonomy](meta/taxonomy.md)
-- [metrics_nodes](metrics_nodes.md)
-- [node-ids](node-ids.md)
-- nodes/
-  - [action-nodes](nodes/action-nodes.md)
-  - [analysis-nodes](nodes/analysis-nodes.md)
-  - [automatic-population](nodes/automatic-population.md)
-  - [memory-nodes](nodes/memory-nodes.md)
-  - [node-api-guide](nodes/node-api-guide.md)
-  - [node-lifecycle](nodes/node-lifecycle.md)
-  - [node-template](nodes/node-template.md)
-- [README](README.md)
 - reference/
   - [env_anti_idle](reference/env_anti_idle.md)
   - [env](reference/env.md)
   - [metrics](reference/metrics.md)
   - [persona-metrics](reference/persona-metrics.md)
   - [ports](reference/ports.md)
-- [roadmap](roadmap.md)
-- system/
-  - [analysis-architecture](system/analysis-architecture.md)
-  - [governance-structure](system/governance-structure.md)
-  - [low-level-toolchain](system/low-level-toolchain.md)
-  - [mvp-modules](system/mvp-modules.md)
-  - [self-updating-system](system/self-updating-system.md)
-  - [source-policy](system/source-policy.md)
-  - [support-systems](system/support-systems.md)
+
+## Legacy
+
+- legacy/
+  - [deployment](legacy/deployment.md)
+  - [testing](legacy/testing.md)
+  - [usage-example](legacy/usage-example.md)
