@@ -111,7 +111,7 @@ fn scan_dir(
     }
 }
 
-/// Реестр узлов: хранит метаданные и следит за изменениями файлов.
+/// Реестр клеток: хранит метаданные и следит за изменениями файлов.
 pub struct CellRegistry {
     root: PathBuf,
     cells: Arc<RwLock<HashMap<String, CellTemplate>>>,
