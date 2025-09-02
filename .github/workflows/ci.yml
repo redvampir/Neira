@@ -5,6 +5,11 @@ name: CI
 # intent: ci
 # summary: Validate example organs and ensure node ID docs are up to date.
 
+# neira:meta
+# id: NEI-20250310-cell-templates-ci-env
+# intent: ci
+# summary: Установлена переменная CELL_TEMPLATES_DIR для тестов.
+
 on:
   push:
     branches: [ main ]
@@ -14,6 +19,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CELL_TEMPLATES_DIR: ./templates
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

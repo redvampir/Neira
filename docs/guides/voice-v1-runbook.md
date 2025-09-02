@@ -4,6 +4,12 @@ intent: docs
 summary: Пошаговый запуск Voice v1 через Factory Adapter, обновлена ссылка на схему cell-template.
 -->
 
+<!-- neira:meta
+id: NEI-20250310-cell-templates-env-doc
+intent: docs
+summary: Обновлена переменная окружения на CELL_TEMPLATES_DIR с поддержкой NODE_TEMPLATES_DIR.
+-->
+
 # Voice v1 — Runbook (Adapter-only)
 
 Goal
@@ -20,7 +26,7 @@ Prerequisites
 
 - Backend собран и запущен с включённым адаптером фабрики:
   - PowerShell: `$env:FACTORY_ADAPTER_ENABLED='1'`
-  - (опц.) каталог шаблонов: `$env:NODE_TEMPLATES_DIR='templates'` (подкаталоги поддерживаются)
+  - (опц.) каталог шаблонов: `$env:CELL_TEMPLATES_DIR='templates'` (подкаталоги поддерживаются; fallback `NODE_TEMPLATES_DIR`)
   - Токен (минимум write) для API: `$env:FACTORY_TOKEN='secret'` (см. backend init)
   - Базовый URL: `$env:FACTORY_BASE_URL='http://localhost:3000'` (порт можно сменить через `NEIRA_BIND_ADDR`)
 - Пример смены порта: `$env:NEIRA_BIND_ADDR='0.0.0.0:4000'`
