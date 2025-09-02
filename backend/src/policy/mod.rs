@@ -30,7 +30,7 @@ impl PolicyEngine {
 
     pub fn require_capability(
         &self,
-        hub: &crate::interaction_hub::InteractionHub,
+        hub: &crate::synapse_hub::SynapseHub,
         cap: Capability,
     ) -> Result<(), PolicyError> {
         match cap {

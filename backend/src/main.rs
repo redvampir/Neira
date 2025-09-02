@@ -13,7 +13,7 @@ summary: Парсинг счётчиков watchdog вынесен в модул
 /* neira:meta
 id: NEI-20241004-hub-progress-cleanup
 intent: refactor
-summary: Удалён неиспользуемый клон InteractionHub при отправке прогресса анализа.
+summary: Удалён неиспользуемый клон SynapseHub при отправке прогресса анализа.
 */
 use async_stream::stream;
 use axum::{
@@ -54,7 +54,7 @@ use backend::cell_template::CellTemplate;
 use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
 use backend::factory::{AdapterBackend, CellTemplateAdapter, FabricationState};
-use backend::interaction_hub::InteractionHub;
+use backend::synapse_hub::SynapseHub;
 use backend::memory_cell::MemoryCell;
 use backend::policy::{Capability, PolicyEngine};
 use backend::security::init_config_cell::InitConfigCell;
@@ -64,7 +64,7 @@ mod http {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub hub: Arc<InteractionHub>,
+    pub hub: Arc<SynapseHub>,
     backpressure: Arc<BackpressureProbe>,
     storage: Arc<FileContextStorage>,
     paused: Arc<AtomicBool>,
@@ -72,8 +72,8 @@ pub struct AppState {
     shutdown: tokio_util::sync::CancellationToken,
 }
 
-impl axum::extract::FromRef<AppState> for Arc<InteractionHub> {
-    fn from_ref(state: &AppState) -> Arc<InteractionHub> {
+impl axum::extract::FromRef<AppState> for Arc<SynapseHub> {
+    fn from_ref(state: &AppState) -> Arc<SynapseHub> {
         state.hub.clone()
     }
 }
@@ -303,7 +303,7 @@ async fn organ_stream(
     Ok(ws.on_upgrade(move |sock| organ_stream_ws(sock, id, state.hub.clone())))
 }
 
-async fn organ_stream_ws(mut socket: WebSocket, id: String, hub: Arc<InteractionHub>) {
+async fn organ_stream_ws(mut socket: WebSocket, id: String, hub: Arc<SynapseHub>) {
     let mut rx = hub.organ_subscribe();
     while let Ok((oid, st)) = rx.recv().await {
         if oid == id {
@@ -813,7 +813,7 @@ async fn new_session(
     }
     if !state
         .hub
-        .check_scope(&req.auth, backend::interaction_hub::Scope::Write)
+        .check_scope(&req.auth, backend::synapse_hub::Scope::Write)
     {
         return Err(axum::http::StatusCode::FORBIDDEN);
     }
@@ -847,7 +847,7 @@ async fn delete_session(
     }
     if !state
         .hub
-        .check_scope(&q.auth, backend::interaction_hub::Scope::Write)
+        .check_scope(&q.auth, backend::synapse_hub::Scope::Write)
     {
         return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into()));
     }
@@ -910,7 +910,7 @@ async fn rename_session(
     }
     if !state
         .hub
-        .check_scope(&req.auth, backend::interaction_hub::Scope::Write)
+        .check_scope(&req.auth, backend::synapse_hub::Scope::Write)
     {
         return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into()));
     }
@@ -1125,7 +1125,7 @@ async fn cancel_stream(
     }
     if !state
         .hub
-        .check_scope(&req.auth, backend::interaction_hub::Scope::Write)
+        .check_scope(&req.auth, backend::synapse_hub::Scope::Write)
     {
         return Err(axum::http::StatusCode::FORBIDDEN);
     }
@@ -1349,7 +1349,7 @@ async fn import_chat(
     }
     if !state
         .hub
-        .check_scope(&q.auth, backend::interaction_hub::Scope::Write)
+        .check_scope(&q.auth, backend::synapse_hub::Scope::Write)
     {
         return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into()));
     }
@@ -1399,7 +1399,7 @@ async fn update_masking(
     }
     if !state
         .hub
-        .check_scope(&req.auth, backend::interaction_hub::Scope::Admin)
+        .check_scope(&req.auth, backend::synapse_hub::Scope::Admin)
     {
         return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into()));
     }
@@ -1510,7 +1510,7 @@ async fn main() {
     registry.register_init_cell(Arc::new(InitConfigCell::new()), &memory);
     let (metrics, metrics_rx) = MetricsCollectorCell::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(metrics_rx, 5, metrics.clone());
-    let hub = Arc::new(InteractionHub::new(
+    let hub = Arc::new(SynapseHub::new(
         registry.clone(),
         memory.clone(),
         metrics,
@@ -1615,19 +1615,19 @@ async fn main() {
 
     // Register auth tokens from environment for development/admin access
     if let Ok(admin) = std::env::var("NEIRA_ADMIN_TOKEN") {
-        hub.add_token_with_scopes(admin, &[backend::interaction_hub::Scope::Admin]);
+        hub.add_token_with_scopes(admin, &[backend::synapse_hub::Scope::Admin]);
     }
     if let Ok(write) = std::env::var("NEIRA_WRITE_TOKEN") {
         hub.add_token_with_scopes(
             write,
             &[
-                backend::interaction_hub::Scope::Write,
-                backend::interaction_hub::Scope::Read,
+                backend::synapse_hub::Scope::Write,
+                backend::synapse_hub::Scope::Read,
             ],
         );
     }
     if let Ok(read) = std::env::var("NEIRA_READ_TOKEN") {
-        hub.add_token_with_scopes(read, &[backend::interaction_hub::Scope::Read]);
+        hub.add_token_with_scopes(read, &[backend::synapse_hub::Scope::Read]);
     }
 
     // Anti-Idle core (dry-run): update idle_state and idle_minutes_today
@@ -1825,7 +1825,7 @@ async fn main() {
         }
         if !state
             .hub
-            .check_scope(&auth, backend::interaction_hub::Scope::Admin)
+            .check_scope(&auth, backend::synapse_hub::Scope::Admin)
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -1892,7 +1892,7 @@ async fn main() {
         }
         if !state
             .hub
-            .check_scope(&auth, backend::interaction_hub::Scope::Admin)
+            .check_scope(&auth, backend::synapse_hub::Scope::Admin)
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -1956,7 +1956,7 @@ async fn main() {
         }
         if !state
             .hub
-            .check_scope(&auth, backend::interaction_hub::Scope::Admin)
+            .check_scope(&auth, backend::synapse_hub::Scope::Admin)
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -2187,7 +2187,7 @@ async fn main() {
         }
         if !state
             .hub
-            .check_scope(&req.auth, backend::interaction_hub::Scope::Write)
+            .check_scope(&req.auth, backend::synapse_hub::Scope::Write)
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -2404,7 +2404,7 @@ async fn main() {
         }
         if !state
             .hub
-            .check_scope(&req.auth, backend::interaction_hub::Scope::Admin)
+            .check_scope(&req.auth, backend::synapse_hub::Scope::Admin)
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -2597,7 +2597,7 @@ async fn main() {
             let auth = auth_from_headers(&headers).unwrap_or_default();
             if !state
                 .hub
-                .check_scope(&auth, backend::interaction_hub::Scope::Admin)
+                .check_scope(&auth, backend::synapse_hub::Scope::Admin)
             {
                 return Err(axum::http::StatusCode::FORBIDDEN);
             }
@@ -2626,7 +2626,7 @@ async fn main() {
             let auth = q.get("auth").cloned().unwrap_or_default();
             if !state
                 .hub
-                .check_scope(&auth, backend::interaction_hub::Scope::Admin)
+                .check_scope(&auth, backend::synapse_hub::Scope::Admin)
             {
                 return Err(axum::http::StatusCode::FORBIDDEN);
             }
