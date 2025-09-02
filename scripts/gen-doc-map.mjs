@@ -35,7 +35,57 @@ async function walk(dir, depth = 0) {
   return lines;
 }
 
-const lines = await walk(DOCS_DIR);
-const content = `<!-- neira:meta\nid: ${metaId}\nintent: docs\nsummary: |\n  Автогенерированный список файлов документации.\n-->\n\n# Документация — оглавление\n\n${lines.join("\n")}\n`;
+async function section(entries) {
+  const lines = [];
+  for (const entry of entries) {
+    const full = path.join(DOCS_DIR, entry);
+    const stat = await fs.stat(full);
+    if (stat.isDirectory()) {
+      lines.push(`- ${entry}/`);
+      lines.push(...(await walk(full, 1)));
+    } else if (stat.isFile() && entry.endsWith(".md")) {
+      const title = entry.replace(/\.md$/, "");
+      lines.push(`- [${title}](${entry})`);
+    }
+  }
+  return lines.join("\n");
+}
+
+const groups = [
+  {
+    title: "Системы (органы)",
+    entries: [
+      "README.md",
+      "immune_system.md",
+      "design",
+      "system",
+      "roadmap.md",
+    ],
+  },
+  {
+    title: "Клеточные уровни",
+    entries: ["node-ids.md", "metrics_nodes.md", "nodes"],
+  },
+  {
+    title: "Guides",
+    entries: ["examples", "guides"],
+  },
+  {
+    title: "Reference",
+    entries: ["api", "backend-api.md", "channels.md", "meta", "reference"],
+  },
+  {
+    title: "Legacy",
+    entries: ["legacy"],
+  },
+];
+
+const sections = [];
+for (const g of groups) {
+  const lines = await section(g.entries);
+  sections.push(`## ${g.title}\n${lines}`);
+}
+
+const content = `<!-- neira:meta\nid: ${metaId}\nintent: docs\nsummary: |\n  Автогенерированный список файлов документации.\n-->\n\n# Документация — оглавление\n\n${sections.join("\n\n")}\n`;
 
 await fs.writeFile(path.join(DOCS_DIR, "index.md"), content);
