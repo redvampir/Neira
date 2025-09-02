@@ -95,6 +95,13 @@ intent: docs
 summary: документирован счётчик immune_alerts_total с лейблом severity.
 -->
 - immune_alerts_total{severity} (counter): алерты иммунной системы (лейбл severity).
+<!-- neira:meta
+id: NEI-20250505-000000-immune-action-metrics-docs
+intent: docs
+summary: документированы immune_actions_total и immune_action_failures_total.
+-->
+- immune_actions_total{action=quarantine|safe_mode|integrity_check|init_config} (counter): успешные иммунные действия.
+- immune_action_failures_total{action=quarantine|safe_mode|integrity_check|init_config} (counter): неудачные иммунные действия.
 
 ---
 

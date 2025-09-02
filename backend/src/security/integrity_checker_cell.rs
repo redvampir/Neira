@@ -23,6 +23,13 @@ use tracing::{error, info, warn};
 use crate::action_cell::ActionCell;
 use crate::memory_cell::MemoryCell;
 
+/* neira:meta
+id: NEI-20250505-000000-integrity-metrics
+intent: feature
+summary: |
+  Добавлены метрики успехов и ошибок проверки целостности.
+*/
+
 /// Узел, проверяющий контрольные суммы файлов на соответствие эталонным значениям.
 pub struct IntegrityCheckerCell {
     config_path: PathBuf,
@@ -63,41 +70,60 @@ impl IntegrityCheckerCell {
     }
 
     fn check_once(&self) -> Result<(), String> {
-        let base = if let Some(res) = self.memory.load_checkpoint("base_path") {
-            PathBuf::from(res.output)
-        } else {
-            std::env::current_dir().map_err(|e| format!("current_dir: {e}"))?
-        };
-        let cfg_path = if self.config_path.is_absolute() {
-            self.config_path.clone()
-        } else {
-            base.join(&self.config_path)
-        };
-        let data = fs::read_to_string(&cfg_path)
-            .map_err(|e| format!("read {}: {e}", cfg_path.display()))?;
-        let map: HashMap<String, String> = serde_json::from_str(&data)
-            .map_err(|e| format!("parse {}: {e}", cfg_path.display()))?;
-        for (rel, expected) in map.iter() {
-            let rel_path = PathBuf::from(rel);
-            let path = if rel_path.is_absolute() {
-                rel_path
+        let result: Result<(), String> = (|| {
+            let base = if let Some(res) = self.memory.load_checkpoint("base_path") {
+                PathBuf::from(res.output)
             } else {
-                base.join(rel_path)
+                std::env::current_dir().map_err(|e| format!("current_dir: {e}"))?
             };
-            let bytes = fs::read(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
-            let mut hasher = Sha256::new();
-            hasher.update(bytes);
-            let actual = format!("{:x}", hasher.finalize());
-            if &actual == expected {
-                info!(file=%path.display(), "integrity ok");
+            let cfg_path = if self.config_path.is_absolute() {
+                self.config_path.clone()
             } else {
-                warn!(file=%path.display(), expected=%expected, actual=%actual, "integrity mismatch");
-                let _ = self
-                    .quarantine
-                    .send(path.display().to_string());
+                base.join(&self.config_path)
+            };
+            let data = fs::read_to_string(&cfg_path)
+                .map_err(|e| format!("read {}: {e}", cfg_path.display()))?;
+            let map: HashMap<String, String> = serde_json::from_str(&data)
+                .map_err(|e| format!("parse {}: {e}", cfg_path.display()))?;
+            for (rel, expected) in map.iter() {
+                let rel_path = PathBuf::from(rel);
+                let path = if rel_path.is_absolute() {
+                    rel_path
+                } else {
+                    base.join(rel_path)
+                };
+                let bytes = fs::read(&path).map_err(|e| format!("read {}: {e}", path.display()))?;
+                let mut hasher = Sha256::new();
+                hasher.update(bytes);
+                let actual = format!("{:x}", hasher.finalize());
+                if &actual == expected {
+                    info!(file=%path.display(), "integrity ok");
+                } else {
+                    warn!(file=%path.display(), expected=%expected, actual=%actual, "integrity mismatch");
+                    let _ = self.quarantine.send(path.display().to_string());
+                }
+            }
+            Ok(())
+        })();
+
+        match result {
+            Ok(()) => {
+                metrics::counter!(
+                    "immune_actions_total",
+                    "action" => "integrity_check"
+                )
+                .increment(1);
+                Ok(())
+            }
+            Err(e) => {
+                metrics::counter!(
+                    "immune_action_failures_total",
+                    "action" => "integrity_check"
+                )
+                .increment(1);
+                Err(e)
             }
         }
-        Ok(())
     }
 }
 
