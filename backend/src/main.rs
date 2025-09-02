@@ -1495,9 +1495,15 @@ async fn main() {
     } else {
         fmt_builder.init();
     }
-
-    let templates_dir =
-        std::env::var("NODE_TEMPLATES_DIR").unwrap_or_else(|_| "./templates".into());
+    /* neira:meta
+    id: NEI-20250310-cell-templates-env
+    intent: refactor
+    summary: |
+      Перешли на CELL_TEMPLATES_DIR, сохранив поддержку NODE_TEMPLATES_DIR для обратной совместимости.
+    */
+    let templates_dir = std::env::var("CELL_TEMPLATES_DIR")
+        .or_else(|_| std::env::var("NODE_TEMPLATES_DIR"))
+        .unwrap_or_else(|_| "./templates".into());
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(CellRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryCell::new());

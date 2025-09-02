@@ -56,7 +56,13 @@ summary: Описаны IDLE_EMA_ALPHA и IDLE_DRYRUN_QUEUE_DEPTH.
 <!-- neira:meta
 id: NEI-20250310-cell-templates-recursive-docs
 intent: docs
-summary: Уточнено, что NODE_TEMPLATES_DIR поддерживает подкаталоги.
+summary: Уточнено, что CELL_TEMPLATES_DIR поддерживает подкаталоги.
+-->
+
+<!-- neira:meta
+id: NEI-20250310-cell-templates-env-rename
+intent: docs
+summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с fallback на старое имя.
 -->
 
 | Ключ                         | Тип             | По умолчанию          | Где используется        | Влияние                                                                                                 |
@@ -70,7 +76,7 @@ summary: Уточнено, что NODE_TEMPLATES_DIR поддерживает п
 | MASK_PII                     | bool            | true                  | storage masking         | Маскирование PII по умолчанию                                                                           |
 | MASK_REGEX                   | string list (;) | —                     | storage masking         | Кастомные regex для маскирования                                                                        |
 | MASK_ROLES                   | string list (,) | user                  | storage masking         | Роли для маскирования                                                                                   |
-| NODE_TEMPLATES_DIR           | string          | ./templates           | backend init            | Каталог шаблонов клеток (подкаталоги поддерживаются)                                                      |
+| CELL_TEMPLATES_DIR           | string          | ./templates           | backend init            | Каталог шаблонов клеток (подкаталоги; fallback `NODE_TEMPLATES_DIR`)                                                      |
 | CHAT_RATE_LIMIT_PER_MIN      | int             | 120                   | hub rate limit          | Лимит запросов в минуту                                                                                 |
 | CHAT_RATE_KEY                | enum            | auth                  | hub rate limit          | Ключ лимита: auth/chat/session                                                                          |
 | IO_WATCHER_THRESHOLD_MS      | int             | 100                   | nervous probes          | Порог латентности для проб                                                                              |
