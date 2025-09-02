@@ -7,7 +7,7 @@ summary: |
 /* neira:meta
 id: NEI-20250316-stemcell-rename
 intent: refactor
-summary: Переименованы FactoryService и FactoryRecord в StemCellFactory и StemCellRecord.
+summary: Введены StemCellFactory и StemCellRecord.
 */
 
 use std::collections::HashMap;
