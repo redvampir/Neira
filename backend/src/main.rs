@@ -1630,9 +1630,9 @@ async fn main() {
         tokio::spawn(async move {
             use std::time::Duration;
             let t = *anti_idle::thresholds();
-            let idle_secs = t.idle_secs;
-            let long_secs = t.long_secs;
-            let deep_secs = t.deep_secs;
+            let _idle_secs = t.idle_secs;
+            let _long_secs = t.long_secs;
+            let _deep_secs = t.deep_secs;
             let alpha = anti_idle::ema_alpha();
             let dry_depth_env = anti_idle::dryrun_queue_depth();
             let dryrun_enabled = std::env::var("LEARNING_MICROTASKS_DRYRUN")
