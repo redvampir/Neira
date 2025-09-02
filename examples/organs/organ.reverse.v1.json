@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "roles": ["reverse"],
   "cells": ["analysis.reverse_adapter.v1"],
-  "channels": [
+  "pathways": [
     {
       "name": "text",
       "cells": ["analysis.reverse_adapter.v1"]

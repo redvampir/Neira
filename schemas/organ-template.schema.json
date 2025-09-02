@@ -9,7 +9,7 @@
     "version": { "type": "string", "default": "0.1.0" },
     "roles": { "type": "array", "items": { "type": "string" } },
     "cells": { "type": "array", "items": { "type": "string" } },
-    "channels": {
+    "pathways": {
       "type": "array",
       "items": {
         "type": "object",
