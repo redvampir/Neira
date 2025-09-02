@@ -91,10 +91,10 @@ Masking presets
 
 ## Автоматическое определение `INTEGRITY_ROOT`
 
-Сервис пытается определить корневой каталог конфигурации автоматически. Узел
-[BasePathResolverNode](../docs/nodes/action-nodes.md#basepathresolvernode) поднимается от текущего
+Сервис пытается определить корневой каталог конфигурации автоматически. Клетка
+[BasePathResolverCell](../docs/cells/action-cells.md#basepathresolvercell) поднимается от текущего
 исполняемого файла вверх по иерархии, пока не найдёт `config/integrity.json`, и сохраняет путь в память.
-Затем [InitConfigNode](../docs/nodes/action-nodes.md#initconfignode) устанавливает переменную
+Затем [InitConfigCell](../docs/cells/action-cells.md#initconfigcell) устанавливает переменную
 `INTEGRITY_ROOT`, если она не задана вручную. Укажите её явно только при запуске вне репозитория или при нестандартной
 структуре каталогов.
 

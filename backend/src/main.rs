@@ -48,7 +48,7 @@ use backend::action::chat_cell::EchoChatCell;
 use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::action_cell::PreloadAction;
-use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::cell_registry::CellRegistry;
 use backend::cell_template::CellTemplate;
 use backend::config::Config;
@@ -78,7 +78,7 @@ impl axum::extract::FromRef<AppState> for Arc<InteractionHub> {
     }
 }
 
-async fn register_node(
+async fn register_cell(
     State(state): State<AppState>,
     Json(tpl): Json<CellTemplate>,
 ) -> Result<String, (axum::http::StatusCode, String)> {
@@ -108,7 +108,7 @@ fn auth_from_headers(headers: &HeaderMap) -> Option<String> {
     None
 }
 
-async fn get_node(
+async fn get_cell(
     State(state): State<AppState>,
     Path((id, version)): Path<(String, String)>,
 ) -> Result<Json<CellTemplate>, axum::http::StatusCode> {
@@ -118,7 +118,7 @@ async fn get_node(
     }
 }
 
-async fn get_node_latest(
+async fn get_cell_latest(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> Result<Json<CellTemplate>, axum::http::StatusCode> {
@@ -552,7 +552,7 @@ async fn resume_request(
 
 #[derive(serde::Deserialize)]
 struct ChatRequest {
-    node_id: String,
+    cell_id: String,
     chat_id: String,
     session_id: Option<String>,
     message: String,
@@ -595,12 +595,12 @@ async fn chat_request(
     state.hub.trace_event(
         req.request_id.as_deref(),
         "chat.start",
-        serde_json::json!({"node_id": req.node_id, "chat_id": req.chat_id, "persist": req.persist}),
+        serde_json::json!({"cell_id": req.cell_id, "chat_id": req.chat_id, "persist": req.persist}),
     );
     let out = state
         .hub
         .chat(
-            &req.node_id,
+            &req.cell_id,
             &req.chat_id,
             req.session_id.clone(),
             &req.message,
@@ -976,12 +976,12 @@ async fn chat_stream(
     state.hub.trace_event(
         req.request_id.as_deref(),
         "chat.stream.start",
-        serde_json::json!({"node_id": req.node_id, "chat_id": req.chat_id}),
+        serde_json::json!({"cell_id": req.cell_id, "chat_id": req.chat_id}),
     );
     let out = state
         .hub
         .chat(
-            &req.node_id,
+            &req.cell_id,
             &req.chat_id,
             req.session_id.clone(),
             &req.message,
@@ -1501,7 +1501,7 @@ async fn main() {
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(CellRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryCell::new());
-    registry.register_init_node(Arc::new(InitConfigCell::new()), &memory);
+    registry.register_init_cell(Arc::new(InitConfigCell::new()), &memory);
     let (metrics, metrics_rx) = MetricsCollectorCell::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(metrics_rx, 5, metrics.clone());
     let hub = Arc::new(InteractionHub::new(
@@ -1523,7 +1523,7 @@ async fn main() {
     hub.add_trigger_keyword("echo");
     registry.register_action_cell(Arc::new(PreloadAction::default()));
     registry.register_scripted_training_cell();
-    // Register a default chat node
+    // Register a default chat cell
     registry.register_chat_cell(Arc::new(EchoChatCell::default()));
 
     // Context storage
@@ -1557,8 +1557,8 @@ async fn main() {
         fn analysis_type(&self) -> &str {
             "summary"
         }
-        fn status(&self) -> NodeStatus {
-            NodeStatus::Active
+        fn status(&self) -> CellStatus {
+            CellStatus::Active
         }
         fn links(&self) -> &[String] {
             &[]
@@ -1573,7 +1573,7 @@ async fn main() {
         ) -> AnalysisResult {
             if cancel_token.is_cancelled() {
                 let mut r = AnalysisResult::new(self.id(), input, vec![]);
-                r.status = NodeStatus::Error;
+                r.status = CellStatus::Error;
                 return r;
             }
             AnalysisResult::new(self.id(), input, vec!["echo".into()])
@@ -1716,15 +1716,15 @@ async fn main() {
         intent: refactor
         summary: обновлён синтаксис параметров маршрутов для axum >=0.7.
         */
-        .route("/nodes", post(register_node))
-        .route("/nodes/{id}", get(get_node_latest))
-        .route("/nodes/{id}/{version}", get(get_node))
+        .route("/cells", post(register_cell))
+        .route("/cells/{id}", get(get_cell_latest))
+        .route("/cells/{id}/{version}", get(get_cell))
         // Factory API (draft)
-        .route("/factory/nodes/dryrun", post(factory_dryrun))
-        .route("/factory/nodes", post(factory_create))
-        .route("/factory/nodes/{fid}/approve", post(factory_approve))
-        .route("/factory/nodes/{fid}/disable", post(factory_disable))
-        .route("/factory/nodes/{fid}/rollback", post(factory_rollback))
+        .route("/factory/cells/dryrun", post(factory_dryrun))
+        .route("/factory/cells", post(factory_create))
+        .route("/factory/cells/{fid}/approve", post(factory_approve))
+        .route("/factory/cells/{fid}/disable", post(factory_disable))
+        .route("/factory/cells/{fid}/rollback", post(factory_rollback))
         // Organ builder
         .route("/organs", get(organs_list))
         .route("/organs/build", post(organ_build))
@@ -2538,7 +2538,7 @@ async fn main() {
         .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
         .unwrap_or(false)
     {
-        // register dev slow analysis node
+        // register dev slow analysis cell
         struct DevSlowCell;
         impl AnalysisCell for DevSlowCell {
             fn id(&self) -> &str {
@@ -2547,8 +2547,8 @@ async fn main() {
             fn analysis_type(&self) -> &str {
                 "dev"
             }
-            fn status(&self) -> NodeStatus {
-                NodeStatus::Active
+            fn status(&self) -> CellStatus {
+                CellStatus::Active
             }
             fn links(&self) -> &[String] {
                 &[]
@@ -2566,7 +2566,7 @@ async fn main() {
                 while start.elapsed().as_millis() < ms as u128 {
                     if cancel_token.is_cancelled() {
                         let mut r = AnalysisResult::new(self.id(), "cancelled", vec![]);
-                        r.status = NodeStatus::Error;
+                        r.status = CellStatus::Error;
                         return r;
                     }
                     std::thread::sleep(std::time::Duration::from_millis(50));
@@ -2720,10 +2720,10 @@ async fn main() {
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
-                let node =
+                let cell =
                     backend::action::scripted_training_cell::ScriptedTrainingCell::from_env();
                 tokio::spawn(async move {
-                    let _ = node.run().await;
+                    let _ = cell.run().await;
                 });
             }
         });

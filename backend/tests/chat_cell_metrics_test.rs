@@ -1,5 +1,5 @@
 /* neira:meta
-id: NEI-20250317-chat-node-metrics-recorder
+id: NEI-20250317-chat-cell-metrics-recorder
 intent: test
 summary: reuse shared recorder to avoid resetting global metrics.
 */
@@ -16,9 +16,9 @@ async fn chat_cell_records_duration_metric() {
 
     let data = init_recorder();
 
-    let node = EchoChatCell::default();
+    let cell = EchoChatCell::default();
     let storage = FileContextStorage::new(tmp.path().join("context"));
-    let resp = node.chat("test_chat", None, "hi", &storage).await;
+    let resp = cell.chat("test_chat", None, "hi", &storage).await;
     assert_eq!(resp, "hi");
 
     let records = data.lock().unwrap();

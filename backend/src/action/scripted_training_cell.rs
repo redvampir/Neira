@@ -629,9 +629,9 @@ impl ActionCell for ScriptedTrainingCell {
     fn preload(&self, triggers: &[String], _memory: &Arc<MemoryCell>) {
         // kick off training when a "train" trigger is present
         if triggers.iter().any(|t| t.eq_ignore_ascii_case("train")) {
-            let node = Self { ..self.clone() };
+            let cell = Self { ..self.clone() };
             tokio::spawn(async move {
-                if let Err(e) = node.run().await {
+                if let Err(e) = cell.run().await {
                     error!("training run error: {}", e);
                 }
             });

@@ -14,7 +14,7 @@ impl ActionCell {
 
 #[test]
 fn action_executes() {
-    let mut node = ActionCell::new();
-    node.execute();
-    assert!(node.executed);
+    let mut cell = ActionCell::new();
+    cell.execute();
+    assert!(cell.executed);
 }

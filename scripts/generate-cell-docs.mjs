@@ -1,8 +1,8 @@
 /* neira:meta
-id: NEI-20250101-000003-generate-node-docs
+id: NEI-20250101-000003-generate-cell-docs
 intent: docs
 summary: |
-  Generate markdown listing organs with their node identifiers.
+  Generate markdown listing organs with their cell identifiers.
 */
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -29,24 +29,24 @@ async function main() {
   const files = (await collectJsonFiles("examples")).sort();
   const lines = [
     "<!-- neira:meta",
-    "id: NEI-20250101-000005-node-ids-doc",
+    "id: NEI-20250101-000005-cell-ids-doc",
     "intent: docs",
     "summary: |",
-    "  Node identifiers generated from organ specs.",
+    "  Cell identifiers generated from organ specs.",
     "-->",
     "",
-    "# Node IDs",
+    "# Cell IDs",
     "",
   ];
   for (const file of files) {
     const data = JSON.parse(await fs.readFile(file, "utf8"));
     lines.push(`## ${data.id}`, "");
-    for (const node of data.nodes ?? []) {
-      lines.push(`- ${node}`);
+    for (const cell of data.cells ?? []) {
+      lines.push(`- ${cell}`);
     }
     lines.push("");
   }
-  await fs.writeFile("docs/node-ids.md", lines.join("\n"));
+  await fs.writeFile("docs/cell-ids.md", lines.join("\n"));
 }
 
 main();

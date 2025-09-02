@@ -171,7 +171,7 @@ fn registering_same_id_different_type_returns_error() {
             extra: Default::default(),
         },
     };
-    let node_tpl = CellTemplate {
+    let cell_tpl = CellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         analysis_type: "analysis".to_string(),
@@ -184,5 +184,5 @@ fn registering_same_id_different_type_returns_error() {
         },
     };
     registry.register_action_template(action_tpl).unwrap();
-    assert!(registry.register_template(node_tpl).is_err());
+    assert!(registry.register_template(cell_tpl).is_err());
 }

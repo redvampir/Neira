@@ -9,13 +9,13 @@ summary: Обновлены ссылки на JSON-схемы cell-template и a
 ## Навигация
 
 - [Обзор Нейры](README.md)
-- [Узлы действий](action-nodes.md)
-- [Узлы анализа](analysis-nodes.md)
-- [Узлы памяти](memory-nodes.md)
+- [Клетки действий](action-cells.md)
+- [Клетки анализа](analysis-cells.md)
+- [Клетки памяти](memory-cells.md)
 - [Архитектура анализа](analysis-architecture.md)
 - [Поддерживающие системы](support-systems.md)
 - [Личность Нейры](personality.md)
-- [Шаблон узла](node-template.md)
+- [Шаблон клетки](cell-template.md)
 - [Политика источников](source-policy.md)
 - [Механизм саморазвивающейся системы](self-updating-system.md)
 
@@ -31,8 +31,8 @@ summary: Обновлены ссылки на JSON-схемы cell-template и a
 - [Рекомендации по валидации и обратной совместимости](#рекомендации-по-валидации-и-обратной-совместимости)
 - [Примеры и тесты](#примеры-и-тесты)
 
-Шаблон для создания узлов анализа. Обязательными являются поля `id`, `analysis_type` и `metadata`.
-Для узлов действий используется отдельный шаблон `ActionCellTemplate` с полем
+Шаблон для создания клеток анализа. Обязательными являются поля `id`, `analysis_type` и `metadata`.
+Для клеток действий используется отдельный шаблон `ActionCellTemplate` с полем
 `action_type`; его схема находится по пути
 [`schemas/v1/action-cell-template.schema.json`](../../schemas/v1/action-cell-template.schema.json).
 
@@ -41,10 +41,10 @@ summary: Обновлены ссылки на JSON-схемы cell-template и a
 | Поле                   | Тип           | Обязательное           | Описание                                                                           |
 | ---------------------- | ------------- | ---------------------- | ---------------------------------------------------------------------------------- |
 | `id`                   | string        | да                     | Уникальный идентификатор шаблона.                                                  |
-| `analysis_type`        | string        | да                     | Тип создаваемого узла.                                                             |
-| `links`                | array<string> | нет, по умолчанию `[]` | Список связей с другими узлами.                                                    |
+| `analysis_type`        | string        | да                     | Тип создаваемого клетки.                                                             |
+| `links`                | array<string> | нет, по умолчанию `[]` | Список связей с другими клеткими.                                                    |
 | `confidence_threshold` | number        | нет                    | Минимальная допустимая `credibility` для принятия результата.                      |
-| `draft_content`        | string        | нет                    | Черновое содержимое узла.                                                          |
+| `draft_content`        | string        | нет                    | Черновое содержимое клетки.                                                          |
 | `metadata`             | object        | да                     | Дополнительные метаданные в формате ключ‑значение. Должно содержать поле `schema`. |
 
 ## Дополнительные поля
@@ -79,7 +79,7 @@ summary: Обновлены ссылки на JSON-схемы cell-template и a
 В коде поле можно получить из `metadata.extra`:
 
 ```rust
-use backend::node_template::CellTemplate;
+use backend::cell_template::CellTemplate;
 
 let template: CellTemplate = serde_json::from_str(json).unwrap();
 if let Some(id) = template.metadata.extra.get("dataset_id").and_then(|v| v.as_str()) {
@@ -141,7 +141,7 @@ npx ajv validate -s schemas/v1/cell-template.schema.json -d cell-template.yaml
 В Rust‑коде схема выбирается на основе поля `metadata.schema`, из которого извлекается мажорная версия. Файлы схем ожидаются в каталоге `schemas/vX/`, путь можно переопределить переменной окружения `NODE_TEMPLATE_SCHEMAS_DIR`. Для явной загрузки по произвольному пути доступна функция `load_schema_from`.
 
 ```rust
-use backend::node_template::load_schema_from;
+use backend::cell_template::load_schema_from;
 use std::path::Path;
 
 let schema = load_schema_from(Path::new("schemas/v1/cell-template.schema.json")).unwrap();
@@ -149,12 +149,12 @@ let schema = load_schema_from(Path::new("schemas/v1/cell-template.schema.json"))
 
 ## Генератор шаблонов
 
-Утилита `generate_node` создаёт заготовку CellTemplate на основе выбранной схемы и выводит её в stdout.
+Утилита `generate_cell` создаёт заготовку CellTemplate на основе выбранной схемы и выводит её в stdout.
 
 Запуск:
 
 ```bash
-cargo run --bin generate_node -- --schema v1
+cargo run --bin generate_cell -- --schema v1
 ```
 
 Опции:
@@ -170,9 +170,9 @@ cargo run --bin generate_node -- --schema v1
 
 ## Примеры и тесты
 
-- Полный пример с дополнительными полями: [tests/example_node_template.rs](tests/example_node_template.rs)
-- Тесты на валидацию шаблонов: [tests/node_template_test.rs](tests/node_template_test.rs), [tests/node_template_validation_test.rs](tests/node_template_validation_test.rs)
+- Полный пример с дополнительными полями: [tests/example_cell_template.rs](tests/example_cell_template.rs)
+- Тесты на валидацию шаблонов: [tests/cell_template_test.rs](tests/cell_template_test.rs), [tests/cell_template_validation_test.rs](tests/cell_template_validation_test.rs)
 
 ## Схемы
 
-JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для CellTemplate хранятся в `schemas/vX/cell-template.schema.json`, где `X` — номер мажорной версии. Для узлов действий используйте `schemas/vX/action-cell-template.schema.json`. При несовместимых изменениях повышайте версию: `1.0.0` → `2.0.0`.
+JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для CellTemplate хранятся в `schemas/vX/cell-template.schema.json`, где `X` — номер мажорной версии. Для клеток действий используйте `schemas/vX/action-cell-template.schema.json`. При несовместимых изменениях повышайте версию: `1.0.0` → `2.0.0`.

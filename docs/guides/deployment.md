@@ -49,8 +49,8 @@ NEIRA_LOG_LEVEL=info
 ### Установка Node.js 20
 
 ```powershell
-winget install OpenJS.NodeJS.LTS --version 20
-node -v
+winget install OpenJS.CellJS.LTS --version 20
+cell -v
 ```
 
 ### Установка Rust 1.75
@@ -75,8 +75,8 @@ cargo test
 ### Установка Node.js 20
 
 ```bash
-brew install node@20
-node -v
+brew install cell@20
+cell -v
 ```
 
 ### Установка Rust 1.75

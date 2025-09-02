@@ -2,11 +2,11 @@
   "id": "organ.reverse.v1",
   "version": "0.1.0",
   "roles": ["reverse"],
-  "nodes": ["analysis.reverse_adapter.v1"],
+  "cells": ["analysis.reverse_adapter.v1"],
   "channels": [
     {
       "name": "text",
-      "nodes": ["analysis.reverse_adapter.v1"]
+      "cells": ["analysis.reverse_adapter.v1"]
     }
   ],
   "policies": {

@@ -2,11 +2,11 @@
   "id": "organ.echo.v1",
   "version": "0.1.0",
   "roles": ["echo"],
-  "nodes": ["analysis.echo_adapter.v1"],
+  "cells": ["analysis.echo_adapter.v1"],
   "channels": [
     {
       "name": "text",
-      "nodes": ["analysis.echo_adapter.v1"]
+      "cells": ["analysis.echo_adapter.v1"]
     }
   ],
   "policies": {

@@ -1,6 +1,6 @@
 use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
-use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::interaction_hub::InteractionHub;
 use backend::config::Config;
 use backend::memory_cell::MemoryCell;
@@ -20,8 +20,8 @@ impl AnalysisCell for TestAnalysisCell {
     fn analysis_type(&self) -> &str {
         "test"
     }
-    fn status(&self) -> NodeStatus {
-        NodeStatus::Active
+    fn status(&self) -> CellStatus {
+        CellStatus::Active
     }
     fn links(&self) -> &[String] {
         &[]

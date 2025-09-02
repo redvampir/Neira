@@ -14,7 +14,7 @@ AUTH=secret
 curl -sS -X POST http://127.0.0.1:3000/api/neira/chat \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $AUTH" \
-  -d '{"node_id":"echo.chat","chat_id":"demo","session_id":null,"message":"hello","persist":false}'
+  -d '{"cell_id":"echo.chat","chat_id":"demo","session_id":null,"message":"hello","persist":false}'
 ```
 
 ## Chat Stream (SSE)
@@ -23,7 +23,7 @@ AUTH=secret
 curl -sS -N -X POST http://127.0.0.1:3000/api/neira/chat/stream \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $AUTH" \
-  -d '{"node_id":"echo.chat","chat_id":"demo","session_id":"sess-123","message":"stream me"}'
+  -d '{"cell_id":"echo.chat","chat_id":"demo","session_id":"sess-123","message":"stream me"}'
 ```
 
 ## Search (content-only)

@@ -35,7 +35,7 @@ use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
-use crate::analysis_cell::{AnalysisResult, NodeStatus};
+use crate::analysis_cell::{AnalysisResult, CellStatus};
 use crate::cell_registry::CellRegistry;
 use crate::memory_cell::MemoryCell;
 use crate::queue_config::QueueConfig;
@@ -212,7 +212,7 @@ impl InteractionHub {
                 .insert("io_watcher".into(), handle);
         }
 
-        // Register factory helper nodes (Adapter + Selector)
+        // Register factory helper cells (Adapter + Selector)
         hub.registry
             .register_action_cell(Arc::new(FabricatorCell::default()));
         hub.registry
@@ -423,7 +423,7 @@ impl InteractionHub {
 
     pub async fn chat(
         &self,
-        node_id: &str,
+        cell_id: &str,
         chat_id: &str,
         session_id: Option<String>,
         message: &str,
@@ -561,17 +561,17 @@ impl InteractionHub {
                 }
             }
         }
-        // Triggers integration: preload action nodes
-        for node in self.registry.action_cells() {
-            node.preload(&triggers, &self.memory);
+        // Triggers integration: preload action cells
+        for cell in self.registry.action_cells() {
+            cell.preload(&triggers, &self.memory);
         }
 
         // Metrics for incoming message
         // metrics could be recorded here via `metrics` crate
 
-        let node = self.registry.get_chat_cell(node_id).ok_or_else(|| {
+        let cell = self.registry.get_chat_cell(cell_id).ok_or_else(|| {
             metrics::counter!("chat_errors_total").increment(1);
-            "chat node not found".to_string()
+            "chat cell not found".to_string()
         })?;
 
         if let Some(req_id) = &request_id {
@@ -657,7 +657,7 @@ impl InteractionHub {
 
         let t0 = Instant::now();
 
-        let response = node
+        let response = cell
             .chat(chat_id, sid_effective.clone(), message, storage)
             .await;
 
@@ -708,8 +708,8 @@ impl InteractionHub {
         }
 
         let triggers = self.trigger_detector.detect(input);
-        for node in self.registry.action_cells() {
-            node.preload(&triggers, &self.memory);
+        for cell in self.registry.action_cells() {
+            cell.preload(&triggers, &self.memory);
         }
 
         let priority = self.memory.get_priority(id);
@@ -729,10 +729,10 @@ impl InteractionHub {
         );
 
         let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
-        let node = self.registry.get_analysis_cell(&task_id)?;
+        let cell = self.registry.get_analysis_cell(&task_id)?;
         let cancel = cancel_token.clone();
 
-        let mut handle = spawn_blocking(move || node.analyze(&task_input, &cancel));
+        let mut handle = spawn_blocking(move || cell.analyze(&task_input, &cancel));
 
         let start = Instant::now();
         let checkpoint_mem = self.memory.clone();
@@ -752,7 +752,7 @@ impl InteractionHub {
         });
 
         // Конфигурация watchdog для узла
-        let wd = Watchdog::for_node(id, cfg.global_time_budget);
+        let wd = Watchdog::for_cell(id, cfg.global_time_budget);
         let soft_ms = wd.soft_ms;
         let hard_ms = wd.hard_ms;
         let mut soft_fired = false;
@@ -763,7 +763,7 @@ impl InteractionHub {
                     _ = sleep(Duration::from_millis(hard_ms.saturating_sub(soft_ms))) => {
                         cancel_token.cancel();
                         let mut r = AnalysisResult::new(id, "", vec![]);
-                        r.status = NodeStatus::Error;
+                        r.status = CellStatus::Error;
                         self.memory.save_checkpoint(id, &r);
                         wd.hard_timeout(id);
                         metrics::counter!("analysis_errors_total").increment(1);
@@ -776,7 +776,7 @@ impl InteractionHub {
                     }
                     _ = cancel_token.cancelled() => {
                         let mut r = AnalysisResult::new(id, "", vec![]);
-                        r.status = NodeStatus::Error;
+                        r.status = CellStatus::Error;
                         self.memory.save_checkpoint(id, &r);
                         metrics::counter!("analysis_errors_total").increment(1);
                         hearing::info(&format!("analysis {} cancelled", id));
@@ -790,7 +790,7 @@ impl InteractionHub {
                     if let Ok(b) = std::env::var("REASONING_STEPS_BUDGET").and_then(|v| v.parse::<usize>().map_err(|_| std::env::VarError::NotPresent)) {
                         if b > 0 && result.reasoning_chain.len() > b { let _ = result.reasoning_chain.drain(b..); result.explanation = Some(format!("Ограничено по бюджету шагов: {}", b)); metrics::counter!("analysis_budget_steps_hits_total").increment(1); }
                     }
-                    if result.status == NodeStatus::Error {
+                    if result.status == CellStatus::Error {
                         metrics::counter!("analysis_errors_total").increment(1);
                         self.memory.save_checkpoint(id, &result);
                     } else {
@@ -831,7 +831,7 @@ impl InteractionHub {
                                 vec![id.to_string()],
                             );
                             let mut r = AnalysisResult::new(id, "", vec![]);
-                            r.status = NodeStatus::Draft;
+                            r.status = CellStatus::Draft;
                             r.explanation = Some("Re-queued to long after soft timeout".into());
                             self.memory.save_checkpoint(id, &r);
                             hearing::info(&format!(
@@ -850,7 +850,7 @@ impl InteractionHub {
                     }
                     _ = cancel_token.cancelled() => {
                         let mut r = AnalysisResult::new(id, "", vec![]);
-                        r.status = NodeStatus::Error;
+                        r.status = CellStatus::Error;
                         self.memory.save_checkpoint(id, &r);
                         metrics::counter!("analysis_errors_total").increment(1);
                         hearing::info(&format!("analysis {} cancelled", id));
@@ -863,7 +863,7 @@ impl InteractionHub {
                             if let Ok(b) = std::env::var("REASONING_STEPS_BUDGET").and_then(|v| v.parse::<usize>().map_err(|_| std::env::VarError::NotPresent)) {
                                 if b > 0 && result.reasoning_chain.len() > b { let _ = result.reasoning_chain.drain(b..); result.explanation = Some(format!("Ограничено по бюджету шагов: {}", b)); metrics::counter!("analysis_budget_steps_hits_total").increment(1); }
                             }
-                            if result.status == NodeStatus::Error {
+                            if result.status == CellStatus::Error {
                                 metrics::counter!("analysis_errors_total").increment(1);
                                 self.memory.save_checkpoint(id, &result);
                             } else {

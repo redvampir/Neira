@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250902-032729-doc-map
+id: NEI-20250902-072558-doc-map
 intent: docs
 summary: |
   Автогенерированный список файлов документации.
@@ -8,7 +8,6 @@ summary: |
 # Документация — оглавление
 
 ## Системы (органы)
-
 - [README](README.md)
 - [immune_system](immune_system.md)
 - design/
@@ -32,20 +31,18 @@ summary: |
 - [roadmap](roadmap.md)
 
 ## Клеточные уровни
-
-- [node-ids](node-ids.md)
-- [metrics_nodes](metrics_nodes.md)
-- nodes/
-  - [action-nodes](nodes/action-nodes.md)
-  - [analysis-nodes](nodes/analysis-nodes.md)
-  - [automatic-population](nodes/automatic-population.md)
-  - [memory-nodes](nodes/memory-nodes.md)
-  - [node-api-guide](nodes/node-api-guide.md)
-  - [node-lifecycle](nodes/node-lifecycle.md)
-  - [node-template](nodes/node-template.md)
+- [cell-ids](cell-ids.md)
+- [metrics_cells](metrics_cells.md)
+- cells/
+  - [action-cells](cells/action-cells.md)
+  - [analysis-cells](cells/analysis-cells.md)
+  - [automatic-population](cells/automatic-population.md)
+  - [cell-api-guide](cells/cell-api-guide.md)
+  - [cell-lifecycle](cells/cell-lifecycle.md)
+  - [cell-template](cells/cell-template.md)
+  - [memory-cells](cells/memory-cells.md)
 
 ## Guides
-
 - examples/
   - [curl](examples/curl.md)
 - guides/
@@ -60,7 +57,6 @@ summary: |
   - [web-interface](guides/web-interface.md)
 
 ## Reference
-
 - api/
   - [backend](api/backend.md)
   - [chat](api/chat.md)
@@ -87,7 +83,6 @@ summary: |
   - [ports](reference/ports.md)
 
 ## Legacy
-
 - legacy/
   - [deployment](legacy/deployment.md)
   - [testing](legacy/testing.md)

@@ -1,11 +1,11 @@
-# CI/CD и деплой узлов
+# CI/CD и деплой клеток
 
 Документ описывает типичный конвейер непрерывной интеграции и доставки для Neira.
 
 ## Этапы конвейера
 
 1. **Сборка**
-   - `npm run build` — компиляция TypeScript-узлов.
+   - `npm run build` — компиляция TypeScript-клеток.
    - `cargo build --release` — сборка Rust-компонентов.
 2. **Тесты**
    - `npm test` — запуск тестов на TypeScript.
@@ -30,9 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-cell@v4
         with:
-          node-version: 20
+          cell-version: 20
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable

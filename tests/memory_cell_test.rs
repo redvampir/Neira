@@ -18,7 +18,7 @@ impl MemoryCell {
 
 #[test]
 fn remembers_and_recalls() {
-    let mut node = MemoryCell::new();
-    node.remember("data");
-    assert_eq!(node.recall(), Some(&"data".to_string()));
+    let mut cell = MemoryCell::new();
+    cell.remember("data");
+    assert_eq!(cell.recall(), Some(&"data".to_string()));
 }

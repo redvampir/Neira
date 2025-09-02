@@ -76,7 +76,7 @@ struct ScheduledTask {
     input: String,
     timeout_ms: Option<u64>,
     retry_count: u32,
-    nodes: Vec<String>,
+    cells: Vec<String>,
     created_at: Instant,
 }
 
@@ -120,7 +120,7 @@ impl TaskScheduler {
         input: String,
         priority: Priority,
         timeout_ms: Option<u64>,
-        nodes: Vec<String>,
+        cells: Vec<String>,
     ) {
         let task = ScheduledTask {
             priority,
@@ -128,7 +128,7 @@ impl TaskScheduler {
             input,
             timeout_ms,
             retry_count: 0,
-            nodes,
+            cells,
             created_at: Instant::now(),
         };
         match queue {
@@ -147,10 +147,10 @@ impl TaskScheduler {
         metrics: QualityMetrics,
         stats: UsageStats,
         timeout_ms: Option<u64>,
-        nodes: Vec<String>,
+        cells: Vec<String>,
     ) {
         let priority = compute_priority(&metrics, &stats);
-        self.enqueue(queue, id, input, priority, timeout_ms, nodes);
+        self.enqueue(queue, id, input, priority, timeout_ms, cells);
     }
 
     /// Получение следующей задачи, учитывая порядок очередей fast > standard > long

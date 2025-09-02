@@ -37,26 +37,26 @@ impl QuarantineCell {
     ) {
         let (tx, mut rx) = unbounded_channel();
         let (notify_tx, notify_rx) = unbounded_channel();
-        let node = Arc::new(Self {
+        let cell = Arc::new(Self {
             notify: notify_tx,
             safe_mode,
         });
-        let node_clone = node.clone();
+        let cell_clone = cell.clone();
         tokio::spawn(async move {
             while let Some(module) = rx.recv().await {
                 // Attempt to disable or restart the module. For now we simply
                 // log the action.
                 warn!(module = %module, "quarantine activated, disabling module");
-                node_clone.safe_mode.enter_safe_mode();
+                cell_clone.safe_mode.enter_safe_mode();
                 // In a real implementation, logic to disable or restart the
                 // module would go here.
-                let _ = node_clone.notify.send(DeveloperRequest {
+                let _ = cell_clone.notify.send(DeveloperRequest {
                     description: format!("module {module} quarantined"),
                 });
                 info!(module = %module, "developer notified about quarantine");
             }
         });
-        (node, tx, notify_rx)
+        (cell, tx, notify_rx)
     }
 }
 

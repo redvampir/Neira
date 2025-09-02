@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250101-000005-node-ids-doc
+id: NEI-20250101-000005-cell-ids-doc
 intent: docs
 summary: |
   Cell identifiers generated from organ specs.

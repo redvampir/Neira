@@ -69,20 +69,20 @@ function print(obj) {
   console.log(JSON.stringify(obj, null, 2));
 }
 
-async function cmdDryrunNode({ spec }) {
+async function cmdDryrunCell({ spec }) {
   if (!spec) throw new Error('--spec <file.json> is required');
   const tpl = readJsonFileSync(spec);
   const body = { backend: 'adapter', ...tpl }; // Flattened CellTemplate per backend API
-  const resp = await http('POST', '/factory/nodes/dryrun', body);
+  const resp = await http('POST', '/factory/cells/dryrun', body);
   print(resp);
 }
 
-async function cmdCreateNode({ spec, hitl }) {
+async function cmdCreateCell({ spec, hitl }) {
   if (!spec) throw new Error('--spec <file.json> is required');
   const tpl = readJsonFileSync(spec);
   const body = { ...tpl };
   if (hitl) body.hitl = true;
-  const resp = await http('POST', '/factory/nodes', body);
+  const resp = await http('POST', '/factory/cells', body);
   print(resp);
 }
 
@@ -98,27 +98,27 @@ function requireYes(args, action) {
   });
 }
 
-async function cmdApproveNode(args) {
-  const id = args.id || args.node || args._?.[1];
-  if (!id) throw new Error('--id <node_id> is required');
-  await requireYes(args, `Approve node ${id}`);
-  const resp = await http('POST', `/factory/nodes/${encodeURIComponent(id)}/approve`);
+async function cmdApproveCell(args) {
+  const id = args.id || args.cell || args._?.[1];
+  if (!id) throw new Error('--id <cell_id> is required');
+  await requireYes(args, `Approve cell ${id}`);
+  const resp = await http('POST', `/factory/cells/${encodeURIComponent(id)}/approve`);
   print(resp);
 }
 
-async function cmdDisableNode(args) {
-  const id = args.id || args.node || args._?.[1];
-  if (!id) throw new Error('--id <node_id> is required');
-  await requireYes(args, `Disable node ${id}`);
-  const resp = await http('POST', `/factory/nodes/${encodeURIComponent(id)}/disable`);
+async function cmdDisableCell(args) {
+  const id = args.id || args.cell || args._?.[1];
+  if (!id) throw new Error('--id <cell_id> is required');
+  await requireYes(args, `Disable cell ${id}`);
+  const resp = await http('POST', `/factory/cells/${encodeURIComponent(id)}/disable`);
   print(resp);
 }
 
-async function cmdRollbackNode(args) {
-  const id = args.id || args.node || args._?.[1];
-  if (!id) throw new Error('--id <node_id> is required');
-  await requireYes(args, `Rollback node ${id}`);
-  const resp = await http('POST', `/factory/nodes/${encodeURIComponent(id)}/rollback`);
+async function cmdRollbackCell(args) {
+  const id = args.id || args.cell || args._?.[1];
+  if (!id) throw new Error('--id <cell_id> is required');
+  await requireYes(args, `Rollback cell ${id}`);
+  const resp = await http('POST', `/factory/cells/${encodeURIComponent(id)}/rollback`);
   print(resp);
 }
 
@@ -166,16 +166,16 @@ async function llmChat({ provider, baseUrl, model, messages }) {
 }
 
 const TOOLS = {
-  dryrun_node: {
-    run: async ({ spec }) => { await cmdDryrunNode({ spec }); return { ok: true }; },
+  dryrun_cell: {
+    run: async ({ spec }) => { await cmdDryrunCell({ spec }); return { ok: true }; },
     schema: { type: 'object', required: ['spec'], properties: { spec: { type: 'string' } } },
   },
-  create_node: {
-    run: async ({ spec, hitl }) => { await cmdCreateNode({ spec, hitl }); return { ok: true }; },
+  create_cell: {
+    run: async ({ spec, hitl }) => { await cmdCreateCell({ spec, hitl }); return { ok: true }; },
     schema: { type: 'object', required: ['spec'], properties: { spec: { type: 'string' }, hitl: { type: 'boolean' } } },
   },
-  approve_node: {
-    run: async ({ id }) => { await cmdApproveNode({ id, yes: true }); return { ok: true }; },
+  approve_cell: {
+    run: async ({ id }) => { await cmdApproveCell({ id, yes: true }); return { ok: true }; },
     schema: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
   },
   organ_build: {
@@ -214,7 +214,7 @@ async function cmdAgent(args) {
     process.exit(2);
   }
   // Safety: require explicit allow for approve/disable/rollback
-  const sensitive = ['approve_node'];
+  const sensitive = ['approve_cell'];
   if (sensitive.includes(parsed.tool) && !(args.yes === true || args.yes === 'true')) {
     console.error(`Refusing to execute sensitive tool ${parsed.tool} without --yes`);
     process.exit(3);
@@ -230,21 +230,21 @@ async function main() {
   const args = parseArgs(argv.slice(1));
   try {
     switch (cmd) {
-      case 'dryrun-node': return await cmdDryrunNode(args);
-      case 'create-node': return await cmdCreateNode(args);
-      case 'approve-node': return await cmdApproveNode(args);
-      case 'disable-node': return await cmdDisableNode(args);
-      case 'rollback-node': return await cmdRollbackNode(args);
+      case 'dryrun-cell': return await cmdDryrunCell(args);
+      case 'create-cell': return await cmdCreateCell(args);
+      case 'approve-cell': return await cmdApproveCell(args);
+      case 'disable-cell': return await cmdDisableCell(args);
+      case 'rollback-cell': return await cmdRollbackCell(args);
       case 'organ-build': return await cmdOrganBuild(args);
       case 'organ-status': return await cmdOrganStatus(args);
       case 'agent': return await cmdAgent(args);
       default:
         console.log('Usage:');
-        console.log('  dryrun-node --spec <file.json>');
-        console.log('  create-node --spec <file.json> [--hitl]');
-        console.log('  approve-node --id <node_id> --yes');
-        console.log('  disable-node --id <node_id> --yes');
-        console.log('  rollback-node --id <node_id> --yes');
+        console.log('  dryrun-cell --spec <file.json>');
+        console.log('  create-cell --spec <file.json> [--hitl]');
+        console.log('  approve-cell --id <cell_id> --yes');
+        console.log('  disable-cell --id <cell_id> --yes');
+        console.log('  rollback-cell --id <cell_id> --yes');
         console.log('  organ-build --template <file.json> [--dryrun]');
         console.log('  organ-status --id <organ_id>');
         console.log('  agent --goal "..." [--yes]');

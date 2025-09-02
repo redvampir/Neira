@@ -19,9 +19,9 @@ Purpose
 
 Endpoints (реализовано сейчас)
 
-- POST `/factory/nodes/dryrun` → отчёт совместимости/рисков.
-- POST `/factory/nodes` → создать узел (state=draft). Gate: `factory_adapter`.
-- POST `/factory/nodes/:id/approve|disable/rollback` → продвижение/отключение/откат.
+- POST `/factory/cells/dryrun` → отчёт совместимости/рисков.
+- POST `/factory/cells` → создать клетка (state=draft). Gate: `factory_adapter`.
+- POST `/factory/cells/:id/approve|disable/rollback` → продвижение/отключение/откат.
 
 Черновик (в доках, но ещё не реализовано в backend)
 
@@ -50,32 +50,32 @@ Environment
 
 Usage (CLI)
 
-- Dry-run узла:
-  - `node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/analysis.text_normalize.v1.json`
-- Создать узел (draft):
-  - `node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/analysis.text_normalize.v1.json`
+- Dry-run клетки:
+  - `cell scripts/factory-shim/index.mjs dryrun-cell --spec examples/factory/voice-v1/analysis.text_normalize.v1.json`
+- Создать клетка (draft):
+  - `cell scripts/factory-shim/index.mjs create-cell --spec examples/factory/voice-v1/analysis.text_normalize.v1.json`
 - Аппрув (draft→canary или canary→experimental):
-  - `node scripts/factory-shim/index.mjs approve-node --id <node_id> --yes`
-- Орган (draft): не поддерживается бэкендом на текущем этапе; используйте узлы.
+  - `cell scripts/factory-shim/index.mjs approve-cell --id <cell_id> --yes`
+- Орган (draft): не поддерживается бэкендом на текущем этапе; используйте клетки.
 
 Agent Mode (LLM-in-the-loop)
 
-- Позволяет давать задания естественным языком, LLM выбирает инструменты (`dryrun_node`, `create_node`, `approve_node`, `organ_build`, `organ_status`).
+- Позволяет давать задания естественным языком, LLM выбирает инструменты (`dryrun_cell`, `create_cell`, `approve_cell`, `organ_build`, `organ_status`).
 - Старт:
-  - `node scripts/factory-shim/index.mjs agent --goal "Создай голосовой орган v1 (normalize→phonemes→speak_adapter) и сделай dry-run"`
+  - `cell scripts/factory-shim/index.mjs agent --goal "Создай голосовой орган v1 (normalize→phonemes→speak_adapter) и сделай dry-run"`
 - Безопасность: для действий `approve|disable|rollback` Shim потребует `--yes` или интерактивное подтверждение.
 
 Examples
 
-- Шаблоны для "Голос v1" (NodeTemplate, схема v1): `examples/factory/voice-v1/*`.
-- Узлы: `analysis.text_normalize.v1`, `analysis.text_to_phonemes.v1`, `analysis.speak_adapter.v1`.
+- Шаблоны для "Голос v1" (CellTemplate, схема v1): `examples/factory/voice-v1/*`.
+- Клетки: `analysis.text_normalize.v1`, `analysis.text_to_phonemes.v1`, `analysis.speak_adapter.v1`.
 - Орган: `organ.voice.v1` — концепт для будущего Organ Builder (не вызывается CLI).
 
 Notes
 
 - Exec backend'ы (Script/WASM) остаются закрытыми: Shim работает в режиме Adapter-only.
 - Для стабильности развития используйте CAPABILITIES и Policy Engine; включение/выключение под флагами и с журналом.
-- Тело запросов использует «плоский» формат NodeTemplate (без обёртки `tpl`), как в `FactoryBody` (flatten).
+- Тело запросов использует «плоский» формат CellTemplate (без обёртки `tpl`), как в `FactoryBody` (flatten).
 
 Handover (RU)
 

@@ -58,7 +58,7 @@ async fn pause_resume_snapshot_kill() {
 
     // chat should be 503
     let resp = client.post(format!("{}/api/neira/chat", base))
-        .json(&serde_json::json!({"node_id":"echo.chat","chat_id":"t","message":"hello","auth":"admin123","persist":false}))
+        .json(&serde_json::json!({"cell_id":"echo.chat","chat_id":"t","message":"hello","auth":"admin123","persist":false}))
         .send().await.unwrap();
     assert_eq!(resp.status().as_u16(), 503);
 
@@ -76,7 +76,7 @@ async fn pause_resume_snapshot_kill() {
 
     // chat works
     let chat = client.post(format!("{}/api/neira/chat", base))
-        .json(&serde_json::json!({"node_id":"echo.chat","chat_id":"t","message":"hello world","auth":"admin123","persist":false}))
+        .json(&serde_json::json!({"cell_id":"echo.chat","chat_id":"t","message":"hello world","auth":"admin123","persist":false}))
         .send().await.unwrap()
         .json::<serde_json::Value>().await.unwrap();
     assert!(chat.get("response").is_some());

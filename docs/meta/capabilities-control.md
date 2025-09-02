@@ -26,7 +26,7 @@ capabilities:
 
   trace_requests:
     state: experimental
-    notes: генерация трасс по request_id (узлы/тайминги/метки)
+    notes: генерация трасс по request_id (клетки/тайминги/метки)
     signals: [traces_generated_total]
 
   homeostasis_budgets:

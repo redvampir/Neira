@@ -40,18 +40,18 @@ impl IntegrityCheckerCell {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(60_000);
-        let node = Arc::new(Self {
+        let cell = Arc::new(Self {
             config_path: PathBuf::from(config_path),
             interval_ms,
             memory,
             quarantine,
         });
-        let node_clone = node.clone();
+        let cell_clone = cell.clone();
         tokio::spawn(async move {
-            let mut ticker = interval(Duration::from_millis(node_clone.interval_ms));
+            let mut ticker = interval(Duration::from_millis(cell_clone.interval_ms));
             loop {
                 ticker.tick().await;
-                let n = node_clone.clone();
+                let n = cell_clone.clone();
                 tokio::task::spawn_blocking(move || {
                     if let Err(e) = n.check_once() {
                         error!("{e}");
@@ -59,7 +59,7 @@ impl IntegrityCheckerCell {
                 });
             }
         });
-        node
+        cell
     }
 
     fn check_once(&self) -> Result<(), String> {

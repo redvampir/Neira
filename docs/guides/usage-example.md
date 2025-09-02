@@ -3,13 +3,13 @@
 Последовательность обработки запроса в Neira:
 
 1. **Пользовательский запрос** — отправляется через CLI или API.
-2. **InteractionHub** — принимает сообщение и определяет, какой узел активировать.
-3. **AnalysisNode** — анализирует намерение и формирует план действий.
-4. **MemoryNode** — извлекает или обновляет связанные записи.
-5. **ActionNode** — выполняет команду (генерация кода, вывод данных и т.д.).
+2. **InteractionHub** — принимает сообщение и определяет, какой клетка активировать.
+3. **AnalysisCell** — анализирует намерение и формирует план действий.
+4. **MemoryCell** — извлекает или обновляет связанные записи.
+5. **ActionCell** — выполняет команду (генерация кода, вывод данных и т.д.).
 6. **Ответ** — результат возвращается пользователю вместе с трассировкой.
 
-Трассировка оперирует идентификаторами узлов.
+Трассировка оперирует идентификаторами клеток.
 
 ```bash
 # запрос
@@ -21,9 +21,9 @@ curl -X POST http://localhost:4000/api/neira/interact \
 {
   "reply": "Задачи: [\"task1\", \"task2\"]",
   "trace": [
-    {"id": "AnalysisNode/main", "status": "ok"},
-    {"id": "MemoryNode/tasks", "status": "hit"},
-    {"id": "ActionNode/list", "result": ["task1", "task2"]}
+    {"id": "AnalysisCell/main", "status": "ok"},
+    {"id": "MemoryCell/tasks", "status": "hit"},
+    {"id": "ActionCell/list", "result": ["task1", "task2"]}
   ]
 }
 ```
@@ -48,8 +48,8 @@ npm run dev
 ## Маршруты API
 
 - `POST /api/neira/interact` — общий вход для пользовательских запросов.
-- `POST /api/neira/analysis` — выполнение конкретного `AnalysisNode`.
-- `POST /api/neira/action` — запуск `ActionNode`.
+- `POST /api/neira/analysis` — выполнение конкретного `AnalysisCell`.
+- `POST /api/neira/action` — запуск `ActionCell`.
 
 ## Organ Builder CLI
 
