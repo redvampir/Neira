@@ -40,6 +40,7 @@ summary: добавлена метрика organ_build_duration_ms и стату
 | approvals_pending | gauge | count | Anti-Idle | Запросы на одобрение в очереди |
 | autonomous_time_spent_seconds | counter | s | Anti-Idle | Секунды автономной работы |
 | microtask_queue_depth | gauge | count | Anti-Idle | Глубина очереди микрозадач |
+| immune_alerts_total{severity} | counter | alerts | Immune System | Алерты иммунной системы (лейбл severity) |
 
 ## Связь с дорожной картой (Embryo / Stage 0–1)
 
@@ -83,6 +84,17 @@ summary: добавлена метрика organ_build_duration_ms и стату
 
 См. также: docs/design/homeostasis.md
 - pause_reason_total{reason} (counter): количество пауз по причинам (использовать осторожно из-за кардинальности).
+
+---
+
+## Immune System
+
+<!-- neira:meta
+id: NEI-20250720-immune-alert-metric-docs
+intent: docs
+summary: документирован счётчик immune_alerts_total с лейблом severity.
+-->
+- immune_alerts_total{severity} (counter): алерты иммунной системы (лейбл severity).
 
 ---
 
