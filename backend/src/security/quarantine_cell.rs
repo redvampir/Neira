@@ -10,6 +10,13 @@ use std::sync::Arc;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::{info, warn};
 
+/* neira:meta
+id: NEI-20250505-000000-quarantine-metrics
+intent: feature
+summary: |
+  Добавлены метрики успехов и ошибок карантина.
+*/
+
 use crate::action::diagnostics_cell::DeveloperRequest;
 use crate::action_cell::ActionCell;
 use crate::memory_cell::MemoryCell;
@@ -50,10 +57,26 @@ impl QuarantineCell {
                 cell_clone.safe_mode.enter_safe_mode();
                 // In a real implementation, logic to disable or restart the
                 // module would go here.
-                let _ = cell_clone.notify.send(DeveloperRequest {
+                match cell_clone.notify.send(DeveloperRequest {
                     description: format!("module {module} quarantined"),
-                });
-                info!(module = %module, "developer notified about quarantine");
+                }) {
+                    Ok(()) => {
+                        info!(module = %module, "developer notified about quarantine");
+                        metrics::counter!(
+                            "immune_actions_total",
+                            "action" => "quarantine"
+                        )
+                        .increment(1);
+                    }
+                    Err(e) => {
+                        warn!(module = %module, error = %e, "failed to notify developer");
+                        metrics::counter!(
+                            "immune_action_failures_total",
+                            "action" => "quarantine"
+                        )
+                        .increment(1);
+                    }
+                }
             }
         });
         (cell, tx, notify_rx)

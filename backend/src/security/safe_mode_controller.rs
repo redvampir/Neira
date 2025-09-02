@@ -9,6 +9,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tracing::warn;
 
+/* neira:meta
+id: NEI-20250505-000000-safe-mode-metrics
+intent: feature
+summary: |
+  Добавлены метрики успешных и повторных переходов в safe mode.
+*/
 /// Контроллер безопасного режима.
 /// При активации отключает все необязательные узлы,
 /// оставляя только базовый функционал.
@@ -29,9 +35,15 @@ impl SafeModeController {
     /// необязательных узлов и остановки фоновых задач.
     pub fn enter_safe_mode(&self) {
         if self.in_safe_mode.swap(true, Ordering::SeqCst) {
+            metrics::counter!(
+                "immune_action_failures_total",
+                "action" => "safe_mode"
+            )
+            .increment(1);
             return;
         }
         warn!("entering safe mode: disabling non-essential cells");
+        metrics::counter!("immune_actions_total", "action" => "safe_mode").increment(1);
     }
 
     /// Возвращает `true`, если система уже находится в безопасном режиме.

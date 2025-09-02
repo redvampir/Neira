@@ -13,6 +13,13 @@ use std::sync::Arc;
 use crate::action_cell::ActionCell;
 use crate::memory_cell::MemoryCell;
 
+/* neira:meta
+id: NEI-20250505-000000-init-config-metrics
+intent: feature
+summary: |
+  Добавлена метрика инициализации конфигурации.
+*/
+
 /// Cell responsible for initializing configuration variables.
 /// Ensures `INTEGRITY_ROOT` is set based on `MemoryCell` base path.
 pub struct InitConfigCell;
@@ -27,6 +34,7 @@ impl InitConfigCell {
             let base = memory.base_path();
             std::env::set_var("INTEGRITY_ROOT", base);
         }
+        metrics::counter!("immune_actions_total", "action" => "init_config").increment(1);
     }
 }
 
