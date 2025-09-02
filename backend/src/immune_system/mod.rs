@@ -13,6 +13,15 @@ pub fn observe(_record: &StemCellRecord) {
 }
 
 /* neira:meta
+id: NEI-20250720-immune-alert-handler
+intent: code
+summary: Добавлен обработчик alert для регистрации алертов иммунной системы.
+*/
+pub fn alert(severity: &str) {
+    metrics::counter!("immune_alerts_total", "severity" => severity.to_string()).increment(1);
+}
+
+/* neira:meta
 id: NEI-20251227-immune-subscriber
 intent: code
 summary: Подписчик immune_system на события CellCreated и OrganBuilt.
