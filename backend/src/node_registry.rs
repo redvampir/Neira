@@ -253,6 +253,16 @@ impl NodeRegistry {
         self.action_templates.read().unwrap().get(id).cloned()
     }
 
+    /// Возвращает все зарегистрированные шаблоны узлов действия.
+    pub fn list_action_templates(&self) -> Vec<ActionNodeTemplate> {
+        self.action_templates
+            .read()
+            .unwrap()
+            .values()
+            .cloned()
+            .collect()
+    }
+
     /// Регистрация реализации `AnalysisNode`.
     pub fn register_analysis_node(&self, node: Arc<dyn AnalysisNode + Send + Sync>) {
         self.analysis_nodes
