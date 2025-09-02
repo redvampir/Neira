@@ -279,19 +279,36 @@ impl NodeRegistry {
         summary: |-
           Проверяет уникальность идентификатора перед регистрацией шаблона.
         */
+        /* neira:meta
+        id: NEI-20250501-update-registration
+        intent: fix
+        summary: |-
+          Обновляет шаблон при повторной регистрации на том же пути
+          и предотвращает конфликты по пути и типу шаблона.
+        */
         if let Ok(tpl) = load_template(path) {
-            if self
-                .nodes
+            // запрет регистрации, если id уже занят шаблоном действия
+            if self.action_templates.read().unwrap().contains_key(&tpl.id) {
+                return Err(format!("id {} already registered", tpl.id));
+            }
+
+            // найти существующий путь для данного id среди шаблонов узлов
+            let existing_path = self
+                .paths
                 .read()
                 .unwrap()
-                .contains_key(&tpl.id)
-                || self
-                    .action_templates
-                    .read()
-                    .unwrap()
-                    .contains_key(&tpl.id)
-            {
-                return Err(format!("id {} already registered", tpl.id));
+                .iter()
+                .find_map(|(p, id)| (id == &tpl.id).then(|| p.clone()));
+            if let Some(ref p) = existing_path {
+                if p != path {
+                    return Err(format!(
+                        "id {} already registered at {}",
+                        tpl.id,
+                        p.display()
+                    ));
+                }
+                // обновление: удалить прежнее сопоставление пути
+                self.paths.write().unwrap().remove(p);
             }
             self.paths
                 .write()
@@ -300,18 +317,27 @@ impl NodeRegistry {
             self.nodes.write().unwrap().insert(tpl.id.clone(), tpl);
         } else {
             let tpl = load_action_template(path)?;
-            if self
-                .nodes
+            // запрет регистрации, если id уже занят шаблоном анализа
+            if self.nodes.read().unwrap().contains_key(&tpl.id) {
+                return Err(format!("id {} already registered", tpl.id));
+            }
+
+            // найти существующий путь для данного id среди шаблонов действий
+            let existing_path = self
+                .action_paths
                 .read()
                 .unwrap()
-                .contains_key(&tpl.id)
-                || self
-                    .action_templates
-                    .read()
-                    .unwrap()
-                    .contains_key(&tpl.id)
-            {
-                return Err(format!("id {} already registered", tpl.id));
+                .iter()
+                .find_map(|(p, id)| (id == &tpl.id).then(|| p.clone()));
+            if let Some(ref p) = existing_path {
+                if p != path {
+                    return Err(format!(
+                        "id {} already registered at {}",
+                        tpl.id,
+                        p.display()
+                    ));
+                }
+                self.action_paths.write().unwrap().remove(p);
             }
             self.action_paths
                 .write()
@@ -347,34 +373,14 @@ impl NodeRegistry {
     summary: Регистрирует шаблон узла действия и сохраняет его на диск.
     */
     pub fn register_action_template(&self, tpl: ActionNodeTemplate) -> Result<(), String> {
-        if self
-            .nodes
-            .read()
-            .unwrap()
-            .contains_key(&tpl.id)
-            || self
-                .action_templates
-                .read()
-                .unwrap()
-                .contains_key(&tpl.id)
-        {
-            return Err(format!("id {} already registered", tpl.id));
-        }
         let value = tpl.to_json();
         validate_action_template(&value).map_err(|errs| errs.join(", "))?;
         let file = format!("{}-{}.json", tpl.id, tpl.version);
         let path = self.root.join(file);
         let content = serde_json::to_string(&tpl).map_err(|e| e.to_string())?;
         fs::write(&path, content).map_err(|e| e.to_string())?;
-        self.action_paths
-            .write()
-            .unwrap()
-            .insert(path.clone(), tpl.id.clone());
-        self.action_templates
-            .write()
-            .unwrap()
-            .insert(tpl.id.clone(), tpl);
-        Ok(())
+        // регистрация из файла использует общую логику с проверками и обновлением путей
+        self.register(&path)
     }
 
     /// Получение метаданных узла по идентификатору.
