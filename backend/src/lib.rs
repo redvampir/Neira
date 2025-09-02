@@ -1,6 +1,8 @@
 pub mod action;
 pub mod action_cell;
 pub mod analysis_cell;
+pub mod cell_registry;
+pub mod cell_template;
 pub mod config;
 pub mod context;
 pub mod hearing;
@@ -8,8 +10,6 @@ pub mod idempotent_store;
 pub mod interaction_hub;
 pub mod memory_cell;
 pub mod nervous_system;
-pub mod cell_registry;
-pub mod node_template;
 pub mod queue_config;
 pub mod security;
 pub mod task_scheduler;

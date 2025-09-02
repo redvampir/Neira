@@ -49,13 +49,13 @@ use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::action_cell::PreloadAction;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use backend::cell_registry::CellRegistry;
+use backend::cell_template::CellTemplate;
 use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
-use backend::factory::{AdapterBackend, FabricationState, NodeTemplateAdapter};
+use backend::factory::{AdapterBackend, CellTemplateAdapter, FabricationState};
 use backend::interaction_hub::InteractionHub;
 use backend::memory_cell::MemoryCell;
-use backend::cell_registry::CellRegistry;
-use backend::node_template::NodeTemplate;
 use backend::policy::{Capability, PolicyEngine};
 use backend::security::init_config_cell::InitConfigCell;
 mod http {
@@ -80,7 +80,7 @@ impl axum::extract::FromRef<AppState> for Arc<InteractionHub> {
 
 async fn register_node(
     State(state): State<AppState>,
-    Json(tpl): Json<NodeTemplate>,
+    Json(tpl): Json<CellTemplate>,
 ) -> Result<String, (axum::http::StatusCode, String)> {
     state
         .hub
@@ -111,7 +111,7 @@ fn auth_from_headers(headers: &HeaderMap) -> Option<String> {
 async fn get_node(
     State(state): State<AppState>,
     Path((id, version)): Path<(String, String)>,
-) -> Result<Json<NodeTemplate>, axum::http::StatusCode> {
+) -> Result<Json<CellTemplate>, axum::http::StatusCode> {
     match state.hub.registry.get(&id) {
         Some(tpl) if tpl.version == version => Ok(Json(tpl)),
         _ => Err(axum::http::StatusCode::NOT_FOUND),
@@ -121,7 +121,7 @@ async fn get_node(
 async fn get_node_latest(
     State(state): State<AppState>,
     Path(id): Path<String>,
-) -> Result<Json<NodeTemplate>, axum::http::StatusCode> {
+) -> Result<Json<CellTemplate>, axum::http::StatusCode> {
     state
         .hub
         .registry
@@ -135,7 +135,7 @@ struct FactoryBody {
     #[serde(default)]
     backend: Option<String>,
     #[serde(flatten)]
-    tpl: NodeTemplate,
+    tpl: CellTemplate,
 }
 
 async fn factory_dryrun(
@@ -165,7 +165,7 @@ async fn factory_create(
     if let Err(_e) = pe.require_capability(&state.hub, Capability::FactoryAdapter) {
         return Err(axum::http::StatusCode::FORBIDDEN);
     }
-    let adapter = NodeTemplateAdapter { tpl: &body.tpl };
+    let adapter = CellTemplateAdapter { tpl: &body.tpl };
     adapter
         .validate()
         .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;

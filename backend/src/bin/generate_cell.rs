@@ -3,7 +3,7 @@ use std::env;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-use backend::node_template::{self, Metadata, NodeTemplate};
+use backend::cell_template::{self, CellTemplate, Metadata};
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 
@@ -30,14 +30,14 @@ fn run() -> Result<(), String> {
     }
 
     let version = schema_version
-        .ok_or_else(|| "usage: cargo run --bin generate_node -- --schema <version>".to_string())?;
+        .ok_or_else(|| "usage: cargo run --bin generate_cell -- --schema <version>".to_string())?;
 
     let dir = parse_version(&version)?;
-    let base = env::var("NODE_TEMPLATE_SCHEMAS_DIR")
+    let base = env::var("CELL_TEMPLATE_SCHEMAS_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas"));
-    let path = base.join(&dir).join("node-template.schema.json");
-    node_template::load_schema_from(&path)?;
+    let path = base.join(&dir).join("cell-template.schema.json");
+    cell_template::load_schema_from(&path)?;
 
     let schema_str = std::fs::read_to_string(&path)
         .map_err(|e| format!("failed to read schema {}: {e}", path.display()))?;
@@ -48,8 +48,7 @@ fn run() -> Result<(), String> {
         .and_then(Value::as_object)
         .ok_or_else(|| "invalid schema: no properties".to_string())?;
 
-    let id =
-        get_default::<String>(props, "id").or_else(|| prompt_string(interactive, "id"));
+    let id = get_default::<String>(props, "id").or_else(|| prompt_string(interactive, "id"));
     let analysis_type = get_default::<String>(props, "analysis_type")
         .or_else(|| prompt_string(interactive, "analysis_type"));
     let links = get_default::<Vec<String>>(props, "links").unwrap_or_default();
@@ -58,7 +57,7 @@ fn run() -> Result<(), String> {
     let draft_content = get_default::<String>(props, "draft_content")
         .or_else(|| prompt_string(interactive, "draft_content"));
 
-    let template = NodeTemplate {
+    let template = CellTemplate {
         id: id.unwrap_or_default(),
         version: "0.1.0".to_string(),
         analysis_type: analysis_type.unwrap_or_default(),
@@ -104,11 +103,14 @@ fn prompt_string(interactive: bool, name: &str) -> Option<String> {
     let mut buf = String::new();
     io::stdin().read_line(&mut buf).ok()?;
     let trimmed = buf.trim().to_string();
-    if trimmed.is_empty() { None } else { Some(trimmed) }
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed)
+    }
 }
 
 fn prompt_f64(interactive: bool, name: &str) -> Option<f64> {
     let input = prompt_string(interactive, name)?;
     input.parse().ok()
 }
-

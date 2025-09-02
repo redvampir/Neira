@@ -8,7 +8,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-use backend::node_template;
+use backend::cell_template;
 use serde_json::Value;
 
 fn main() {
@@ -32,7 +32,7 @@ fn run() -> Result<(), String> {
     } else {
         serde_json::from_str(&content).map_err(|e| format!("invalid JSON: {e}"))?
     };
-    node_template::validate_template(&value).map_err(|errs| errs.join("\n"))?;
+    cell_template::validate_template(&value).map_err(|errs| errs.join("\n"))?;
     println!("Template is valid");
     Ok(())
 }

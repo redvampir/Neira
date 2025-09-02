@@ -1,5 +1,5 @@
 use backend::cell_registry::CellRegistry;
-use backend::node_template::{Metadata, NodeTemplate};
+use backend::cell_template::{CellTemplate, Metadata};
 use serde_json::json;
 use std::{collections::HashMap, fs, thread, time::Duration};
 use tempfile::tempdir;
@@ -38,7 +38,7 @@ fn hot_reload_detects_file_changes() {
 fn register_template_persists_to_disk() {
     let dir = tempdir().unwrap();
     let registry = CellRegistry::new(dir.path()).unwrap();
-    let tpl = NodeTemplate {
+    let tpl = CellTemplate {
         id: "n2".to_string(),
         version: "0.1.0".to_string(),
         analysis_type: "a".to_string(),

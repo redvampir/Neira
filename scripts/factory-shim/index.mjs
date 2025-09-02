@@ -72,7 +72,7 @@ function print(obj) {
 async function cmdDryrunNode({ spec }) {
   if (!spec) throw new Error('--spec <file.json> is required');
   const tpl = readJsonFileSync(spec);
-  const body = { backend: 'adapter', ...tpl }; // Flattened NodeTemplate per backend API
+  const body = { backend: 'adapter', ...tpl }; // Flattened CellTemplate per backend API
   const resp = await http('POST', '/factory/nodes/dryrun', body);
   print(resp);
 }

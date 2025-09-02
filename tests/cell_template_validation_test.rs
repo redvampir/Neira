@@ -1,4 +1,4 @@
-use backend::node_template::{validate_template, NodeTemplate};
+use backend::cell_template::{validate_template, CellTemplate};
 use serde_json::json;
 
 #[test]
@@ -15,7 +15,7 @@ fn valid_template_passes_validation() {
         }
     });
     validate_template(&value).expect("should be valid");
-    let template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
+    let template: CellTemplate = serde_json::from_value(value).expect("deserialize");
     assert!(template.metadata.extra.contains_key("author"));
     assert!(template.metadata.extra.contains_key("tags"));
     assert!(template.metadata.extra.contains_key("version"));

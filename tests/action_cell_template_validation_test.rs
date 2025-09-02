@@ -1,4 +1,4 @@
-use backend::node_template::validate_action_template;
+use backend::cell_template::validate_action_template;
 use serde_json::json;
 
 #[test]

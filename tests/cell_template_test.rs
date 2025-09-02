@@ -1,4 +1,4 @@
-use backend::node_template::{load_schema_from, validate_template, NodeTemplate};
+use backend::cell_template::{load_schema_from, validate_template, CellTemplate};
 use serde_json::json;
 use std::path::Path;
 
@@ -21,7 +21,7 @@ fn valid_template_is_accepted() {
         validate_template(&value).is_ok(),
         "schema validation should pass"
     );
-    let template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
+    let template: CellTemplate = serde_json::from_value(value).expect("deserialize");
     assert_eq!(
         template
             .metadata
@@ -46,7 +46,7 @@ fn valid_template_is_accepted() {
 
 #[test]
 fn missing_required_fields_are_rejected() {
-    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/cell-template.schema.json"))
         .expect("load schema");
     let value = json!({
         "links": [],
@@ -57,14 +57,14 @@ fn missing_required_fields_are_rejected() {
         "schema validation should fail"
     );
     assert!(
-        serde_json::from_value::<NodeTemplate>(value).is_err(),
+        serde_json::from_value::<CellTemplate>(value).is_err(),
         "deserialization should fail"
     );
 }
 
 #[test]
 fn invalid_links_type_fails() {
-    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/cell-template.schema.json"))
         .expect("load schema");
     let value = json!({
         "id": "node",
@@ -78,14 +78,14 @@ fn invalid_links_type_fails() {
         "schema validation should fail"
     );
     assert!(
-        serde_json::from_value::<NodeTemplate>(value).is_err(),
+        serde_json::from_value::<CellTemplate>(value).is_err(),
         "deserialization should fail"
     );
 }
 
 #[test]
 fn invalid_confidence_threshold_type_fails() {
-    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/cell-template.schema.json"))
         .expect("load schema");
     let value = json!({
         "id": "node",
@@ -99,14 +99,14 @@ fn invalid_confidence_threshold_type_fails() {
         "schema validation should fail"
     );
     assert!(
-        serde_json::from_value::<NodeTemplate>(value).is_err(),
+        serde_json::from_value::<CellTemplate>(value).is_err(),
         "deserialization should fail"
     );
 }
 
 #[test]
 fn empty_id_is_handled() {
-    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/cell-template.schema.json"))
         .expect("load schema");
     let value = json!({
         "id": "",
@@ -118,14 +118,14 @@ fn empty_id_is_handled() {
         schema.validate(&value).is_ok(),
         "schema validation should pass for empty id"
     );
-    let template: NodeTemplate = serde_json::from_value(value).expect("deserialize");
+    let template: CellTemplate = serde_json::from_value(value).expect("deserialize");
     assert!(template.id.is_empty());
 }
 
 #[test]
 fn explicit_path_loading_works() {
     let schema =
-        load_schema_from(Path::new("schemas/v1/node-template.schema.json")).expect("load schema");
+        load_schema_from(Path::new("schemas/v1/cell-template.schema.json")).expect("load schema");
     let value = json!({
         "id": "explicit",
         "version": "0.1.0",

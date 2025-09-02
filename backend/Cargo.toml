@@ -61,3 +61,8 @@ tracing = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c1273
 tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d" }
 tracing-subscriber = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d" }
 jsonschema-valid = { path = "../patches/jsonschema-valid" }
+
+[[bin]]
+name = "generate_cell"
+path = "src/bin/generate_cell.rs"
+
