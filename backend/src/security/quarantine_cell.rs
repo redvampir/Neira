@@ -1,5 +1,5 @@
 /* neira:meta
-id: NEI-20250829-175425-quarantine-node
+id: NEI-20250829-175425-quarantine-cell
 intent: docs
 summary: |
   Переводит подозрительные модули в карантин и активирует безопасный режим.
@@ -15,7 +15,7 @@ use crate::action_cell::ActionCell;
 use crate::memory_cell::MemoryCell;
 use crate::security::safe_mode_controller::SafeModeController;
 
-/// Node responsible for putting suspicious modules into quarantine.
+/// Cell responsible for putting suspicious modules into quarantine.
 /// Receives module identifiers over a channel and attempts to disable
 /// or restart them. Each quarantine action is logged and a developer
 /// notification is emitted.
@@ -26,14 +26,21 @@ pub struct QuarantineCell {
 }
 
 impl QuarantineCell {
-    /// Creates the node and returns a sender for quarantine messages
+    /// Creates the cell and returns a sender for quarantine messages
     /// along with a receiver for developer notifications.
     pub fn new(
         safe_mode: Arc<SafeModeController>,
-    ) -> (Arc<Self>, UnboundedSender<String>, UnboundedReceiver<DeveloperRequest>) {
+    ) -> (
+        Arc<Self>,
+        UnboundedSender<String>,
+        UnboundedReceiver<DeveloperRequest>,
+    ) {
         let (tx, mut rx) = unbounded_channel();
         let (notify_tx, notify_rx) = unbounded_channel();
-        let node = Arc::new(Self { notify: notify_tx, safe_mode });
+        let node = Arc::new(Self {
+            notify: notify_tx,
+            safe_mode,
+        });
         let node_clone = node.clone();
         tokio::spawn(async move {
             while let Some(module) = rx.recv().await {

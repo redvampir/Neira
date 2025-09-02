@@ -13,7 +13,7 @@ use std::sync::Arc;
 use crate::action_cell::ActionCell;
 use crate::memory_cell::MemoryCell;
 
-/// Node responsible for initializing configuration variables.
+/// Cell responsible for initializing configuration variables.
 /// Ensures `INTEGRITY_ROOT` is set based on `MemoryCell` base path.
 pub struct InitConfigCell;
 
