@@ -9,6 +9,11 @@ id: NEI-20250310-cell-templates-env-doc
 intent: docs
 summary: Обновлена переменная окружения на CELL_TEMPLATES_DIR с поддержкой NODE_TEMPLATES_DIR.
 -->
+<!-- neira:meta
+id: NEI-20260413-voice-runbook-rename
+intent: docs
+summary: Заменены упоминания backend на spinal_cord.
+-->
 
 # Voice v1 — Runbook (Adapter-only)
 
@@ -27,7 +32,7 @@ Prerequisites
 - Backend собран и запущен с включённым адаптером фабрики:
   - PowerShell: `$env:FACTORY_ADAPTER_ENABLED='1'`
   - (опц.) каталог шаблонов: `$env:CELL_TEMPLATES_DIR='templates'` (подкаталоги поддерживаются; fallback `NODE_TEMPLATES_DIR`)
-  - Токен (минимум write) для API: `$env:FACTORY_TOKEN='secret'` (см. backend init)
+  - Токен (минимум write) для API: `$env:FACTORY_TOKEN='secret'` (см. spinal_cord init)
   - Базовый URL: `$env:FACTORY_BASE_URL='http://localhost:3000'` (порт можно сменить через `NEIRA_BIND_ADDR`)
 - Пример смены порта: `$env:NEIRA_BIND_ADDR='0.0.0.0:4000'`
 - Проверьте свободность порта: `lsof -i :3000` (иначе задайте другой через `NEIRA_BIND_ADDR`)
@@ -56,7 +61,7 @@ Steps (PowerShell)
 4. Проверка автоподхвата
 
 - Убедитесь, что в каталоге `templates/` появились файлы `analysis.*.json`.
-- Перезапустите backend — CellRegistry загрузит шаблоны из каталога (есть файловый watcher).
+- Перезапустите spinal_cord — CellRegistry загрузит шаблоны из каталога (есть файловый watcher).
 - Проверьте `/cells/:id` (или Admin UI) и `logs/factory_audit.ndjson`.
   Notes
 - Organ Builder (маршруты `/organs/*`) пока не реализован — работаем на уровне клеток.

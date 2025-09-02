@@ -9,6 +9,11 @@ intent: docs
 summary: описан ручной апдейт статуса органа и метрика длительности сборки.
 -->
 <!-- neira:meta
+id: NEI-20260413-factory-rename
+intent: docs
+summary: Обновлён пример запуска sensory_organs вместо frontend.
+-->
+<!-- neira:meta
 id: NEI-20251101-organ-builder-stage-delays-doc
 intent: docs
 summary: добавлен пример настройки ORGANS_BUILDER_STAGE_DELAYS.
@@ -176,7 +181,7 @@ ORGANS_BUILDER_STAGE_DELAYS=50,100,200
 
 ## Organs Panel
 
-1. `npm run frontend:dev`
+1. `npm run sensory_organs:dev`
 2. Открыть `http://localhost:5173/src/organs.html`.
 
 Notes

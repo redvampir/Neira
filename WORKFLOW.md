@@ -4,6 +4,11 @@ intent: docs
 summary: |
   Добавлено напоминание обновлять docs/index.md через gen-doc-map.
 -->
+<!-- neira:meta
+id: NEI-20260413-workflow-rename
+intent: docs
+summary: Пример scope обновлён под каталог spinal_cord.
+-->
 
 // Execution Workflow for the Assistant
 
@@ -49,7 +54,7 @@ Template (Rust/JS/TS block comment)
 /\* neira:meta
 id: NEI-YYYYMMDD-HHMMSS-<slug>
 intent: feature|fix|refactor|docs|perf|security|chore
-scope: backend/<area>
+scope: spinal_cord/<area>
 summary: |
 Коротко по-русски что и зачем изменено (1–2 строки).
 links:

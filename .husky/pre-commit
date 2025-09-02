@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
+# neira:meta
+# id: NEI-20260413-pre-commit-rename
+# intent: chore
+# summary: Обновлён путь к spinal_cord в cargo test.
 set -e
 
 npm run lint
@@ -7,4 +11,4 @@ cargo metadata --locked
 cargo clippy
 scripts/check-duplicates.sh
 cargo test
-cargo test --manifest-path backend/Cargo.toml
+cargo test --manifest-path spinal_cord/Cargo.toml

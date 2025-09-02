@@ -21,6 +21,11 @@ intent: refactor
 summary: Перечисление StemCellState (раньше назывался FabricationState).
 */
 /* neira:meta
+id: NEI-20260413-main-static-rename
+intent: refactor
+summary: Обновлены пути к statics после переименования spinal_cord.
+*/
+/* neira:meta
 id: NEI-20250215-immune-import-main
 intent: refactor
 summary: Добавлен импорт immune_system.
@@ -1710,7 +1715,7 @@ async fn main() {
         .route(
             "/admin",
             get(|| async {
-                match std::fs::read_to_string("backend/static/admin.html") {
+                match std::fs::read_to_string("spinal_cord/static/admin.html") {
                     Ok(s) => (
                         [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
                         s,
@@ -1725,7 +1730,7 @@ async fn main() {
         .route(
             "/training",
             get(|| async {
-                match std::fs::read_to_string("backend/static/training.html") {
+                match std::fs::read_to_string("spinal_cord/static/training.html") {
                     Ok(s) => (
                         [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
                         s,
@@ -2769,7 +2774,7 @@ async fn main() {
 /* neira:meta
 id: NEI-20250829-setup-meta-main
 intent: docs
-scope: backend/http
+scope: spinal_cord/http
 summary: |
   Точки входа HTTP (API), SSE с прогрессом и отменой, маскирование с пресетами,
   поиск по content с фильтрами и пагинацией, rate-limit заголовки, скоупы токенов, включён CORS.

@@ -13,6 +13,11 @@ id: NEI-20250305-factory-shim-runtime-term
 intent: docs
 summary: Термин Node.js заменён на Cell runtime.
 -->
+<!-- neira:meta
+id: NEI-20260413-factory-shim-rename
+intent: docs
+summary: Обновлены упоминания backend на spinal_cord.
+-->
 
 # Factory Shim (External Orchestrator)
 
@@ -28,7 +33,7 @@ Endpoints (реализовано сейчас)
 - POST `/factory/cells` → создать клетка (state=draft). Gate: `factory_adapter`.
 - POST `/factory/cells/:id/approve|disable/rollback` → продвижение/отключение/откат.
 
-Черновик (в доках, но ещё не реализовано в backend)
+Черновик (в доках, но ещё не реализовано в spinal_cord)
 
 - POST `/organs/build`, GET `/organs/:id/status`, DELETE `/organs/:id/build` — зарезервированы для Organ Builder v0.
 
@@ -45,9 +50,9 @@ Installation
 
 Environment
 
-- `FACTORY_BASE_URL` — базовый URL API (по умолчанию backend слушает `http://127.0.0.1:3000`; можно сменить через `NEIRA_BIND_ADDR`).
+- `FACTORY_BASE_URL` — базовый URL API (по умолчанию spinal_cord слушает `http://127.0.0.1:3000`; можно сменить через `NEIRA_BIND_ADDR`).
 - `FACTORY_TOKEN` — админ/райт токен: `Authorization: Bearer <token>`.
-- Пример смены порта backend: `$env:NEIRA_BIND_ADDR='0.0.0.0:4000'`
+- Пример смены порта spinal_cord: `$env:NEIRA_BIND_ADDR='0.0.0.0:4000'`
 - LLM (опционально, для `agent`):
   - `LLM_PROVIDER=ollama|openai` — провайдер (локальный Ollama или OpenAI-совместимый).
   - `LLM_BASE_URL` — базовый URL чата (`http://localhost:11434` для Ollama).
@@ -78,7 +83,7 @@ Examples
 
 Notes
 
-- Exec backend'ы (Script/WASM) остаются закрытыми: Shim работает в режиме Adapter-only.
+- Exec spinal_cord'ы (Script/WASM) остаются закрытыми: Shim работает в режиме Adapter-only.
 - Для стабильности развития используйте CAPABILITIES и Policy Engine; включение/выключение под флагами и с журналом.
 - Тело запросов использует «плоский» формат CellTemplate (без обёртки `tpl`), как в `FactoryBody` (flatten).
 

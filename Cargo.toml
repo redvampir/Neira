@@ -3,6 +3,10 @@
 # intent: chore
 # summary: |
 #   Обновлена зависимость jsonschema до 0.33 для совместимости с reqwest 0.12 и base64 0.22.
+# neira:meta
+# id: NEI-20260413-spinal-path-update
+# intent: chore
+# summary: Обновлён путь к spinal_cord после переименования директории.
 
 [package]
 name = "neira"
@@ -10,7 +14,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-backend = { path = "backend" }
+backend = { path = "spinal_cord" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 jsonschema-valid = "0.5.2"

@@ -3,6 +3,11 @@ id: NEI-20251010-organ-builder-metrics
 intent: docs
 summary: добавлена метрика organ_build_duration_ms и статусные запросы.
 -->
+<!-- neira:meta
+id: NEI-20260413-metrics-rename
+intent: docs
+summary: Заменены упоминания backend на spinal_cord.
+-->
 # Реестр Метрик (Истина)
 
 | Имя | Тип | Единицы | Где инкрементируется | Назначение |
@@ -60,7 +65,7 @@ summary: добавлена метрика organ_build_duration_ms и стату
 - Anti‑Idle System: docs/design/anti-idle-system.md
 - Способности и гейты: CAPABILITIES.md
 
-Примечание: именование согласовано с кодом (backend/src). При добавлении новых метрик — обновляйте эту таблицу.
+Примечание: именование согласовано с кодом (spinal_cord/src). При добавлении новых метрик — обновляйте эту таблицу.
 
 ---
 
@@ -137,7 +142,7 @@ summary: документирован счётчик factory_state_transitions_t
 | factory_cells_created_total | counter | cells | Factory | Создано клеток (всего) |
 | factory_cells_active | gauge | cells | Factory | Активные фабричные клетки |
 | factory_cells_disabled | gauge | cells | Factory | Отключённые фабричные клетки |
-| factory_exec_errors_total | counter | errors | Factory | Ошибки исполнения (backend) |
+| factory_exec_errors_total | counter | errors | Factory | Ошибки исполнения (spinal_cord) |
 | factory_dryrun_requests_total | counter | req | Factory | Запросы dry‑run |
 | factory_approvals_total | counter | ops | Factory | Подтверждения HITL |
 | factory_rollbacks_total | counter | ops | Factory | Откаты клеток |
