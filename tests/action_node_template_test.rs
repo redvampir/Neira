@@ -6,6 +6,7 @@ summary: Проверяет регистрацию и перечисление �
 use backend::node_registry::NodeRegistry;
 use backend::node_template::{ActionNodeTemplate, NodeTemplate};
 use std::collections::HashSet;
+use std::fs;
 
 #[test]
 fn registry_registers_action_templates() {
@@ -127,7 +128,26 @@ fn registering_same_id_different_path_returns_error() {
         },
     };
     registry.register_action_template(tpl1).unwrap();
+
+    // перед повторной регистрацией в каталоге один файл
+    let before_files = fs::read_dir(dir.path())
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(before_files.len(), 1);
+
     assert!(registry.register_action_template(tpl2).is_err());
+
+    // после ошибки файл не создаётся и шаблон не изменяется
+    let files = fs::read_dir(dir.path())
+        .unwrap()
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(files.len(), 1);
+    let tpl = registry
+        .get_action_template("action.example.v1")
+        .expect("template exists");
+    assert_eq!(tpl.version, "0.1.0");
 }
 
 /* neira:meta
