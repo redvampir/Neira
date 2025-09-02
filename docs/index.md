@@ -41,6 +41,7 @@ summary: |
   - [testing](legacy/testing.md)
   - [usage-example](legacy/usage-example.md)
 - meta/
+  - [biology-glossary](meta/biology-glossary.md)
   - [capabilities-control](meta/capabilities-control.md)
   - [capabilities-persona](meta/capabilities-persona.md)
   - [CONTRIBUTING](meta/CONTRIBUTING.md)
