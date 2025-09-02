@@ -18,7 +18,7 @@ summary: Удалён неиспользуемый клон SynapseHub при о
 /* neira:meta
 id: NEI-20250316-stemcell-rename
 intent: refactor
-summary: Обновлены перечисления FabricationState → StemCellState.
+summary: Перечисление StemCellState (раньше назывался FabricationState).
 */
 use async_stream::stream;
 use axum::{
