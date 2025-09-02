@@ -4,9 +4,13 @@ intent: code
 summary: Создан модуль immune_system с функцией observe.
 */
 
+use crate::cell_template::load_schema_from;
 use crate::event_bus::{CellCreated, Event, OrganBuilt, Subscriber};
 use crate::factory::StemCellRecord;
-use jsonschema_valid::ValidationError;
+use jsonschema_valid::{Config, ValidationError};
+use once_cell::sync::Lazy;
+use serde_json::json;
+use std::path::PathBuf;
 
 pub fn observe(_record: &StemCellRecord) {
     metrics::counter!("immune_observations_total").increment(1);
@@ -45,12 +49,27 @@ summary: Добавлена заглушка preflight_check для валида
 */
 pub fn preflight_check(record: &StemCellRecord) -> Result<(), ValidationError> {
     metrics::counter!("immune_preflight_checks_total").increment(1);
-    if record.id.is_empty() || record.backend.is_empty() || record.template_id.is_empty() {
-        return Err(ValidationError::new(
-            "record fields must not be empty",
-            None,
-            None,
-        ));
+    let cfg = STEM_CELL_SCHEMA
+        .as_ref()
+        .map_err(|e| ValidationError::new(e, None, None))?;
+    let value = json!({
+        "id": &record.id,
+        "backend": &record.backend,
+        "template_id": &record.template_id,
+        "state": format!("{:?}", record.state),
+        "created_at": record.created_at.to_rfc3339(),
+    });
+    if let Err(errors) = cfg.validate(&value) {
+        let msg = errors
+            .map(|err| err.to_string())
+            .collect::<Vec<_>>()
+            .join("; ");
+        return Err(ValidationError::new(&msg, Some(&value), None));
     }
     Ok(())
 }
+
+static STEM_CELL_SCHEMA: Lazy<Result<Config<'static>, String>> = Lazy::new(|| {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas/stem_cell_record.json");
+    load_schema_from(&path)
+});
