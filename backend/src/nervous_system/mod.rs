@@ -3,6 +3,7 @@ id: NEI-20250215-ns-watch
 intent: code
 summary: Добавлен заглушечный watch для мониторинга записей фабрики.
 */
+use crate::event_bus::{CellCreated, Event, OrganBuilt, Subscriber};
 use crate::factory::StemCellRecord;
 use async_trait::async_trait;
 
@@ -22,6 +23,23 @@ pub trait SystemProbe: Send + Sync {
 
 pub fn watch(_record: &StemCellRecord) {
     metrics::counter!("nervous_watches_total").increment(1);
+}
+
+/* neira:meta
+id: NEI-20251227-nervous-subscriber
+intent: code
+summary: Подписчик nervous_system на события CellCreated и OrganBuilt.
+*/
+pub struct NervousSystemSubscriber;
+
+impl Subscriber for NervousSystemSubscriber {
+    fn on_event(&self, event: &dyn Event) {
+        if let Some(ev) = event.as_any().downcast_ref::<CellCreated>() {
+            watch(&ev.record);
+        } else if event.as_any().downcast_ref::<OrganBuilt>().is_some() {
+            metrics::counter!("nervous_organs_total").increment(1);
+        }
+    }
 }
 
 pub mod anti_idle;

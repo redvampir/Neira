@@ -14,6 +14,11 @@ id: NEI-20250215-factory-watch
 intent: refactor
 summary: Добавлены вызовы nervous_system::watch и immune_system::observe при создании записи.
 */
+/* neira:meta
+id: NEI-20251227-factory-event-bus
+intent: refactor
+summary: Прямые вызовы watch/observe убраны в пользу событий.
+*/
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -112,8 +117,6 @@ impl StemCellFactory {
             "backend": backend,
             "template_id": tpl.id
         }));
-        crate::nervous_system::watch(&rec);
-        crate::immune_system::observe(&rec);
         Ok(rec)
     }
 
