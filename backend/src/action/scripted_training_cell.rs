@@ -166,12 +166,9 @@ impl ScriptedTrainingCell {
                         .strip_prefix("FILE:")
                         .or_else(|| key.strip_prefix("VAR_FILE:"))
                     {
-                        match std::fs::read_to_string(path) {
-                            Ok(mut s) => {
-                                s.truncate(s.trim_end().len());
-                                out.push_str(s.trim());
-                            }
-                            Err(_) => {}
+                        if let Ok(mut s) = std::fs::read_to_string(path) {
+                            s.truncate(s.trim_end().len());
+                            out.push_str(s.trim());
                         }
                     } else {
                         out.push_str(env.get(key).map(|s| s.as_str()).unwrap_or(""));
