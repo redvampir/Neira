@@ -103,10 +103,16 @@ id: NEI-20250320-factory-auto-response-duration
 intent: docs
 summary: документирована метрика factory_auto_response_duration_ms с лейблом action.
 -->
+<!-- neira:meta
+id: NEI-20250607-factory-disabled-gauge-docs
+intent: docs
+summary: документирован gauge factory_cells_disabled.
+-->
 | metric | type | unit | scope | description |
 |---|---|---|---|---|
 | factory_cells_created_total | counter | cells | Factory | Создано клеток (всего) |
 | factory_cells_active | gauge | cells | Factory | Активные фабричные клетки |
+| factory_cells_disabled | gauge | cells | Factory | Отключённые фабричные клетки |
 | factory_exec_errors_total | counter | errors | Factory | Ошибки исполнения (backend) |
 | factory_dryrun_requests_total | counter | req | Factory | Запросы dry‑run |
 | factory_approvals_total | counter | ops | Factory | Подтверждения HITL |
