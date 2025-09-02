@@ -273,7 +273,26 @@ impl NodeRegistry {
 
     /// Регистрация или обновление узла из файла.
     pub fn register(&self, path: &Path) -> Result<(), String> {
+        /* neira:meta
+        id: NEI-20250418-duplicate-id-check
+        intent: bugfix
+        summary: |-
+          Проверяет уникальность идентификатора перед регистрацией шаблона.
+        */
         if let Ok(tpl) = load_template(path) {
+            if self
+                .nodes
+                .read()
+                .unwrap()
+                .contains_key(&tpl.id)
+                || self
+                    .action_templates
+                    .read()
+                    .unwrap()
+                    .contains_key(&tpl.id)
+            {
+                return Err(format!("id {} already registered", tpl.id));
+            }
             self.paths
                 .write()
                 .unwrap()
@@ -281,6 +300,19 @@ impl NodeRegistry {
             self.nodes.write().unwrap().insert(tpl.id.clone(), tpl);
         } else {
             let tpl = load_action_template(path)?;
+            if self
+                .nodes
+                .read()
+                .unwrap()
+                .contains_key(&tpl.id)
+                || self
+                    .action_templates
+                    .read()
+                    .unwrap()
+                    .contains_key(&tpl.id)
+            {
+                return Err(format!("id {} already registered", tpl.id));
+            }
             self.action_paths
                 .write()
                 .unwrap()
@@ -315,13 +347,34 @@ impl NodeRegistry {
     summary: Регистрирует шаблон узла действия и сохраняет его на диск.
     */
     pub fn register_action_template(&self, tpl: ActionNodeTemplate) -> Result<(), String> {
+        if self
+            .nodes
+            .read()
+            .unwrap()
+            .contains_key(&tpl.id)
+            || self
+                .action_templates
+                .read()
+                .unwrap()
+                .contains_key(&tpl.id)
+        {
+            return Err(format!("id {} already registered", tpl.id));
+        }
         let value = tpl.to_json();
         validate_action_template(&value).map_err(|errs| errs.join(", "))?;
         let file = format!("{}-{}.json", tpl.id, tpl.version);
         let path = self.root.join(file);
         let content = serde_json::to_string(&tpl).map_err(|e| e.to_string())?;
         fs::write(&path, content).map_err(|e| e.to_string())?;
-        self.register(&path)
+        self.action_paths
+            .write()
+            .unwrap()
+            .insert(path.clone(), tpl.id.clone());
+        self.action_templates
+            .write()
+            .unwrap()
+            .insert(tpl.id.clone(), tpl);
+        Ok(())
     }
 
     /// Получение метаданных узла по идентификатору.

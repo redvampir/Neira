@@ -62,3 +62,29 @@ fn registry_lists_action_templates() {
     assert!(ids.contains("action.example.v1"));
     assert!(ids.contains("action.another.v1"));
 }
+
+/* neira:meta
+id: NEI-20250418-duplicate-action-template
+intent: test
+summary: |-
+  Проверяет, что повторная регистрация шаблона с тем же id возвращает ошибку.
+*/
+#[test]
+fn duplicate_action_template_returns_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let registry = NodeRegistry::new(dir.path()).unwrap();
+    let tpl = ActionNodeTemplate {
+        id: "action.example.v1".to_string(),
+        version: "0.1.0".to_string(),
+        action_type: "example".to_string(),
+        links: vec![],
+        confidence_threshold: None,
+        draft_content: None,
+        metadata: backend::node_template::Metadata {
+            schema: "v1".to_string(),
+            extra: Default::default(),
+        },
+    };
+    registry.register_action_template(tpl.clone()).unwrap();
+    assert!(registry.register_action_template(tpl).is_err());
+}
