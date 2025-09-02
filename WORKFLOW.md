@@ -59,7 +59,7 @@ summary: |
 Коротко по-русски что и зачем изменено (1–2 строки).
 links:
 
-- docs/backend-api.md#section
+- docs/api/spinal_cord.md#section
 - DECISIONS.md#ADR-XXX
   env:
 - SOME_ENV_FLAG

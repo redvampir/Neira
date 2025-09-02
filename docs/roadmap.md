@@ -77,7 +77,7 @@ summary: Чистовая дорожная карта Stage 0 → Stage 1: це�
 - Рискованные изменения по умолчанию в safe‑mode и `dry_run`.
 
 ## Документация и ссылки
-- API: docs/api/backend.md, docs/api/chat.md
+- API: docs/api/spinal_cord.md, docs/api/chat.md
 - Homeostasis & Control: docs/design/homeostasis.md
 - Метрики: docs/reference/metrics.md, docs/reference/persona-metrics.md
 - ENV: docs/reference/env.md
@@ -128,7 +128,7 @@ Stage 1 — расширение
 - Эксперименты/A‑B: включение experimental‑фич на долю трафика с авто‑откатом.
 - Runtime Extensibility (read‑only): каталог плагинов/инструментов (исполнение LOCKED).
 
-Ссылки: docs/api/backend.md, docs/reference/metrics.md, JOURNALING.md, CAPABILITIES.md.
+Ссылки: docs/api/spinal_cord.md, docs/reference/metrics.md, JOURNALING.md, CAPABILITIES.md.
 
 ---
 

@@ -1057,7 +1057,7 @@ summary: |
   Политики чата: скоупы read/write/admin, idempotency (LRU+file TTL), rate-limit с ключом,
   safe-mode (write=admin), сохранение входящего user-сообщения с метаданными (source/thread_id).
 links:
-  - docs/backend-api.md
+  - docs/api/spinal_cord.md
   - docs/reference/env.md
   - docs/reference/metrics.md
 env:

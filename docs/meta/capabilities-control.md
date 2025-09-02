@@ -35,4 +35,4 @@ capabilities:
     signals: [throttle_events_total, retry_backoff_applied_total]
 ```
 
-См. также: docs/design/homeostasis.md, docs/api/backend.md, docs/reference/metrics.md
+См. также: docs/design/homeostasis.md, docs/api/spinal_cord.md, docs/reference/metrics.md

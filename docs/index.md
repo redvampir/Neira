@@ -82,7 +82,7 @@ summary: Заменены backend/frontend на spinal_cord/sensory_organs.
   - [spinal_cord](api/backend.md)
   - [chat](api/chat.md)
   - [factory](api/factory.md)
-- [spinal_cord-api](backend-api.md)
+- [spinal_cord API](api/spinal_cord.md)
 - [pathways](pathways.md)
 - meta/
   - [biology-glossary](meta/biology-glossary.md)
