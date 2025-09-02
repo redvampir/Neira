@@ -4,11 +4,29 @@ intent: code
 summary: Создан модуль immune_system с функцией observe.
 */
 
+use crate::event_bus::{CellCreated, Event, OrganBuilt, Subscriber};
 use crate::factory::StemCellRecord;
 use jsonschema_valid::ValidationError;
 
 pub fn observe(_record: &StemCellRecord) {
     metrics::counter!("immune_observations_total").increment(1);
+}
+
+/* neira:meta
+id: NEI-20251227-immune-subscriber
+intent: code
+summary: Подписчик immune_system на события CellCreated и OrganBuilt.
+*/
+pub struct ImmuneSystemSubscriber;
+
+impl Subscriber for ImmuneSystemSubscriber {
+    fn on_event(&self, event: &dyn Event) {
+        if let Some(ev) = event.as_any().downcast_ref::<CellCreated>() {
+            observe(&ev.record);
+        } else if event.as_any().downcast_ref::<OrganBuilt>().is_some() {
+            metrics::counter!("immune_organs_total").increment(1);
+        }
+    }
 }
 
 /* neira:meta

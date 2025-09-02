@@ -12,6 +12,12 @@ pub mod config;
 pub mod context;
 pub mod hearing;
 pub mod idempotent_store;
+/* neira:meta
+id: NEI-20251227-event-bus-export
+intent: code
+summary: Экспортирован модуль event_bus.
+*/
+pub mod event_bus;
 pub mod immune_system;
 pub mod memory_cell;
 pub mod nervous_system;

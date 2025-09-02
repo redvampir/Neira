@@ -27,13 +27,14 @@ use crate::action::diagnostics_cell::DiagnosticsCell;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
+use crate::event_bus::{CellCreated, EventBus, OrganBuilt};
 use crate::factory::{FabricatorCell, SelectorCell, StemCellFactory};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
-#[allow(unused_imports)]
-use crate::immune_system;
+use crate::immune_system::ImmuneSystemSubscriber;
 use crate::nervous_system::{
-    host_metrics::HostMetrics, io_watcher::IoWatcher, watchdog::Watchdog, SystemProbe,
+    host_metrics::HostMetrics, io_watcher::IoWatcher, watchdog::Watchdog, NervousSystemSubscriber,
+    SystemProbe,
 };
 use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_cell::IntegrityCheckerCell;
@@ -96,6 +97,7 @@ pub struct SynapseHub {
     // Factory service (adapter-only for now)
     factory: Arc<StemCellFactory>,
     organ_builder: Arc<OrganBuilder>,
+    event_bus: Arc<EventBus>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -168,6 +170,10 @@ impl SynapseHub {
 
         let queue_cfg = QueueConfig::new(&memory);
 
+        let event_bus = EventBus::new();
+        event_bus.subscribe(Arc::new(NervousSystemSubscriber));
+        event_bus.subscribe(Arc::new(ImmuneSystemSubscriber));
+
         let hub = Self {
             registry,
             memory,
@@ -199,6 +205,7 @@ impl SynapseHub {
                 .unwrap_or(200),
             factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
+            event_bus,
         };
 
         // Spawn host metrics polling loop
@@ -278,7 +285,11 @@ impl SynapseHub {
         backend: &str,
         tpl: &crate::cell_template::CellTemplate,
     ) -> Result<crate::factory::StemCellRecord, ValidationError> {
-        self.factory.create_record(backend, tpl)
+        let rec = self.factory.create_record(backend, tpl)?;
+        self.event_bus.publish(&CellCreated {
+            record: rec.clone(),
+        });
+        Ok(rec)
     }
     pub fn factory_advance(&self, id: &str) -> Option<crate::factory::StemCellState> {
         self.factory.advance(id)
@@ -302,8 +313,15 @@ impl SynapseHub {
     intent: code
     summary: добавлены методы обновления и получения статусов органа.
     */
+    /* neira:meta
+    id: NEI-20251227-organ-built-event
+    intent: code
+    summary: Публикует событие OrganBuilt при запуске сборки.
+    */
     pub fn organ_build(&self, tpl: serde_json::Value) -> String {
-        self.organ_builder.start_build(tpl)
+        let id = self.organ_builder.start_build(tpl);
+        self.event_bus.publish(&OrganBuilt { id: id.clone() });
+        id
     }
 
     /* neira:meta
