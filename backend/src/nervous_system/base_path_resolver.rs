@@ -28,7 +28,7 @@ pub fn resolve_base_path() -> Option<PathBuf> {
     None
 }
 
-/// Node that resolves the base path once and stores it in the `MemoryCell`
+/// Cell that resolves the base path once and stores it in the `MemoryCell`
 /// under the `base_path` key.
 #[derive(Default)]
 pub struct BasePathResolverCell;
