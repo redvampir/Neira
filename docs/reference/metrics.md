@@ -98,6 +98,11 @@ id: NEI-20250310-factory-auto-failure-metrics-docs
 intent: docs
 summary: добавлены счётчики неудачных auto_heal и auto_rollback.
 -->
+<!-- neira:meta
+id: NEI-20250320-factory-auto-response-duration
+intent: docs
+summary: документирована метрика factory_auto_response_duration_ms с лейблом action.
+-->
 | metric | type | unit | scope | description |
 |---|---|---|---|---|
 | factory_cells_created_total | counter | cells | Factory | Создано клеток (всего) |
@@ -110,6 +115,7 @@ summary: добавлены счётчики неудачных auto_heal и aut
 | factory_auto_rollbacks_total | counter | ops | Factory | Авто‑откат по тревоге |
 | factory_auto_heal_failures_total | counter | ops | Factory | Неудачные авто‑отключения |
 | factory_auto_rollback_failures_total | counter | ops | Factory | Неудачные авто‑откаты |
+| factory_auto_response_duration_ms{action=heal\|rollback} | histogram | ms | Factory | Длительность auto_heal/auto_rollback (лейбл action: тип реакции) |
 | organ_build_attempts_total | counter | ops | OrganBuilder | Попытки сборки органов |
 | organ_build_failures_total | counter | ops | OrganBuilder | Ошибки сборки органов |
 | organ_build_status_queries_total | counter | ops | OrganBuilder | Запросы статуса органа |
