@@ -23,6 +23,7 @@ summary: Прямые вызовы watch/observe убраны в пользу с
 use std::collections::HashMap;
 use std::io::Write;
 use std::sync::{Arc, RwLock};
+use std::time::Instant;
 
 use chrono::{DateTime, Utc};
 
@@ -181,7 +182,13 @@ impl StemCellFactory {
     intent: code
     summary: Добавлены счётчики неудачных auto_heal и auto_rollback.
     */
+    /* neira:meta
+    id: NEI-20250320-factory-auto-response-duration
+    intent: code
+    summary: Замеряем длительность auto_heal и auto_rollback.
+    */
     pub fn auto_heal(&self, id: &str) -> Option<StemCellState> {
+        let start = Instant::now();
         let res = self.disable(id);
         if let Some(_) = res {
             metrics::counter!("factory_auto_heals_total").increment(1);
@@ -193,10 +200,17 @@ impl StemCellFactory {
         } else {
             metrics::counter!("factory_auto_heal_failures_total").increment(1);
         }
+        let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
+        metrics::histogram!(
+            "factory_auto_response_duration_ms",
+            "action" => "heal"
+        )
+        .record(elapsed_ms);
         res
     }
 
     pub fn auto_rollback(&self, id: &str) -> Option<StemCellState> {
+        let start = Instant::now();
         let res = self.rollback(id);
         if let Some(_) = res {
             metrics::counter!("factory_auto_rollbacks_total").increment(1);
@@ -208,6 +222,12 @@ impl StemCellFactory {
         } else {
             metrics::counter!("factory_auto_rollback_failures_total").increment(1);
         }
+        let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
+        metrics::histogram!(
+            "factory_auto_response_duration_ms",
+            "action" => "rollback"
+        )
+        .record(elapsed_ms);
         res
     }
 
