@@ -10,6 +10,11 @@ name: CI
 # intent: ci
 # summary: Установлена переменная CELL_TEMPLATES_DIR для тестов.
 
+# neira:meta
+# id: NEI-20260422-ci-rename-components
+# intent: ci
+# summary: Обновлены пути на spinal_cord и sensory_organs.
+
 on:
   push:
     branches: [ main ]
@@ -35,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          npm ci --prefix frontend
+          npm ci --prefix sensory_organs
       - name: Check duplicate crates
         run: scripts/check-duplicates.sh
       - name: Lint
@@ -46,9 +51,9 @@ jobs:
         run: |
           npm run generate-cell-docs
           git diff --exit-code docs/cell-ids.md
-      - name: Test backend
-        run: cargo test --manifest-path backend/Cargo.toml
-      - name: Test frontend
-        run: npm test --prefix frontend
+      - name: Test spinal cord
+        run: cargo test --manifest-path spinal_cord/Cargo.toml
+      - name: Test sensory organs
+        run: npm test --prefix sensory_organs
       - name: Test root
         run: npm test
