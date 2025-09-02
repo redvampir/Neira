@@ -5,9 +5,28 @@ summary: |-
   Выделен модуль Watchdog: вычисление таймаутов по ENV,
   инкремент счётчиков и отправка webhook при hard‑срабатываниях.
 */
+/* neira:meta
+id: NEI-20250902-watchdog-anomaly
+intent: feature
+summary: |
+  Добавлена проверка аномалий в метриках watchdog.
+*/
 
 use regex::Regex;
 use serde_json::json;
+use tracing::warn;
+
+/// Минимальный набор метрик watchdog.
+#[derive(Debug, Default)]
+pub struct Metrics {
+    pub soft: f64,
+    pub hard: f64,
+}
+
+/// Простое правило: любое значение hard > 0 считается аномалией.
+pub fn detect_anomaly(metrics: &Metrics) -> bool {
+    metrics.hard > 0.0
+}
 
 /// Конфигурация и утилиты сторожевого таймера (watchdog).
 pub struct Watchdog {
@@ -96,6 +115,13 @@ impl Watchdog {
                 })
                 .unwrap_or(0.0)
         };
-        (re("soft"), re("hard"))
+        let metrics = Metrics {
+            soft: re("soft"),
+            hard: re("hard"),
+        };
+        if detect_anomaly(&metrics) {
+            warn!(?metrics, "watchdog anomaly detected");
+        }
+        (metrics.soft, metrics.hard)
     }
 }

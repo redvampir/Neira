@@ -4,6 +4,12 @@ intent: docs
 summary: |
   Собирает метрики хоста и пересылает их коллектору.
 */
+/* neira:meta
+id: NEI-20250902-host-metrics-new-cells
+intent: feature
+summary: |
+  Добавлен сбор количества новых клеток.
+*/
 
 use std::sync::Arc;
 
@@ -14,25 +20,49 @@ use tokio::time::{sleep, Duration};
 use super::SystemProbe;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::analysis_cell::QualityMetrics;
+use crate::factory::StemCellFactory;
 
 const CPU_HIGH_THRESHOLD: f64 = 80.0;
 const MEM_HIGH_THRESHOLD: f64 = 80.0;
+const NEW_CELLS_HIGH_THRESHOLD: u64 = 5;
+
+/// Сводные метрики хоста, включая сведения о новых клетках.
+#[derive(Debug, Default)]
+pub struct Metrics {
+    pub cpu: f64,
+    pub mem_percent: f64,
+    pub new_cells: u64,
+}
+
+/// Простейшая проверка превышения порогов.
+pub fn detect_anomaly(metrics: &Metrics) -> bool {
+    metrics.cpu > CPU_HIGH_THRESHOLD
+        || metrics.mem_percent > MEM_HIGH_THRESHOLD
+        || metrics.new_cells > NEW_CELLS_HIGH_THRESHOLD
+}
 
 /// Collects host level metrics and forwards them to the metrics system.
 pub struct HostMetrics {
     sys: System,
     collector: Arc<MetricsCollectorCell>,
+    factory: Arc<StemCellFactory>,
+    last_total_cells: usize,
 }
 
 impl HostMetrics {
     /// Create a new host metrics collector.
-    pub fn new(collector: Arc<MetricsCollectorCell>) -> Self {
+    pub fn new(collector: Arc<MetricsCollectorCell>, factory: Arc<StemCellFactory>) -> Self {
         let sys = System::new_with_specifics(
             RefreshKind::new()
                 .with_cpu(CpuRefreshKind::everything())
                 .with_memory(MemoryRefreshKind::everything()),
         );
-        Self { sys, collector }
+        Self {
+            sys,
+            collector,
+            factory,
+            last_total_cells: 0,
+        }
     }
 }
 
@@ -60,7 +90,26 @@ impl SystemProbe for HostMetrics {
             0.0
         };
 
-        if cpu > CPU_HIGH_THRESHOLD || mem_percent > MEM_HIGH_THRESHOLD {
+        // данные о клетках
+        let (total_cells, active_cells) = self.factory.counts();
+        metrics::gauge!("factory_cells_total").set(total_cells as f64);
+        metrics::gauge!("factory_cells_active").set(active_cells as f64);
+        let new_cells = if total_cells > self.last_total_cells {
+            total_cells - self.last_total_cells
+        } else {
+            0
+        };
+        if new_cells > 0 {
+            metrics::counter!("factory_new_cells_total").increment(new_cells as u64);
+        }
+        self.last_total_cells = total_cells;
+
+        let m = Metrics {
+            cpu,
+            mem_percent,
+            new_cells: new_cells as u64,
+        };
+        if detect_anomaly(&m) {
             self.collector.set_low();
         } else {
             self.collector.set_normal();
