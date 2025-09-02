@@ -9,6 +9,13 @@ id: NEI-20240607-io-watcher-stop
 intent: feature
 summary: Добавлен токен остановки и метод stop для завершения наблюдения.
 */
+/* neira:meta
+id: NEI-20250526-io-watcher-select
+intent: refactor
+summary: |-
+  Цикл чтения переписан на tokio::select! для одновременного ожидания ввода
+  и сигнала отмены.
+*/
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -79,22 +86,24 @@ impl SystemProbe for IoWatcher {
         let mut stdout = tokio::io::stdout();
         let mut buf = [0u8; 1];
         loop {
-            if self.shutdown.is_cancelled() {
-                break;
-            }
             let start_in = Instant::now();
-            if stdin.read_exact(&mut buf).await.is_ok() {
-                let latency_in = start_in.elapsed();
-                self.record_keyboard_latency(latency_in);
-
-                let start_out = Instant::now();
-                if stdout.write_all(&buf).await.is_ok() {
-                    let latency_out = start_out.elapsed();
-                    self.record_display_latency(latency_out);
-                    let _ = stdout.flush().await;
+            tokio::select! {
+                _ = self.shutdown.cancelled() => {
+                    break;
                 }
-            } else {
-                tokio::task::yield_now().await;
+                result = stdin.read_exact(&mut buf) => {
+                    if result.is_ok() {
+                        let latency_in = start_in.elapsed();
+                        self.record_keyboard_latency(latency_in);
+
+                        let start_out = Instant::now();
+                        if stdout.write_all(&buf).await.is_ok() {
+                            let latency_out = start_out.elapsed();
+                            self.record_display_latency(latency_out);
+                            let _ = stdout.flush().await;
+                        }
+                    }
+                }
             }
         }
     }
