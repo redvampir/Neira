@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StemCellRecord",
+  "type": "object",
+  "required": ["id", "backend", "template_id", "state", "created_at"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "backend": { "type": "string", "minLength": 1 },
+    "template_id": { "type": "string", "minLength": 1 },
+    "state": {
+      "type": "string",
+      "enum": ["Draft", "Canary", "Experimental", "Stable", "Disabled", "RolledBack"]
+    },
+    "created_at": { "type": "string" }
+  },
+  "additionalProperties": false
+}
