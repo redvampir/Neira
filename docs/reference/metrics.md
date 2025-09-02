@@ -13,9 +13,9 @@ summary: добавлена метрика organ_build_duration_ms и стату
 | analysis_requests_total | counter | req | InteractionHub | Входящие анализ‑запросы |
 | analysis_errors_total | counter | err | InteractionHub | Ошибки анализа/тайм‑ауты/отмена |
 | analysis_node_request_duration_ms | histogram | ms | InteractionHub | Длительность анализа (сред/квантили) |
-| chat_node_requests_total | counter | req | EchoChatNode | Вызовы чат‑ноды |
-| chat_node_errors_total | counter | err | EchoChatNode | Ошибки чат‑ноды |
-| chat_node_request_duration_ms | histogram | ms | EchoChatNode | Длительность обработки узлом |
+| chat_node_requests_total | counter | req | EchoChatCell | Вызовы чат‑ноды |
+| chat_node_errors_total | counter | err | EchoChatCell | Ошибки чат‑ноды |
+| chat_node_request_duration_ms | histogram | ms | EchoChatCell | Длительность обработки узлом |
 | messages_saved | counter | msg | FileContextStorage | Сохранённые сообщения |
 | context_loads | counter | op | FileContextStorage | Загрузки контекста |
 | context_misses | counter | op | FileContextStorage | Промахи загрузки |

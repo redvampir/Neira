@@ -11,9 +11,9 @@ use std::sync::{Arc, RwLock};
 
 use chrono::{DateTime, Utc};
 
-use crate::action_node::ActionNode;
-use crate::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
-use crate::node_registry::NodeRegistry;
+use crate::action_cell::ActionCell;
+use crate::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use crate::cell_registry::CellRegistry;
 use crate::factory::format_state_local as _format_state_local_import;
 use crate::node_template::NodeTemplate;
 use tokio_util::sync::CancellationToken;
@@ -159,26 +159,26 @@ impl FactoryService {
     }
 }
 
-// Простейший фабрикатор (Adapter‑only) — ActionNode заглушка
-pub struct FabricatorNode;
+// Простейший фабрикатор (Adapter‑only) — ActionCell заглушка
+pub struct FabricatorCell;
 
-impl ActionNode for FabricatorNode {
+impl ActionCell for FabricatorCell {
     fn id(&self) -> &str { "factory.adapter" }
-    fn preload(&self, _triggers: &[String], _memory: &Arc<crate::memory_node::MemoryNode>) {}
+    fn preload(&self, _triggers: &[String], _memory: &Arc<crate::memory_cell::MemoryCell>) {}
 }
 
-impl Default for FabricatorNode { fn default() -> Self { Self } }
+impl Default for FabricatorCell { fn default() -> Self { Self } }
 
 // Selector: анализатор reuse vs create
-pub struct SelectorNode {
-    registry: Arc<NodeRegistry>,
+pub struct SelectorCell {
+    registry: Arc<CellRegistry>,
 }
 
-impl SelectorNode {
-    pub fn new(registry: Arc<NodeRegistry>) -> Self { Self { registry } }
+impl SelectorCell {
+    pub fn new(registry: Arc<CellRegistry>) -> Self { Self { registry } }
 }
 
-impl AnalysisNode for SelectorNode {
+impl AnalysisCell for SelectorCell {
     fn id(&self) -> &str { "factory.selector" }
     fn analysis_type(&self) -> &str { "factory" }
     fn status(&self) -> NodeStatus { NodeStatus::Active }
@@ -199,7 +199,7 @@ impl AnalysisNode for SelectorNode {
         // Эвристика reuse: если id есть и тип не заблокирован — reuse, иначе create
         let mut decision = "create".to_string();
         let mut explain = String::new();
-        if !want_id.is_empty() && self.registry.get_analysis_node(want_id).is_some() {
+        if !want_id.is_empty() && self.registry.get_analysis_cell(want_id).is_some() {
             decision = "reuse".to_string();
             explain = format!("Reuse analysis node: {}", want_id);
         }
@@ -242,7 +242,7 @@ pub(crate) fn format_state_local(st: FabricationState) -> &'static str {
 // Adapter Contracts: единый интерфейс для адаптеров
 pub trait AdapterBackend {
     fn validate(&self) -> Result<(), String>;
-    fn register(&self, registry: &NodeRegistry) -> Result<(), String>;
+    fn register(&self, registry: &CellRegistry) -> Result<(), String>;
     fn ns_is_hooks(&self) -> Result<(), String>;
 }
 
@@ -256,7 +256,7 @@ impl<'a> AdapterBackend for NodeTemplateAdapter<'a> {
         if self.tpl.analysis_type.trim().is_empty() { return Err("invalid_template: empty analysis_type".into()); }
         Ok(())
     }
-    fn register(&self, registry: &NodeRegistry) -> Result<(), String> {
+    fn register(&self, registry: &CellRegistry) -> Result<(), String> {
         registry.register_template(self.tpl.clone())
     }
     fn ns_is_hooks(&self) -> Result<(), String> { Ok(()) }

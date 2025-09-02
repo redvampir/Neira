@@ -1,9 +1,9 @@
-# NodeTemplate
+# CellTemplate
 
 <!-- neira:meta
 id: NEI-20250214-155200-node-template-action-note
 intent: docs
-summary: Добавлено упоминание ActionNodeTemplate и ссылки на схему.
+summary: Добавлено упоминание ActionCellTemplate и ссылки на схему.
 -->
 
 ## Навигация
@@ -31,7 +31,7 @@ summary: Добавлено упоминание ActionNodeTemplate и ссыл�
 
 
 Шаблон для создания узлов анализа. Обязательными являются поля `id`, `analysis_type` и `metadata`.
-Для узлов действий используется отдельный шаблон `ActionNodeTemplate` с полем
+Для узлов действий используется отдельный шаблон `ActionCellTemplate` с полем
 `action_type`; его схема находится по пути
 [`schemas/v1/action-node-template.schema.json`](../../schemas/v1/action-node-template.schema.json).
 
@@ -78,9 +78,9 @@ summary: Добавлено упоминание ActionNodeTemplate и ссыл�
 В коде поле можно получить из `metadata.extra`:
 
 ```rust
-use backend::node_template::NodeTemplate;
+use backend::node_template::CellTemplate;
 
-let template: NodeTemplate = serde_json::from_str(json).unwrap();
+let template: CellTemplate = serde_json::from_str(json).unwrap();
 if let Some(id) = template.metadata.extra.get("dataset_id").and_then(|v| v.as_str()) {
     println!("dataset id: {id}");
 }
@@ -93,7 +93,7 @@ if let Some(id) = template.metadata.extra.get("dataset_id").and_then(|v| v.as_st
 ```json
 {
   "id": "example.template",
-  "analysis_type": "ProgrammingSyntaxNode",
+  "analysis_type": "ProgrammingSyntaxCell",
   "links": ["prog.syntax.base"],
   "confidence_threshold": 0.8,
   "draft_content": "Initial description",
@@ -111,7 +111,7 @@ if let Some(id) = template.metadata.extra.get("dataset_id").and_then(|v| v.as_st
 
 ```yaml
 id: example.template
-analysis_type: ProgrammingSyntaxNode
+analysis_type: ProgrammingSyntaxCell
 links:
   - prog.syntax.base
 confidence_threshold: 0.8
@@ -148,7 +148,7 @@ let schema = load_schema_from(Path::new("schemas/v1/node-template.schema.json"))
 
 ## Генератор шаблонов
 
-Утилита `generate_node` создаёт заготовку NodeTemplate на основе выбранной схемы и выводит её в stdout.
+Утилита `generate_node` создаёт заготовку CellTemplate на основе выбранной схемы и выводит её в stdout.
 
 Запуск:
 
@@ -174,4 +174,4 @@ cargo run --bin generate_node -- --schema v1
 
 ## Схемы
 
-JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для NodeTemplate хранятся в `schemas/vX/node-template.schema.json`, где `X` — номер мажорной версии. Для узлов действий используйте `schemas/vX/action-node-template.schema.json`. При несовместимых изменениях повышайте версию: `1.0.0` → `2.0.0`.
+JSON‑схемы расположены в каталоге [schemas](schemas). Схемы для CellTemplate хранятся в `schemas/vX/node-template.schema.json`, где `X` — номер мажорной версии. Для узлов действий используйте `schemas/vX/action-node-template.schema.json`. При несовместимых изменениях повышайте версию: `1.0.0` → `2.0.0`.

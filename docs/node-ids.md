@@ -2,10 +2,10 @@
 id: NEI-20250101-000005-node-ids-doc
 intent: docs
 summary: |
-  Node identifiers generated from organ specs.
+  Cell identifiers generated from organ specs.
 -->
 
-# Node IDs
+# Cell IDs
 
 ## organ.voice.v1
 

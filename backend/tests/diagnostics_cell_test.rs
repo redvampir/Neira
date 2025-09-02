@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use backend::action::diagnostics_node::DiagnosticsNode;
-use backend::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
-use backend::analysis_node::QualityMetrics;
+use backend::action::diagnostics_cell::DiagnosticsCell;
+use backend::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
+use backend::analysis_cell::QualityMetrics;
 use tokio::time::{sleep, Duration};
 
 #[tokio::test]
 async fn diagnostics_attempts_fix_success() {
-    let (metrics, rx) = MetricsCollectorNode::channel();
+    let (metrics, rx) = MetricsCollectorCell::channel();
     let (_node, mut dev_rx, _alert_rx) =
-        DiagnosticsNode::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| true));
+        DiagnosticsCell::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| true));
 
     metrics.record(MetricsRecord {
         id: "m1".into(),
@@ -25,9 +25,9 @@ async fn diagnostics_attempts_fix_success() {
 
 #[tokio::test]
 async fn diagnostics_emits_developer_request_on_failed_fix() {
-    let (metrics, rx) = MetricsCollectorNode::channel();
+    let (metrics, rx) = MetricsCollectorCell::channel();
     let (_node, mut dev_rx, _alert_rx) =
-        DiagnosticsNode::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| false));
+        DiagnosticsCell::new_with_fix(rx, 1, metrics.clone(), Arc::new(|| false));
 
     metrics.record(MetricsRecord {
         id: "m2".into(),

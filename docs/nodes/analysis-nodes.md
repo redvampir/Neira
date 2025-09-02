@@ -1,4 +1,4 @@
-# Узлы анализа (Analysis Nodes)
+# Узлы анализа (Analysis Cells)
 
 ## Навигация
 - [Обзор Нейры](README.md)
@@ -13,7 +13,7 @@
 - [Механизм саморазвивающейся системы](self-updating-system.md)
 
 ## Оглавление
-- [NodeTemplate](#nodetemplate)
+- [CellTemplate](#nodetemplate)
 - [1. Базовый интерфейс узла](#1-базовый-интерфейс-узла)
   - [Сериализация и версионирование](#сериализация-и-версионирование)
 - [2. Иерархия и назначение подтипов](#2-иерархия-и-назначение-подтипов)
@@ -83,7 +83,7 @@ struct QualityMetrics {
 Поле `analysis_type` относится к описанию узла и в `AnalysisResult` не сериализуется.
 
 После выполнения `analyze()` узел анализа всегда передаёт рассчитанные
-`QualityMetrics` и `uncertainty_score` в связанный `MemoryNode`, например через метод
+`QualityMetrics` и `uncertainty_score` в связанный `MemoryCell`, например через метод
 `push_metrics()`.
 
 ### Пример HTTP/JSON/TOML вызова
@@ -233,10 +233,10 @@ source: "https://example.org"
 
 #### Общая методика
 - Прогрессивная сложность: переход к следующему уровню допускается только при достижении 95 % точности.
-- Контроль качества: для каждой задачи фиксируются `quality_metrics`, `reasoning_chain` и `uncertainty_score`, отчёты сохраняются в `MemoryNode`.
+- Контроль качества: для каждой задачи фиксируются `quality_metrics`, `reasoning_chain` и `uncertainty_score`, отчёты сохраняются в `MemoryCell`.
 - Автономность: после уровня 2 узлы могут инициировать создание подтипов; на уровне 4 — предлагать и проверять гипотезы.
 
-## NodeTemplate
+## CellTemplate
 
 | Поле | Тип | Обязательное | Описание |
 | --- | --- | --- | --- |
@@ -248,7 +248,7 @@ source: "https://example.org"
 | `metadata` | object | да | Дополнительные метаданные в формате ключ‑значение. Должно содержать поле `schema`. |
 
 ```rust
-struct NodeTemplate {
+struct CellTemplate {
     id: String,
     analysis_type: String,
     links: Vec<String>,
@@ -260,9 +260,9 @@ struct NodeTemplate {
 
 Поля сериализуются в JSON с `snake_case`. `links` передаётся как массив строк, `metadata` — как объект; отсутствующие необязательные поля опускаются.
 
-### Преобразование NodeTemplate → AnalysisNode
+### Преобразование CellTemplate → AnalysisCell
 
-| Поле NodeTemplate | Поле AnalysisNode |
+| Поле CellTemplate | Поле AnalysisCell |
 | --- | --- |
 | `id` | `id` |
 | `analysis_type` | `analysis_type` |
@@ -278,7 +278,7 @@ struct NodeTemplate {
 ```json
 {
   "id": "example.template",
-  "analysis_type": "ProgrammingSyntaxNode",
+  "analysis_type": "ProgrammingSyntaxCell",
   "links": ["prog.syntax.base"],
   "confidence_threshold": 0.8,
   "draft_content": "Initial description",
@@ -294,7 +294,7 @@ struct NodeTemplate {
 ```json
 {
   "id": "example.template",
-  "analysis_type": "ProgrammingSyntaxNode",
+  "analysis_type": "ProgrammingSyntaxCell",
   "links": ["prog.syntax.base"],
   "status": "draft",
   "confidence_threshold": 0.8,
@@ -313,7 +313,7 @@ struct NodeTemplate {
 
 ```yaml
 id: example.template
-analysis_type: ProgrammingSyntaxNode
+analysis_type: ProgrammingSyntaxCell
 links:
   - prog.syntax.base
 confidence_threshold: 0.8
@@ -327,7 +327,7 @@ metadata:
 
 ```yaml
 id: example.template
-analysis_type: ProgrammingSyntaxNode
+analysis_type: ProgrammingSyntaxCell
 links:
   - prog.syntax.base
 status: draft
@@ -343,7 +343,7 @@ metadata:
 **Проверка перед ревью:** сохраните шаблон в файл и проверьте его с помощью JSON Schema, например командой `npx ajv validate -s schemas/v1/node-template.schema.json -d node-template.json`. Для YAML используйте `npx ajv validate -s schemas/v1/node-template.schema.json -d node-template.yaml` или `yamllint` для проверки синтаксиса.
 
 ## 1. Базовый интерфейс узла
-- **Интерфейс:** `AnalysisNode`
+- **Интерфейс:** `AnalysisCell`
  - **Свойства:** идентификатор, `analysis_type`, `links`, `confidence_threshold`, `reasoning_chain`, `uncertainty_score`.
 - **Методы:** `analyze()`, `explain()`, `updateContext()` и т. п.
 - **Назначение:** единый контракт для всех типов узлов, обеспечивающий расширяемость и полиморфизм.
@@ -374,12 +374,12 @@ metadata:                  # опционально
 
 Поле `status` фиксирует жизненный цикл узла: `draft` — в разработке, `active` — готов к использованию, `deprecated` — устарел и подлежит замене, `error` — содержит ошибки и не должен применяться. `reasoning_chain` формируется как упорядоченный список шагов, добавляемых узлом во время работы методов `analyze()` и `updateContext()`, что позволяет проследить логическую цепочку рассуждений.
 
-#### Пример `ProgrammingSyntaxNode`
+#### Пример `ProgrammingSyntaxCell`
 
 ```json
 {
   "id": "prog.syntax.python.for",
-  "analysis_type": "ProgrammingSyntaxNode",
+  "analysis_type": "ProgrammingSyntaxCell",
   "confidence_threshold": 0.95,
   "links": ["prog.syntax.iteration"],
   "status": "active",
@@ -457,7 +457,7 @@ stateDiagram-v2
 ```json
 {
   "id": "prog.syntax.python.for",
-  "analysis_type": "ProgrammingSyntaxNode",
+  "analysis_type": "ProgrammingSyntaxCell",
   "status": "active",
   "confidence": 0.84,
   "confidence_threshold": 0.8,
@@ -478,7 +478,7 @@ stateDiagram-v2
 
 ```yaml
 id: prog.syntax.python.for
-analysis_type: ProgrammingSyntaxNode
+analysis_type: ProgrammingSyntaxCell
 status: active
 confidence: 0.84
 confidence_threshold: 0.8
@@ -510,12 +510,12 @@ metadata:
 | Обман/Сокрытие (Deception) | Режим, где сообщается частичная или альтернативная информация в ситуациях требования скрытия деталей. |
 | Скептические | Проверка достоверности спорных источников, фильтрация псевдонаучных утверждений. |
 | Логических ловушек | Распознавание и нейтрализация когнитивных и риторических заблуждений (ошибка большинства, «ошибка выжившего» и др.). |
-| BinaryNode | Булева логика, проверка истинности. |
-| NumericNode | Арифметика и пропорции. |
-| ConditionalNode | Ветвления и деревья решений. |
-| ProbabilisticNode | Вероятностные выводы. |
-| AbstractNode | Аналогии и концептуальные карты. |
-| ArtisticNode | Логика композиции и контрастов. |
+| BinaryCell | Булева логика, проверка истинности. |
+| NumericCell | Арифметика и пропорции. |
+| ConditionalCell | Ветвления и деревья решений. |
+| ProbabilisticCell | Вероятностные выводы. |
+| AbstractCell | Аналогии и концептуальные карты. |
+| ArtisticCell | Логика композиции и контрастов. |
 
 **Подтипы «Метакогнитивные» дополнительно включают:**
 - Ошибка‑анализ: локализация и классификация сбоев.
@@ -525,7 +525,7 @@ metadata:
 
 ### Единый оркестратор (InteractionHub)
 - Все запросы пользователя проходят через оркестратор.
-- AnalysisNode создаёт контекст запроса и обращается к MemoryNode или ActionNode только через InteractionHub, что обеспечивает проверку прав доступа и логирование.
+- AnalysisCell создаёт контекст запроса и обращается к MemoryCell или ActionCell только через InteractionHub, что обеспечивает проверку прав доступа и логирование.
 - Ответы узлов агрегируются обратно в оркестратор, который связывает цепочку Analysis⇄Memory⇄Action, вычисляет степень уверенности и формирует итог.
 
 ### Планировщик задач (TaskScheduler)
@@ -533,7 +533,7 @@ metadata:
   - **`fast`** — короткие операции, которые завершаются менее чем за минуту и выполняются синхронно.
   - **`standard`** — типовые задачи до 30 минут; пользователь может получать промежуточные уведомления о ходе выполнения.
   - **`long`** — ресурсоёмкие вычисления до 8 часов, обрабатываются асинхронно с периодическими отчётами о прогрессе.
-- AnalysisNode оценивает требуемое время и отправляет задачу в соответствующую очередь.
+- AnalysisCell оценивает требуемое время и отправляет задачу в соответствующую очередь.
 - Для долгих задач система возвращает пользователю идентификатор операции и периодически уведомляет о прогрессе.
 
 - TaskScheduler использует три приоритетные очереди:
@@ -581,16 +581,16 @@ cancel(task_id):
 #### Пример обработки долгого запроса
 1. Пользователь отправляет сложный запрос.
 2. InteractionHub регистрирует его и передаёт в очередь `long`.
-3. AnalysisNode делит задачу на подэтапы, обращаясь к MemoryNode и вызывая ActionNode.
+3. AnalysisCell делит задачу на подэтапы, обращаясь к MemoryCell и вызывая ActionCell.
 4. По мере выполнения TaskScheduler сообщает оркестратору о статусе, а тот — пользователю.
 5. После завершения результаты агрегируются в InteractionHub и возвращаются пользователю.
 
 Дополнительные детали см. в разделе [поддерживающих систем](support-systems.md).
 
 ### Детекция триггеров
-- AnalysisNode парсит поток ввода и нормализует токены.
+- AnalysisCell парсит поток ввода и нормализует токены.
 - Сопоставляет их с заранее определённым словарём триггеров.
-- При совпадении формирует команду для ActionNode с перечнем узлов памяти для предзагрузки.
+- При совпадении формирует команду для ActionCell с перечнем узлов памяти для предзагрузки.
 
 Каждый узел анализа после выполнения `analyze()` обязан вызвать `push_metrics()` и синхронизировать показатели качества с соответствующим узлом памяти (см. [«Оценка качества»](#оценка-качества) и [memory-nodes.md](memory-nodes.md)).
 
@@ -646,15 +646,15 @@ fn rate_source(meta: &SourceMeta) -> f32 {
 
 1. **Ингестор** собирает данные из внешних источников (API, репозитории, публикации) и приводит их к единому формату.
 2. **Дедупликация** сравнивает поступившие факты с текущей базой; дубликаты удаляются, а конфликтующие значения помечаются для ручной проверки.
-3. **Шаблонизатор** формирует из очищенных данных черновой `NodeTemplate`, заполняя описание, связи и исходные рейтинги.
-4. **Review**: эксперт получает `NodeTemplate`, проверяет его по чек‑листу и возвращает `AnalysisNode` со статусом `draft`, `approved` или `rejected`.
+3. **Шаблонизатор** формирует из очищенных данных черновой `CellTemplate`, заполняя описание, связи и исходные рейтинги.
+4. **Review**: эксперт получает `CellTemplate`, проверяет его по чек‑листу и возвращает `AnalysisCell` со статусом `draft`, `approved` или `rejected`.
 5. **Регистрация** заносит подтверждённый узел в реестр; идентификатор и метаданные сохраняются для дальнейшего обучения.
 
-Входом этапа служит `NodeTemplate`, выходом — `AnalysisNode` с полем `status`, отражающим решение ревьюера.
+Входом этапа служит `CellTemplate`, выходом — `AnalysisCell` с полем `status`, отражающим решение ревьюера.
 
 ```rust
-fn review_template(template: NodeTemplate) -> AnalysisNode {
-    let mut node = AnalysisNode::from(template);
+fn review_template(template: CellTemplate) -> AnalysisCell {
+    let mut node = AnalysisCell::from(template);
     node.status = if expert_checklist(&node) {
         "approved"
     } else {
@@ -667,7 +667,7 @@ fn review_template(template: NodeTemplate) -> AnalysisNode {
 ### Чек-лист эксперта
 - **Источники:** указаны проверяемые ссылки на публикации или репозитории.
 - **Полнота:** заполнены ключевые поля и метаданные узла.
-- **Связи:** корректно установлены ссылки на связанные `AnalysisNode`.
+- **Связи:** корректно установлены ссылки на связанные `AnalysisCell`.
 
 Пример записи нового узла с метаданными `source`, `timestamp` и `reviewer`:
 
@@ -695,7 +695,7 @@ fn review_template(template: NodeTemplate) -> AnalysisNode {
 
 ## 7. Автономное расширение
 - При обнаружении нового понятия узел инициирует диалог: «Найдено неизвестное правило/техника, добавить новый подтип?».
-- После подтверждения запускается pipeline, и создаётся новый `AnalysisNode` с меткой происхождения (source, timestamp, reviewer).
+- После подтверждения запускается pipeline, и создаётся новый `AnalysisCell` с меткой происхождения (source, timestamp, reviewer).
 - Фабрика узлов автоматически выбирает или порождает нужный подтип на основании контекста и диалога.
 - Метаданные происхождения сохраняются для последующего анализа и обучения.
 - Перед добавлением черновой узел сравнивается с существующими по `id`, содержимому и связям.
@@ -716,7 +716,7 @@ nodes:
 ### Пример функции `resolve_conflict`
 
 ```rust
-fn resolve_conflict(a: &AnalysisNode, b: &AnalysisNode) -> ConflictReport {
+fn resolve_conflict(a: &AnalysisCell, b: &AnalysisCell) -> ConflictReport {
     if a.id == b.id && a.content == b.content && a.links == b.links {
         ConflictReport::new("Полное совпадение", Action::Merge, vec![a.id.clone(), b.id.clone()])
     } else if a.id == b.id {
@@ -822,10 +822,10 @@ while revision < MAX_REVISIONS:
 
 Экспериментальные версии узлов проверяются через A/B‑тесты. Стабильная версия обслуживает основную часть запросов, а кандидат получает ограниченный трафик до завершения испытаний.
 
-Структура `NodeVersion` фиксирует результаты теста:
+Структура `CellVersion` фиксирует результаты теста:
 
 ```yaml
-NodeVersion:
+CellVersion:
   version: string
   metrics:
     success_rate: float        # доля успешных ответов, 0..1
@@ -856,10 +856,10 @@ test_result:
 Возврат на стабильную версию выполняется, если `success_rate` кандидата опускается ниже `rollback_threshold.success_rate` или `performance_gain ≤ 1`. В противном случае кандидат может быть принят как новая стабильная версия.
 ## 15. Регистрация узлов и управление версиями
 
-### NodeState
+### CellState
 
 ```rust
-enum NodeState {
+enum CellState {
     Draft,
     Active,
     Deprecated,
@@ -868,25 +868,25 @@ enum NodeState {
 }
 ```
 
-`NodeState` фиксирует текущий статус узла и помогает отслеживать жизненный цикл версий.
+`CellState` фиксирует текущий статус узла и помогает отслеживать жизненный цикл версий.
 
-### NodeRegistry
+### CellRegistry
 
 ```rust
-struct NodeRegistry {
-    nodes: HashMap<NodeId, NodeState>,
-    versions: HashMap<NodeId, Vec<NodeVersion>>,
+struct CellRegistry {
+    nodes: HashMap<CellId, CellState>,
+    versions: HashMap<CellId, Vec<CellVersion>>,
 }
 ```
 
-`NodeRegistry` хранит сведения о зарегистрированных узлах и связанных с ними версиях.
+`CellRegistry` хранит сведения о зарегистрированных узлах и связанных с ними версиях.
 
 ### VersionManager
 
 ```rust
 struct VersionManager {
-    registry: NodeRegistry,
-    policies: HashMap<NodeId, TrafficPolicy>,
+    registry: CellRegistry,
+    policies: HashMap<CellId, TrafficPolicy>,
 }
 ```
 
@@ -902,7 +902,7 @@ TrafficPolicy:
 
 1. публикуется кандидат и задаётся `TrafficPolicy`;
 2. `VersionManager` направляет трафик согласно схеме;
-3. метрики записываются в `NodeVersion`;
+3. метрики записываются в `CellVersion`;
 4. пользователь решает исход: `promote`, `rollback` или `archive`.
 
 ### Безопасность
@@ -918,10 +918,10 @@ struct SafetyMonitor {
 Каждое переключение фиксируется:
 
 ```yaml
-NodeVersionLog:
+CellVersionLog:
   node_id: string
   version: string
-  state: NodeState
+  state: CellState
   timestamp: string
   reason: string
 ```

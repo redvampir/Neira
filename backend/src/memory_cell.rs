@@ -15,7 +15,7 @@ use chrono::{DateTime, Utc};
 use tokio::spawn;
 use std::time::Instant;
 
-use crate::analysis_node::{AnalysisResult, QualityMetrics, ReasoningStep};
+use crate::analysis_cell::{AnalysisResult, QualityMetrics, ReasoningStep};
 use crate::task_scheduler::{compute_priority, Priority};
 
 #[derive(Debug, Clone, Default)]
@@ -46,13 +46,13 @@ pub struct MemoryRecord {
 }
 
 #[derive(Debug)]
-pub struct MemoryNode {
+pub struct MemoryCell {
     records: RwLock<Vec<MemoryRecord>>,
     checkpoints: RwLock<HashMap<String, AnalysisResult>>,
     preload_cache: RwLock<LruCache<String, Vec<MemoryRecord>>>,
 }
 
-impl MemoryNode {
+impl MemoryCell {
     pub fn new() -> Self {
         Self {
             records: RwLock::new(Vec::new()),
@@ -101,10 +101,10 @@ impl MemoryNode {
     }
 
     pub fn load_checkpoint(&self, id: &str) -> Option<AnalysisResult> {
-        metrics::counter!("memory_node_requests_total").increment(1);
+        metrics::counter!("memory_cell_requests_total").increment(1);
         let res = self.checkpoints.read().unwrap().get(id).cloned();
         if res.is_none() {
-            metrics::counter!("memory_node_errors_total").increment(1);
+            metrics::counter!("memory_cell_errors_total").increment(1);
         }
         res
     }
@@ -122,9 +122,9 @@ impl MemoryNode {
             .cloned()
         {
             let elapsed = start.elapsed().as_secs_f64() * 1000.0;
-            metrics::histogram!("memory_node_preload_duration_ms").record(elapsed);
-            metrics::histogram!("memory_node_preload_duration_ms_p95").record(elapsed);
-            metrics::histogram!("memory_node_preload_duration_ms_p99").record(elapsed);
+            metrics::histogram!("memory_cell_preload_duration_ms").record(elapsed);
+            metrics::histogram!("memory_cell_preload_duration_ms_p95").record(elapsed);
+            metrics::histogram!("memory_cell_preload_duration_ms_p99").record(elapsed);
             return records;
         }
 
@@ -149,9 +149,9 @@ impl MemoryNode {
             .unwrap()
             .put(cache_key, matched.clone());
         let elapsed = start.elapsed().as_secs_f64() * 1000.0;
-        metrics::histogram!("memory_node_preload_duration_ms").record(elapsed);
-        metrics::histogram!("memory_node_preload_duration_ms_p95").record(elapsed);
-        metrics::histogram!("memory_node_preload_duration_ms_p99").record(elapsed);
+        metrics::histogram!("memory_cell_preload_duration_ms").record(elapsed);
+        metrics::histogram!("memory_cell_preload_duration_ms_p95").record(elapsed);
+        metrics::histogram!("memory_cell_preload_duration_ms_p99").record(elapsed);
         matched
     }
 
@@ -246,7 +246,7 @@ impl MemoryNode {
     }
 }
 
-impl Default for MemoryNode {
+impl Default for MemoryCell {
     fn default() -> Self {
         Self::new()
     }

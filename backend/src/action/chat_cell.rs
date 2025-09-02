@@ -6,7 +6,7 @@ use tracing::info;
 
 /// Узел для простого чата.
 #[async_trait]
-pub trait ChatNode: Send + Sync {
+pub trait ChatCell: Send + Sync {
     /// Идентификатор узла.
     fn id(&self) -> &str;
     /// Обрабатывает текстовый запрос и возвращает ответ.
@@ -20,10 +20,10 @@ pub trait ChatNode: Send + Sync {
 }
 
 /// Простейшая реализация узла чата, возвращающая входной текст.
-pub struct EchoChatNode;
+pub struct EchoChatCell;
 
 #[async_trait]
-impl ChatNode for EchoChatNode {
+impl ChatCell for EchoChatCell {
     fn id(&self) -> &str {
         "echo.chat"
     }
@@ -35,7 +35,7 @@ impl ChatNode for EchoChatNode {
         input: &str,
         storage: &dyn ContextStorage,
     ) -> String {
-        metrics::counter!("chat_node_requests_total").increment(1);
+        metrics::counter!("chat_cell_requests_total").increment(1);
         let start = Instant::now();
         let sid_log = session_id.as_deref().unwrap_or("<none>");
         info!(chat_id=%chat_id, session_id=%sid_log, "chat request: {}", input);
@@ -43,7 +43,7 @@ impl ChatNode for EchoChatNode {
         // Если задан session_id, подгружаем контекст диалога
         if let Some(ref sid) = session_id {
             if storage.load_session(chat_id, sid).is_err() {
-                metrics::counter!("chat_node_errors_total").increment(1);
+                metrics::counter!("chat_cell_errors_total").increment(1);
             }
         }
 
@@ -70,14 +70,14 @@ impl ChatNode for EchoChatNode {
                 )
                 .is_err()
             {
-                metrics::counter!("chat_node_errors_total").increment(1);
+                metrics::counter!("chat_cell_errors_total").increment(1);
             }
         }
 
         let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
-        metrics::histogram!("chat_node_request_duration_ms").record(elapsed_ms);
-        metrics::histogram!("chat_node_request_duration_ms_p95").record(elapsed_ms);
-        metrics::histogram!("chat_node_request_duration_ms_p99").record(elapsed_ms);
+        metrics::histogram!("chat_cell_request_duration_ms").record(elapsed_ms);
+        metrics::histogram!("chat_cell_request_duration_ms_p95").record(elapsed_ms);
+        metrics::histogram!("chat_cell_request_duration_ms_p99").record(elapsed_ms);
         info!(
             chat_id=%chat_id,
             session_id=%sid_log,
@@ -89,7 +89,7 @@ impl ChatNode for EchoChatNode {
     }
 }
 
-impl Default for EchoChatNode {
+impl Default for EchoChatCell {
     fn default() -> Self {
         Self
     }
@@ -99,14 +99,14 @@ id: NEI-20250829-setup-meta-chatnode
 intent: docs
 scope: backend/chat-node
 summary: |
-  EchoChatNode: простая отражающая нода. Входящее user‑сообщение сохраняется в InteractionHub,
+  EchoChatCell: простая отражающая нода. Входящее user‑сообщение сохраняется в InteractionHub,
   чтобы избежать дублей; здесь сохраняется ответ ассистента.
 links:
   - docs/backend-api.md
 metrics:
-  - chat_node_requests_total
-  - chat_node_errors_total
-  - chat_node_request_duration_ms
+  - chat_cell_requests_total
+  - chat_cell_errors_total
+  - chat_cell_request_duration_ms
 risks: low
 safe_mode:
   affects_write: true

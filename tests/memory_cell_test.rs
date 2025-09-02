@@ -1,8 +1,8 @@
-struct MemoryNode {
+struct MemoryCell {
     store: Vec<String>,
 }
 
-impl MemoryNode {
+impl MemoryCell {
     fn new() -> Self {
         Self { store: Vec::new() }
     }
@@ -18,7 +18,7 @@ impl MemoryNode {
 
 #[test]
 fn remembers_and_recalls() {
-    let mut node = MemoryNode::new();
+    let mut node = MemoryCell::new();
     node.remember("data");
     assert_eq!(node.recall(), Some(&"data".to_string()));
 }

@@ -44,20 +44,20 @@ use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing::error;
 
-use backend::action::chat_node::EchoChatNode;
-use backend::action::diagnostics_node::DiagnosticsNode;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
-use backend::action_node::PreloadAction;
-use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::action::chat_cell::EchoChatCell;
+use backend::action::diagnostics_cell::DiagnosticsCell;
+use backend::action::metrics_collector_cell::MetricsCollectorCell;
+use backend::action_cell::PreloadAction;
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
 use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
 use backend::factory::{AdapterBackend, FabricationState, NodeTemplateAdapter};
 use backend::interaction_hub::InteractionHub;
-use backend::memory_node::MemoryNode;
-use backend::node_registry::NodeRegistry;
+use backend::memory_cell::MemoryCell;
+use backend::cell_registry::CellRegistry;
 use backend::node_template::NodeTemplate;
 use backend::policy::{Capability, PolicyEngine};
-use backend::security::init_config_node::InitConfigNode;
+use backend::security::init_config_cell::InitConfigCell;
 mod http {
     pub mod training_routes;
 }
@@ -1499,11 +1499,11 @@ async fn main() {
     let templates_dir =
         std::env::var("NODE_TEMPLATES_DIR").unwrap_or_else(|_| "./templates".into());
     let _ = std::fs::create_dir_all(&templates_dir);
-    let registry = Arc::new(NodeRegistry::new(&templates_dir).expect("registry"));
-    let memory = Arc::new(MemoryNode::new());
-    registry.register_init_node(Arc::new(InitConfigNode::new()), &memory);
-    let (metrics, metrics_rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(metrics_rx, 5, metrics.clone());
+    let registry = Arc::new(CellRegistry::new(&templates_dir).expect("registry"));
+    let memory = Arc::new(MemoryCell::new());
+    registry.register_init_node(Arc::new(InitConfigCell::new()), &memory);
+    let (metrics, metrics_rx) = MetricsCollectorCell::channel();
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(metrics_rx, 5, metrics.clone());
     let hub = Arc::new(InteractionHub::new(
         registry.clone(),
         memory.clone(),
@@ -1521,10 +1521,10 @@ async fn main() {
     }
     hub.add_auth_token("secret");
     hub.add_trigger_keyword("echo");
-    registry.register_action_node(Arc::new(PreloadAction::default()));
-    registry.register_scripted_training_node();
+    registry.register_action_cell(Arc::new(PreloadAction::default()));
+    registry.register_scripted_training_cell();
     // Register a default chat node
-    registry.register_chat_node(Arc::new(EchoChatNode::default()));
+    registry.register_chat_cell(Arc::new(EchoChatCell::default()));
 
     // Context storage
     let storage = Arc::new(FileContextStorage::new("context"));
@@ -1549,8 +1549,8 @@ async fn main() {
         metrics::gauge!("sessions_active").set(total as f64);
     }
     // Пример узла анализа
-    struct EchoNode;
-    impl AnalysisNode for EchoNode {
+    struct EchoCell;
+    impl AnalysisCell for EchoCell {
         fn id(&self) -> &str {
             "example.analysis"
         }
@@ -1583,7 +1583,7 @@ async fn main() {
         }
     }
 
-    registry.register_analysis_node(Arc::new(EchoNode));
+    registry.register_analysis_cell(Arc::new(EchoCell));
     let metrics_handle = if cfg.nervous_system.enabled {
         Some(
             PrometheusBuilder::new()
@@ -2539,8 +2539,8 @@ async fn main() {
         .unwrap_or(false)
     {
         // register dev slow analysis node
-        struct DevSlowNode;
-        impl AnalysisNode for DevSlowNode {
+        struct DevSlowCell;
+        impl AnalysisCell for DevSlowCell {
             fn id(&self) -> &str {
                 "dev.slow"
             }
@@ -2581,7 +2581,7 @@ async fn main() {
                 "Dev slow analysis for watchdog tests".into()
             }
         }
-        registry.register_analysis_node(Arc::new(DevSlowNode));
+        registry.register_analysis_cell(Arc::new(DevSlowCell));
 
         async fn dev_long_stream(
             State(state): State<AppState>,
@@ -2721,7 +2721,7 @@ async fn main() {
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
                 let node =
-                    backend::action::scripted_training_node::ScriptedTrainingNode::from_env();
+                    backend::action::scripted_training_cell::ScriptedTrainingCell::from_env();
                 tokio::spawn(async move {
                     let _ = node.run().await;
                 });

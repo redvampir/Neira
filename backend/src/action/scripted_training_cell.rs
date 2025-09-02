@@ -13,9 +13,9 @@ env:
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::action_node::ActionNode;
+use crate::action_cell::ActionCell;
 use crate::context::context_storage::ContextStorage;
-use crate::memory_node::MemoryNode;
+use crate::memory_cell::MemoryCell;
 use serde::{Deserialize, Serialize};
 use tokio::time::{timeout, Duration};
 use tracing::{error, info};
@@ -100,14 +100,14 @@ struct Assertion {
     lt: Option<f64>,
 }
 
-pub struct ScriptedTrainingNode {
+pub struct ScriptedTrainingCell {
     id: String,
     script_path: PathBuf,
     progress_path: PathBuf,
     dry_run: bool,
 }
 
-impl ScriptedTrainingNode {
+impl ScriptedTrainingCell {
     pub fn from_env() -> Self {
         let script = std::env::var("TRAINING_SCRIPT")
             .unwrap_or_else(|_| "examples/training_script.yaml".into());
@@ -219,7 +219,7 @@ impl ScriptedTrainingNode {
             .clone()
             .unwrap_or_else(|| vec![serde_json::json!({})]);
         for row in datasets {
-            metrics::counter!("scripted_training_node_requests_total").increment(1);
+            metrics::counter!("scripted_training_cell_requests_total").increment(1);
             // Build env: script/env + row fields
             let mut env = base_env.clone();
             if let Some(obj) = row.as_object() {
@@ -322,7 +322,7 @@ impl ScriptedTrainingNode {
                         continue;
                     }
                     Err(e) => {
-                        metrics::counter!("scripted_training_node_errors_total").increment(1);
+                        metrics::counter!("scripted_training_cell_errors_total").increment(1);
                         return Err(e);
                     }
                 }
@@ -621,12 +621,12 @@ fn html_escape(s: &str) -> String {
     xml_escape(s)
 }
 
-impl ActionNode for ScriptedTrainingNode {
+impl ActionCell for ScriptedTrainingCell {
     fn id(&self) -> &str {
         &self.id
     }
 
-    fn preload(&self, triggers: &[String], _memory: &Arc<MemoryNode>) {
+    fn preload(&self, triggers: &[String], _memory: &Arc<MemoryCell>) {
         // kick off training when a "train" trigger is present
         if triggers.iter().any(|t| t.eq_ignore_ascii_case("train")) {
             let node = Self { ..self.clone() };
@@ -639,7 +639,7 @@ impl ActionNode for ScriptedTrainingNode {
     }
 }
 
-impl Clone for ScriptedTrainingNode {
+impl Clone for ScriptedTrainingCell {
     fn clone(&self) -> Self {
         Self {
             id: self.id.clone(),
@@ -650,7 +650,7 @@ impl Clone for ScriptedTrainingNode {
     }
 }
 
-impl Default for ScriptedTrainingNode {
+impl Default for ScriptedTrainingCell {
     fn default() -> Self {
         Self::from_env()
     }

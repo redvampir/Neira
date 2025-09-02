@@ -1,4 +1,4 @@
-pub mod integrity_checker_node;
-pub mod init_config_node;
-pub mod quarantine_node;
+pub mod integrity_checker_cell;
+pub mod init_config_cell;
+pub mod quarantine_cell;
 pub mod safe_mode_controller;

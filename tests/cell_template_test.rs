@@ -46,9 +46,8 @@ fn valid_template_is_accepted() {
 
 #[test]
 fn missing_required_fields_are_rejected() {
-    let schema =
-        load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
-            .expect("load schema");
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+        .expect("load schema");
     let value = json!({
         "links": [],
         "metadata": {}
@@ -65,9 +64,8 @@ fn missing_required_fields_are_rejected() {
 
 #[test]
 fn invalid_links_type_fails() {
-    let schema =
-        load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
-            .expect("load schema");
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+        .expect("load schema");
     let value = json!({
         "id": "node",
         "version": "0.1.0",
@@ -87,9 +85,8 @@ fn invalid_links_type_fails() {
 
 #[test]
 fn invalid_confidence_threshold_type_fails() {
-    let schema =
-        load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
-            .expect("load schema");
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+        .expect("load schema");
     let value = json!({
         "id": "node",
         "version": "0.1.0",
@@ -109,9 +106,8 @@ fn invalid_confidence_threshold_type_fails() {
 
 #[test]
 fn empty_id_is_handled() {
-    let schema =
-        load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
-            .expect("load schema");
+    let schema = load_schema_from(std::path::Path::new("schemas/v1/node-template.schema.json"))
+        .expect("load schema");
     let value = json!({
         "id": "",
         "version": "0.1.0",
@@ -128,8 +124,8 @@ fn empty_id_is_handled() {
 
 #[test]
 fn explicit_path_loading_works() {
-    let schema = load_schema_from(Path::new("schemas/v1/node-template.schema.json"))
-        .expect("load schema");
+    let schema =
+        load_schema_from(Path::new("schemas/v1/node-template.schema.json")).expect("load schema");
     let value = json!({
         "id": "explicit",
         "version": "0.1.0",

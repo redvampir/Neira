@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
-use backend::node_registry::NodeRegistry;
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use backend::cell_registry::CellRegistry;
 use tokio_util::sync::CancellationToken;
 
-struct DummyNode;
+struct DummyCell;
 
-impl AnalysisNode for DummyNode {
+impl AnalysisCell for DummyCell {
     fn id(&self) -> &str {
         "dummy"
     }
@@ -31,9 +31,9 @@ impl AnalysisNode for DummyNode {
 }
 
 #[test]
-fn registry_registers_analysis_nodes() {
+fn registry_registers_analysis_cells() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    registry.register_analysis_node(Arc::new(DummyNode));
-    assert!(registry.get_analysis_node("dummy").is_some());
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    registry.register_analysis_cell(Arc::new(DummyCell));
+    assert!(registry.get_analysis_cell("dummy").is_some());
 }

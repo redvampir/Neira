@@ -10,9 +10,9 @@ use std::sync::Arc;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::{info, warn};
 
-use crate::action::diagnostics_node::DeveloperRequest;
-use crate::action_node::ActionNode;
-use crate::memory_node::MemoryNode;
+use crate::action::diagnostics_cell::DeveloperRequest;
+use crate::action_cell::ActionCell;
+use crate::memory_cell::MemoryCell;
 use crate::security::safe_mode_controller::SafeModeController;
 
 /// Node responsible for putting suspicious modules into quarantine.
@@ -20,12 +20,12 @@ use crate::security::safe_mode_controller::SafeModeController;
 /// or restart them. Each quarantine action is logged and a developer
 /// notification is emitted.
 #[derive(Clone)]
-pub struct QuarantineNode {
+pub struct QuarantineCell {
     notify: UnboundedSender<DeveloperRequest>,
     safe_mode: Arc<SafeModeController>,
 }
 
-impl QuarantineNode {
+impl QuarantineCell {
     /// Creates the node and returns a sender for quarantine messages
     /// along with a receiver for developer notifications.
     pub fn new(
@@ -53,10 +53,10 @@ impl QuarantineNode {
     }
 }
 
-impl ActionNode for QuarantineNode {
+impl ActionCell for QuarantineCell {
     fn id(&self) -> &str {
         "security.quarantine"
     }
 
-    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryNode>) {}
+    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryCell>) {}
 }
