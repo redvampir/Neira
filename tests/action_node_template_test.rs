@@ -4,7 +4,7 @@ intent: test
 summary: Проверяет регистрацию и перечисление шаблонов узлов действия.
 */
 use backend::node_registry::NodeRegistry;
-use backend::node_template::ActionNodeTemplate;
+use backend::node_template::{ActionNodeTemplate, NodeTemplate};
 use std::collections::HashSet;
 
 #[test]
@@ -64,16 +64,15 @@ fn registry_lists_action_templates() {
 }
 
 /* neira:meta
-id: NEI-20250418-duplicate-action-template
+id: NEI-20250501-reregister-same-path
 intent: test
-summary: |-
-  Проверяет, что повторная регистрация шаблона с тем же id возвращает ошибку.
+summary: Проверяет, что повторная регистрация по тому же пути заменяет шаблон.
 */
 #[test]
-fn duplicate_action_template_returns_error() {
+fn reregister_same_path_replaces_template() {
     let dir = tempfile::tempdir().unwrap();
     let registry = NodeRegistry::new(dir.path()).unwrap();
-    let tpl = ActionNodeTemplate {
+    let mut tpl = ActionNodeTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -86,5 +85,84 @@ fn duplicate_action_template_returns_error() {
         },
     };
     registry.register_action_template(tpl.clone()).unwrap();
-    assert!(registry.register_action_template(tpl).is_err());
+    tpl.action_type = "updated".to_string();
+    registry.register_action_template(tpl).unwrap();
+    let tpl = registry
+        .get_action_template("action.example.v1")
+        .expect("template exists");
+    assert_eq!(tpl.action_type, "updated");
+}
+
+/* neira:meta
+id: NEI-20250501-different-path-error
+intent: test
+summary: Проверяет, что повторная регистрация с другим путём возвращает ошибку.
+*/
+#[test]
+fn registering_same_id_different_path_returns_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let registry = NodeRegistry::new(dir.path()).unwrap();
+    let tpl1 = ActionNodeTemplate {
+        id: "action.example.v1".to_string(),
+        version: "0.1.0".to_string(),
+        action_type: "example".to_string(),
+        links: vec![],
+        confidence_threshold: None,
+        draft_content: None,
+        metadata: backend::node_template::Metadata {
+            schema: "v1".to_string(),
+            extra: Default::default(),
+        },
+    };
+    let tpl2 = ActionNodeTemplate {
+        id: "action.example.v1".to_string(),
+        version: "0.2.0".to_string(),
+        action_type: "example".to_string(),
+        links: vec![],
+        confidence_threshold: None,
+        draft_content: None,
+        metadata: backend::node_template::Metadata {
+            schema: "v1".to_string(),
+            extra: Default::default(),
+        },
+    };
+    registry.register_action_template(tpl1).unwrap();
+    assert!(registry.register_action_template(tpl2).is_err());
+}
+
+/* neira:meta
+id: NEI-20250501-different-type-error
+intent: test
+summary: Проверяет, что повторная регистрация с другим типом шаблона запрещена.
+*/
+#[test]
+fn registering_same_id_different_type_returns_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let registry = NodeRegistry::new(dir.path()).unwrap();
+    let action_tpl = ActionNodeTemplate {
+        id: "action.example.v1".to_string(),
+        version: "0.1.0".to_string(),
+        action_type: "example".to_string(),
+        links: vec![],
+        confidence_threshold: None,
+        draft_content: None,
+        metadata: backend::node_template::Metadata {
+            schema: "v1".to_string(),
+            extra: Default::default(),
+        },
+    };
+    let node_tpl = NodeTemplate {
+        id: "action.example.v1".to_string(),
+        version: "0.1.0".to_string(),
+        analysis_type: "analysis".to_string(),
+        links: vec![],
+        confidence_threshold: None,
+        draft_content: None,
+        metadata: backend::node_template::Metadata {
+            schema: "v1".to_string(),
+            extra: Default::default(),
+        },
+    };
+    registry.register_action_template(action_tpl).unwrap();
+    assert!(registry.register_template(node_tpl).is_err());
 }
