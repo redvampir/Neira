@@ -9,6 +9,12 @@ id: NEI-20250316-stemcell-rename
 intent: docs
 summary: Обновлён заголовок для stem-cell-factory.
 -->
+<!-- neira:meta
+id: NEI-20240517-120002-index-integration-selfheal
+intent: docs
+summary: |
+  Добавлены разделы про интеграцию с Nervous/Immune и самовосстановление.
+-->
 
 # Документация — оглавление
 
@@ -91,6 +97,18 @@ summary: Обновлён заголовок для stem-cell-factory.
   - [metrics](reference/metrics.md)
   - [persona-metrics](reference/persona-metrics.md)
   - [ports](reference/ports.md)
+
+## Интеграция с Нервной и Иммунной системами
+
+- [nervous_system](design/nervous_system.md)
+- [immune_system](immune_system.md)
+- [factory-system: интеграция](design/factory-system.md#интеграция-с-нервной-и-иммунной-системами)
+
+## Самовосстановление
+
+- [state-and-recovery](design/state-and-recovery.md)
+- [factory-system: самовосстановление](design/factory-system.md#самовосстановление)
+- [self-updating-system](system/self-updating-system.md)
 
 ## Legacy
 
