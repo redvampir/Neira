@@ -14,6 +14,12 @@ id: NEI-20250316-stemcell-rename
 intent: docs
 summary: Термины обновлены на StemCellFactory/StemCellRecord/StemCellState.
 -->
+<!-- neira:meta
+id: NEI-20240517-120001-factory-integration-selfheal
+intent: docs
+summary: |
+  Добавлены разделы интеграции с Nervous/Immune и самовосстановления.
+-->
 
 # Stem Cell Factory System (Фабрикаторы)
 
@@ -38,10 +44,10 @@ Lifecycle (HITL)
 - Canary: ограниченный трафик/теневой запуск; обязательны уведомления и approve.
 - Graduation: по SLO/ошибкам/ресурсам и отсутствию нарушений политик.
 
-Integrations
-- Nervous System: публикация RED/USE метрик, watchdogs, экспорт `/metrics`.
-- Immune System: quarantine hooks, integrity checks, audit trail; safe‑mode (write=admin).
-- Introspection: статусы фабрикаторов/органов/клеток в `/api/neira/introspection/status`.
+## Интеграция с Нервной и Иммунной системами
+- **Нервная система**: публикация RED/USE метрик, watchdogs, экспорт `/metrics`, события `factory.auto_heal` и `factory.auto_rollback`.
+- **Иммунная система**: quarantine hooks, integrity checks, audit trail; safe‑mode (write=admin), запуск `auto_heal`/`auto_rollback`.
+- **Интроспекция**: статусы фабрикаторов/органов/клеток в `/api/neira/introspection/status`.
 
 API (эскиз)
 - POST `/factory/cells/dryrun` → {report: deps/compat/links, risks}
@@ -56,6 +62,11 @@ Metrics (минимальный набор)
 - factory_dryrun_requests_total, factory_approvals_total, factory_rollbacks_total
 - organ_build_attempts_total, organ_build_failures_total
 - training_iterations_total, training_converged_total
+
+## Самовосстановление
+- Аномалии фиксируются через метрики и сигналы Нервной системы.
+- При сбоях Immune System инициирует `auto_heal` для перезапуска клетки.
+- Если восстановление неудачно — `auto_rollback` откатывает до последнего стабильного состояния.
 
 Feature Gates (CAPABILITIES)
 - factory_adapter: experimental — включить адаптер (без кода) + dry‑run/HITL.

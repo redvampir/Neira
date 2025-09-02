@@ -43,6 +43,12 @@ id: NEI-20250210-factory-template-schema-doc
 intent: docs
 summary: описана структура шаблона клетки.
 -->
+<!-- neira:meta
+id: NEI-20240517-120003-factory-api-autoresponse
+intent: docs
+summary: |
+  Добавлены события и API auto_heal/auto_rollback.
+-->
 
 # Factory API (Draft)
 
@@ -63,6 +69,19 @@ All routes require admin token unless noted. Exec routes are gated via CAPABILIT
 
 - POST `/factory/cells/:id/disable|rollback`
   - Resp: { id, state: 'disabled'|'rolled_back' }
+
+- POST `/factory/cells/:id/auto_heal`
+  - Trigger: Immune System при сбое
+  - Resp: { id, state: 'healing'|'failed' }
+
+- POST `/factory/cells/:id/auto_rollback`
+  - Trigger: Immune System при критическом сбое
+  - Resp: { id, state: 'rolled_back' }
+
+## Events
+
+- `factory.auto_heal` — запуск автоматического восстановления клетки.
+- `factory.auto_rollback` — автооткат к последнему стабильному состоянию.
 
 Adapter Contracts (обязательные хуки)
 
