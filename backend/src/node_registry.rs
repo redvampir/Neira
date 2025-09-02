@@ -8,7 +8,7 @@ summary: |
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde_json::Value;
@@ -60,6 +60,57 @@ fn load_action_template(path: &Path) -> Result<ActionNodeTemplate, String> {
     load_template_impl(path, validate_action_template)
 }
 
+/* neira:meta
+id: NEI-20250216-160000-dir-scan
+intent: feature
+summary: |
+  Добавлены утилиты для загрузки файлов и рекурсивного сканирования каталогов шаблонов.
+*/
+fn register_file(
+    path: &Path,
+    nodes: &Arc<RwLock<HashMap<String, NodeTemplate>>>,
+    paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
+    action_tpls: &Arc<RwLock<HashMap<String, ActionNodeTemplate>>>,
+    action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
+) {
+    if let Ok(tpl) = load_template(path) {
+        paths
+            .write()
+            .unwrap()
+            .insert(path.to_path_buf(), tpl.id.clone());
+        nodes.write().unwrap().insert(tpl.id.clone(), tpl);
+        info!("Loaded node template {}", path.display());
+    } else if let Ok(tpl) = load_action_template(path) {
+        action_paths
+            .write()
+            .unwrap()
+            .insert(path.to_path_buf(), tpl.id.clone());
+        action_tpls.write().unwrap().insert(tpl.id.clone(), tpl);
+        info!("Loaded action node template {}", path.display());
+    } else {
+        error!("failed to load template {}", path.display());
+    }
+}
+
+fn scan_dir(
+    dir: &Path,
+    nodes: &Arc<RwLock<HashMap<String, NodeTemplate>>>,
+    paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
+    action_tpls: &Arc<RwLock<HashMap<String, ActionNodeTemplate>>>,
+    action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
+) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                scan_dir(&path, nodes, paths, action_tpls, action_paths);
+            } else if path.is_file() {
+                register_file(&path, nodes, paths, action_tpls, action_paths);
+            }
+        }
+    }
+}
+
 /// Реестр узлов: хранит метаданные и следит за изменениями файлов.
 pub struct NodeRegistry {
     root: PathBuf,
@@ -70,7 +121,7 @@ pub struct NodeRegistry {
     analysis_nodes: Arc<RwLock<HashMap<String, Arc<dyn AnalysisNode + Send + Sync>>>>,
     action_nodes: Arc<RwLock<Vec<Arc<dyn ActionNode>>>>,
     chat_nodes: Arc<RwLock<HashMap<String, Arc<dyn ChatNode + Send + Sync>>>>,
-    _watcher: RecommendedWatcher,
+    _watcher: Arc<Mutex<RecommendedWatcher>>,
 }
 
 impl NodeRegistry {
@@ -111,52 +162,80 @@ impl NodeRegistry {
         let paths_w = paths.clone();
         let action_tpls_w = action_templates.clone();
         let action_paths_w = action_paths.clone();
-        let mut watcher: RecommendedWatcher = RecommendedWatcher::new(
-            move |res: Result<notify::Event, notify::Error>| match res {
-                Ok(event) => {
-                    for path in event.paths {
-                        if !path.is_file() {
-                            continue;
-                        }
-                        match event.kind {
-                            EventKind::Remove(_) => {
-                                if let Some(id) = paths_w.write().unwrap().remove(&path) {
-                                    nodes_w.write().unwrap().remove(&id);
-                                    info!("Removed node {}", id);
-                                } else if let Some(id) =
-                                    action_paths_w.write().unwrap().remove(&path)
-                                {
-                                    action_tpls_w.write().unwrap().remove(&id);
-                                    info!("Removed action node {}", id);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let watcher: Arc<Mutex<RecommendedWatcher>> = Arc::new(Mutex::new(
+            RecommendedWatcher::new(move |res| tx.send(res).unwrap(), Config::default())
+                .map_err(|e| e.to_string())?,
+        ));
+
+        {
+            let nodes_w = nodes_w.clone();
+            let paths_w = paths_w.clone();
+            let action_tpls_w = action_tpls_w.clone();
+            let action_paths_w = action_paths_w.clone();
+            let watcher = watcher.clone();
+            std::thread::spawn(move || {
+                for res in rx {
+                    match res {
+                        Ok(event) => {
+                            for path in event.paths {
+                                match event.kind {
+                                    EventKind::Create(_) => {
+                                        if path.is_dir() {
+                                            if let Err(e) = watcher
+                                                .lock()
+                                                .unwrap()
+                                                .watch(&path, RecursiveMode::Recursive)
+                                            {
+                                                error!("watch error: {e}");
+                                            }
+                                            scan_dir(
+                                                &path,
+                                                &nodes_w,
+                                                &paths_w,
+                                                &action_tpls_w,
+                                                &action_paths_w,
+                                            );
+                                        } else if path.is_file() {
+                                            register_file(
+                                                &path,
+                                                &nodes_w,
+                                                &paths_w,
+                                                &action_tpls_w,
+                                                &action_paths_w,
+                                            );
+                                        }
+                                    }
+                                    EventKind::Remove(_) => {
+                                        if let Some(id) = paths_w.write().unwrap().remove(&path) {
+                                            nodes_w.write().unwrap().remove(&id);
+                                            info!("Removed node {}", id);
+                                        } else if let Some(id) =
+                                            action_paths_w.write().unwrap().remove(&path)
+                                        {
+                                            action_tpls_w.write().unwrap().remove(&id);
+                                            info!("Removed action node {}", id);
+                                        }
+                                    }
+                                    _ => {
+                                        if path.is_file() {
+                                            register_file(
+                                                &path,
+                                                &nodes_w,
+                                                &paths_w,
+                                                &action_tpls_w,
+                                                &action_paths_w,
+                                            );
+                                        }
+                                    }
                                 }
                             }
-                            _ => {
-                                if let Ok(tpl) = load_template(&path) {
-                                    paths_w
-                                        .write()
-                                        .unwrap()
-                                        .insert(path.clone(), tpl.id.clone());
-                                    nodes_w.write().unwrap().insert(tpl.id.clone(), tpl);
-                                    info!("Loaded node template {}", path.display());
-                                } else if let Ok(tpl) = load_action_template(&path) {
-                                    action_paths_w
-                                        .write()
-                                        .unwrap()
-                                        .insert(path.clone(), tpl.id.clone());
-                                    action_tpls_w.write().unwrap().insert(tpl.id.clone(), tpl);
-                                    info!("Loaded action node template {}", path.display());
-                                } else {
-                                    error!("failed to load template {}", path.display());
-                                }
-                            }
                         }
+                        Err(e) => error!("watch error: {e}"),
                     }
                 }
-                Err(e) => error!("watch error: {e}"),
-            },
-            Config::default(),
-        )
-        .map_err(|e| e.to_string())?;
+            });
+        }
 
         /* neira:meta
         id: NEI-20250310-node-registry-recursive
@@ -164,6 +243,8 @@ impl NodeRegistry {
         summary: Включено рекурсивное наблюдение за каталогом шаблонов узлов.
         */
         watcher
+            .lock()
+            .unwrap()
             .watch(&dir, RecursiveMode::Recursive)
             .map_err(|e| e.to_string())?;
 
