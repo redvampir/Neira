@@ -540,6 +540,12 @@ Neira поддерживает пользовательские системны
 нужно реализовать трейt [`SystemProbe`](spinal_cord/src/nervous_system/mod.rs) и
 запустить его в фоне:
 
+<!-- neira:meta
+id: NEI-20240607-systemprobe-doc-stop
+intent: docs
+summary: Пример SystemProbe обновлён методом stop.
+-->
+
 ```rust
 use neira::nervous_system::SystemProbe;
 
@@ -553,6 +559,10 @@ impl SystemProbe for CustomProbe {
 
     fn collect(&mut self) {
         // сбор и публикация метрик
+    }
+
+    fn stop(&mut self) {
+        // завершение фонового цикла
     }
 }
 

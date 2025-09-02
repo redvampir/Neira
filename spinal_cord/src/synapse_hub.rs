@@ -25,6 +25,11 @@ id: NEI-20250902-host-metrics-factory
 intent: refactor
 summary: HostMetrics теперь принимает фабрику для учёта новых клеток.
 */
+/* neira:meta
+id: NEI-20240607-probe-stop
+intent: feature
+summary: SynapseHub хранит токены проб и останавливает их при завершении работы.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -74,6 +79,11 @@ struct TokenInfo {
     scopes: Vec<Scope>,
 }
 
+struct ProbeHandle {
+    handle: JoinHandle<()>,
+    token: CancellationToken,
+}
+
 pub struct SynapseHub {
     pub registry: Arc<CellRegistry>,
     pub memory: Arc<MemoryCell>,
@@ -88,7 +98,7 @@ pub struct SynapseHub {
     requests: RwLock<LruCache<String, String>>,
     idem: Option<IdempotentStore>,
     persist_require_session_id: bool,
-    probe_handles: RwLock<std::collections::HashMap<String, JoinHandle<()>>>,
+    probe_handles: RwLock<std::collections::HashMap<String, ProbeHandle>>,
     io_watcher_threshold_ms: u64,
     safe_mode: Arc<SafeModeController>,
     cancels:
@@ -215,26 +225,30 @@ impl SynapseHub {
 
         // Spawn host metrics polling loop
         if host_metrics_enabled {
-            let mut host_metrics = HostMetrics::new(hub.metrics.clone(), hub.factory.clone());
+            let token = CancellationToken::new();
+            let mut host_metrics =
+                HostMetrics::new(hub.metrics.clone(), hub.factory.clone(), token.clone());
             let handle = tokio::spawn(async move {
                 host_metrics.start().await;
             });
             hub.probe_handles
                 .write()
                 .unwrap()
-                .insert("host_metrics".into(), handle);
+                .insert("host_metrics".into(), ProbeHandle { handle, token });
         }
 
         // Optionally spawn IO watcher
         if io_watcher_enabled {
-            let mut watcher = IoWatcher::new(hub.metrics.clone(), io_watcher_threshold_ms);
+            let token = CancellationToken::new();
+            let mut watcher =
+                IoWatcher::new(hub.metrics.clone(), io_watcher_threshold_ms, token.clone());
             let handle = tokio::spawn(async move {
                 watcher.start().await;
             });
             hub.probe_handles
                 .write()
                 .unwrap()
-                .insert("io_watcher".into(), handle);
+                .insert("io_watcher".into(), ProbeHandle { handle, token });
         }
 
         // Register factory helper cells (Adapter + Selector)
@@ -248,23 +262,30 @@ impl SynapseHub {
 
     pub fn toggle_probe(&self, name: &str) -> Result<bool, String> {
         let mut probes = self.probe_handles.write().unwrap();
-        if let Some(handle) = probes.remove(name) {
-            handle.abort();
+        if let Some(probe) = probes.remove(name) {
+            probe.token.cancel();
+            probe.handle.abort();
             return Ok(false);
         }
-        let handle = match name {
+        let (handle, token) = match name {
             "host_metrics" => {
-                let mut probe = HostMetrics::new(self.metrics.clone(), self.factory.clone());
-                tokio::spawn(async move { probe.start().await })
+                let token = CancellationToken::new();
+                let mut probe =
+                    HostMetrics::new(self.metrics.clone(), self.factory.clone(), token.clone());
+                (tokio::spawn(async move { probe.start().await }), token)
             }
             "io_watcher" => {
-                let mut watcher =
-                    IoWatcher::new(self.metrics.clone(), self.io_watcher_threshold_ms);
-                tokio::spawn(async move { watcher.start().await })
+                let token = CancellationToken::new();
+                let mut watcher = IoWatcher::new(
+                    self.metrics.clone(),
+                    self.io_watcher_threshold_ms,
+                    token.clone(),
+                );
+                (tokio::spawn(async move { watcher.start().await }), token)
             }
             _ => return Err(format!("unknown probe {name}")),
         };
-        probes.insert(name.to_string(), handle);
+        probes.insert(name.to_string(), ProbeHandle { handle, token });
         Ok(true)
     }
 
@@ -1014,6 +1035,16 @@ impl SynapseHub {
             return true;
         }
         false
+    }
+}
+
+impl Drop for SynapseHub {
+    fn drop(&mut self) {
+        let mut probes = self.probe_handles.write().unwrap();
+        for (_, probe) in probes.drain() {
+            probe.token.cancel();
+            probe.handle.abort();
+        }
     }
 }
 
