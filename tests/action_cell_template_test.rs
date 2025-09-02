@@ -1,18 +1,19 @@
 /* neira:meta
 id: NEI-20250323-151200-action-template-list
 intent: test
-summary: Проверяет регистрацию и перечисление шаблонов узлов действия.
+summary: Проверяет регистрацию и перечисление шаблонов клеток действия.
 */
-use backend::node_registry::NodeRegistry;
-use backend::node_template::{ActionNodeTemplate, NodeTemplate};
+use backend::node_registry::NodeRegistry as CellRegistry;
+use backend::node_template::{ActionNodeTemplate as ActionCellTemplate, NodeTemplate as CellTemplate};
 use std::collections::HashSet;
 use std::fs;
+use std::time::Duration;
 
 #[test]
-fn registry_registers_action_templates() {
+fn cell_registry_registers_action_templates() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let tpl = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let cell_tpl = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -24,15 +25,15 @@ fn registry_registers_action_templates() {
             extra: Default::default(),
         },
     };
-    registry.register_action_template(tpl).unwrap();
+    registry.register_action_template(cell_tpl).unwrap();
     assert!(registry.get_action_template("action.example.v1").is_some());
 }
 
 #[test]
-fn registry_lists_action_templates() {
+fn cell_registry_lists_action_templates() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let tpl1 = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let cell_tpl1 = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -44,7 +45,7 @@ fn registry_lists_action_templates() {
             extra: Default::default(),
         },
     };
-    let tpl2 = ActionNodeTemplate {
+    let cell_tpl2 = ActionCellTemplate {
         id: "action.another.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "another".to_string(),
@@ -56,8 +57,8 @@ fn registry_lists_action_templates() {
             extra: Default::default(),
         },
     };
-    registry.register_action_template(tpl1).unwrap();
-    registry.register_action_template(tpl2).unwrap();
+    registry.register_action_template(cell_tpl1).unwrap();
+    registry.register_action_template(cell_tpl2).unwrap();
     let listed = registry.list_action_templates();
     let ids: HashSet<_> = listed.into_iter().map(|t| t.id).collect();
     assert!(ids.contains("action.example.v1"));
@@ -70,10 +71,10 @@ intent: test
 summary: Проверяет, что повторная регистрация по тому же пути заменяет шаблон.
 */
 #[test]
-fn reregister_same_path_replaces_template() {
+fn cell_registry_reregister_same_path_replaces_template() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let mut tpl = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let mut cell_tpl = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -85,13 +86,13 @@ fn reregister_same_path_replaces_template() {
             extra: Default::default(),
         },
     };
-    registry.register_action_template(tpl.clone()).unwrap();
-    tpl.action_type = "updated".to_string();
-    registry.register_action_template(tpl).unwrap();
-    let tpl = registry
+    registry.register_action_template(cell_tpl.clone()).unwrap();
+    cell_tpl.action_type = "updated".to_string();
+    registry.register_action_template(cell_tpl).unwrap();
+    let cell_tpl = registry
         .get_action_template("action.example.v1")
         .expect("template exists");
-    assert_eq!(tpl.action_type, "updated");
+    assert_eq!(cell_tpl.action_type, "updated");
 }
 
 /* neira:meta
@@ -100,10 +101,10 @@ intent: test
 summary: Проверяет, что повторная регистрация с другим путём возвращает ошибку.
 */
 #[test]
-fn registering_same_id_different_path_returns_error() {
+fn cell_registry_same_id_different_path_returns_error() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let tpl1 = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let cell_tpl1 = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -115,7 +116,7 @@ fn registering_same_id_different_path_returns_error() {
             extra: Default::default(),
         },
     };
-    let tpl2 = ActionNodeTemplate {
+    let cell_tpl2 = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.2.0".to_string(),
         action_type: "example".to_string(),
@@ -127,7 +128,7 @@ fn registering_same_id_different_path_returns_error() {
             extra: Default::default(),
         },
     };
-    registry.register_action_template(tpl1).unwrap();
+    registry.register_action_template(cell_tpl1).unwrap();
 
     // перед повторной регистрацией в каталоге один файл
     let before_files = fs::read_dir(dir.path())
@@ -136,7 +137,7 @@ fn registering_same_id_different_path_returns_error() {
         .unwrap();
     assert_eq!(before_files.len(), 1);
 
-    assert!(registry.register_action_template(tpl2).is_err());
+    assert!(registry.register_action_template(cell_tpl2).is_err());
 
     // после ошибки файл не создаётся и шаблон не изменяется
     let files = fs::read_dir(dir.path())
@@ -144,10 +145,10 @@ fn registering_same_id_different_path_returns_error() {
         .collect::<Result<Vec<_>, _>>()
         .unwrap();
     assert_eq!(files.len(), 1);
-    let tpl = registry
+    let cell_tpl = registry
         .get_action_template("action.example.v1")
         .expect("template exists");
-    assert_eq!(tpl.version, "0.1.0");
+    assert_eq!(cell_tpl.version, "0.1.0");
 }
 
 /* neira:meta
@@ -156,10 +157,10 @@ intent: test
 summary: Проверяет, что повторная регистрация с другим типом шаблона запрещена.
 */
 #[test]
-fn registering_same_id_different_type_returns_error() {
+fn cell_registry_same_id_different_type_returns_error() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let action_tpl = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let action_cell_tpl = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -171,7 +172,7 @@ fn registering_same_id_different_type_returns_error() {
             extra: Default::default(),
         },
     };
-    let node_tpl = NodeTemplate {
+    let cell_tpl = CellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         analysis_type: "analysis".to_string(),
@@ -183,6 +184,55 @@ fn registering_same_id_different_type_returns_error() {
             extra: Default::default(),
         },
     };
-    registry.register_action_template(action_tpl).unwrap();
-    assert!(registry.register_template(node_tpl).is_err());
+    registry.register_action_template(action_cell_tpl).unwrap();
+    assert!(registry.register_template(cell_tpl).is_err());
+}
+
+/* neira:meta
+id: NEI-20250515-action-template-watch
+intent: test
+summary: Проверяет обновление реестра клеток при изменении и удалении файла шаблона.
+*/
+#[test]
+fn cell_registry_updates_on_file_change_and_delete() {
+    let dir = tempfile::tempdir().unwrap();
+    let registry = CellRegistry::new(dir.path()).unwrap();
+
+    let cell_tpl = ActionCellTemplate {
+        id: "action.example.v1".to_string(),
+        version: "0.1.0".to_string(),
+        action_type: "example".to_string(),
+        links: vec![],
+        confidence_threshold: None,
+        draft_content: None,
+        metadata: backend::node_template::Metadata {
+            schema: "v1".to_string(),
+            extra: Default::default(),
+        },
+    };
+    registry.register_action_template(cell_tpl).unwrap();
+    let path = dir.path().join("action.example.v1-0.1.0.json");
+
+    let updated = ActionCellTemplate {
+        id: "action.example.v1".to_string(),
+        version: "0.1.0".to_string(),
+        action_type: "updated".to_string(),
+        links: vec![],
+        confidence_threshold: None,
+        draft_content: None,
+        metadata: backend::node_template::Metadata {
+            schema: "v1".to_string(),
+            extra: Default::default(),
+        },
+    };
+    fs::write(&path, serde_json::to_string(&updated).unwrap()).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    let cell_tpl = registry
+        .get_action_template("action.example.v1")
+        .expect("template exists");
+    assert_eq!(cell_tpl.action_type, "updated");
+
+    fs::remove_file(&path).unwrap();
+    std::thread::sleep(Duration::from_millis(100));
+    assert!(registry.get_action_template("action.example.v1").is_none());
 }
