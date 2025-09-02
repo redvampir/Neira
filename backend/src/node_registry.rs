@@ -377,6 +377,29 @@ impl NodeRegistry {
         validate_action_template(&value).map_err(|errs| errs.join(", "))?;
         let file = format!("{}-{}.json", tpl.id, tpl.version);
         let path = self.root.join(file);
+
+        // Проверка конфликтов: id не должен быть зарегистрирован как другой тип
+        if self.nodes.read().unwrap().contains_key(&tpl.id) {
+            return Err(format!("id {} already registered", tpl.id));
+        }
+
+        // Проверка, что тот же id не привязан к другому пути
+        let existing_path = self
+            .action_paths
+            .read()
+            .unwrap()
+            .iter()
+            .find_map(|(p, id)| (id == &tpl.id).then(|| p.clone()));
+        if let Some(p) = existing_path {
+            if p != path {
+                return Err(format!(
+                    "id {} already registered at {}",
+                    tpl.id,
+                    p.display()
+                ));
+            }
+        }
+
         let content = serde_json::to_string(&tpl).map_err(|e| e.to_string())?;
         fs::write(&path, content).map_err(|e| e.to_string())?;
         // регистрация из файла использует общую логику с проверками и обновлением путей
