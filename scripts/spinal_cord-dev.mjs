@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* neira:meta
-id: NEI-20250831-backend-dev
+id: NEI-20260413-spinal-dev
 intent: utility
-summary: Запуск backend с выбором адреса и порта через NEIRA_BIND_ADDR,
+summary: Запуск spinal_cord с выбором адреса и порта через NEIRA_BIND_ADDR,
   по умолчанию "0.0.0.0:3000".
 */
 /* global process */
@@ -20,7 +20,7 @@ if (idx !== -1 && args[idx + 1]) port = args[idx + 1];
 
 const env = { ...process.env, NEIRA_BIND_ADDR: `${host}:${port}` };
 
-const child = spawn("cargo", ["run", "--manifest-path", "backend/Cargo.toml"], {
+const child = spawn("cargo", ["run", "--manifest-path", "spinal_cord/Cargo.toml"], {
   stdio: "inherit",
   env,
 });

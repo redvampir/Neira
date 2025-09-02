@@ -5,9 +5,14 @@ id: NEI-20250305-faq-cell-runtime
 intent: docs
 summary: Уточнены требования к окружению с упоминанием Cell runtime.
 -->
+<!-- neira:meta
+id: NEI-20260413-faq-rename
+intent: docs
+summary: Обновлены инструкции для каталога spinal_cord.
+-->
 
 ### Как развернуть Neira?
-Установите Cell runtime (Node.js 20 LTS) и Rust 1.75+. Затем выполните `npm install`, `npm run setup` и соберите backend командой `cargo build` внутри каталога `backend`. Подробности см. в [deployment.md](deployment.md).
+Установите Cell runtime (Node.js 20 LTS) и Rust 1.75+. Затем выполните `npm install`, `npm run setup` и соберите spinal_cord командой `cargo build` внутри каталога `spinal_cord`. Подробности см. в [deployment.md](deployment.md).
 
 ### Какие системные требования и ограничения по ресурсам?
 Минимум: 4 ядра CPU, 8 ГБ RAM и Cell runtime (Node.js 20 LTS). GPU не требуется, но ускоряет работу. Лимиты по времени и итерациям задаются планировщиком `TaskScheduler`. Подробности см. в [analysis-architecture.md](analysis-architecture.md).

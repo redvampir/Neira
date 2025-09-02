@@ -5,6 +5,11 @@ id: NEI-20250305-deploy-runtime-term
 intent: docs
 summary: Замена упоминаний Node.js на Cell.js runtime.
 -->
+<!-- neira:meta
+id: NEI-20260413-deployment-rename
+intent: docs
+summary: Обновлены пути и названия модулей spinal_cord и sensory_organs.
+-->
 
 ## Установка зависимостей
 1. Установите Cell.js 20 LTS (runtime Node.js) и Rust 1.75 или новее.
@@ -16,7 +21,7 @@ summary: Замена упоминаний Node.js на Cell.js runtime.
    Эти команды устанавливают базовые и workspace-зависимости.
 3. Соберите серверную часть:
    ```bash
-   cd backend
+   cd spinal_cord
    cargo build
    cd ..
    ```
@@ -26,7 +31,7 @@ summary: Замена упоминаний Node.js на Cell.js runtime.
    ```bash
    npm run dev
    ```
-   Будут подняты backend и frontend с предустановленной конфигурацией, которая включает модуль Neira.
+   Будут подняты spinal_cord и sensory_organs с предустановленной конфигурацией, которая включает модуль Neira.
 
 ## Настройка переменных окружения
 Neira поддерживает конфигурацию через `.env` или переменные окружения.

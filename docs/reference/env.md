@@ -35,6 +35,11 @@ id: NEI-20251116-vite-api-url-env-doc
 intent: docs
 summary: Добавлена переменная VITE_API_URL для фронтенда.
 -->
+<!-- neira:meta
+id: NEI-20260413-env-rename
+intent: docs
+summary: Заменены упоминания backend/frontend на spinal_cord/sensory_organs.
+-->
 
 <!-- neira:meta
 id: NEI-20250214-watchdog-env-section
@@ -67,7 +72,7 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 
 | Ключ                         | Тип             | По умолчанию          | Где используется        | Влияние                                                                                                 |
 | ---------------------------- | --------------- | --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| CONTEXT_DIR                  | string          | context               | backend context storage | База для истории чатов                                                                                  |
+| CONTEXT_DIR                  | string          | context               | spinal_cord context storage | База для истории чатов                                                                                  |
 | CONTEXT_MAX_LINES            | int             | adaptive              | storage trim            | Ограничение строк (автоподбор, можно переопределить)                                                    |
 | CONTEXT_MAX_BYTES            | int             | adaptive              | storage trim            | Ограничение размера файла (автоподбор, можно переопределить)                                            |
 | CONTEXT_DAILY_ROTATION       | bool            | true                  | storage rotation        | Ротация по дням                                                                                         |
@@ -76,7 +81,7 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 | MASK_PII                     | bool            | true                  | storage masking         | Маскирование PII по умолчанию                                                                           |
 | MASK_REGEX                   | string list (;) | —                     | storage masking         | Кастомные regex для маскирования                                                                        |
 | MASK_ROLES                   | string list (,) | user                  | storage masking         | Роли для маскирования                                                                                   |
-| CELL_TEMPLATES_DIR           | string          | ./templates           | backend init            | Каталог шаблонов клеток (подкаталоги; fallback `NODE_TEMPLATES_DIR`)                                                      |
+| CELL_TEMPLATES_DIR           | string          | ./templates           | spinal_cord init            | Каталог шаблонов клеток (подкаталоги; fallback `NODE_TEMPLATES_DIR`)                                                      |
 | CHAT_RATE_LIMIT_PER_MIN      | int             | 120                   | hub rate limit          | Лимит запросов в минуту                                                                                 |
 | CHAT_RATE_KEY                | enum            | auth                  | hub rate limit          | Ключ лимита: auth/chat/session                                                                          |
 | IO_WATCHER_THRESHOLD_MS      | int             | 100                   | nervous probes          | Порог латентности для проб                                                                              |
@@ -102,7 +107,7 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 | ORGANS_BUILDER_TEMPLATES_DIR | string          | organ_templates       | organ builder           | Каталог шаблонов органов (все \*.json загружаются как stable)                                           |
 | ORGANS_BUILDER_TTL_SECS      | int             | 3600                  | organ builder           | Время хранения шаблонов и статусов; фоновый таймер удаляет записи старше TTL (сек)                      |
 | ORGANS_BUILDER_STAGE_DELAYS  | string list (,) | 50,50,50              | organ builder           | Задержки стадий Draft→Canary→Experimental→Stable (мс; устаревший алиас: ORGANS_BUILDER_STAGE_DELAYS_MS) |
-| VITE_API_URL                 | string          | —                     | frontend requests       | Базовый URL API для фронтенда                                                                           |
+| VITE_API_URL                 | string          | —                     | sensory_organs requests       | Базовый URL API для сенсорных органов                                                                           |
 
 Лимиты `CONTEXT_MAX_LINES` и `CONTEXT_MAX_BYTES` при отсутствии в окружении
 оцениваются автоматически на основе свободного места диска и средней длины
@@ -135,7 +140,7 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 | AUTO_BACKOFF_ENABLED | bool | false  | backpressure | Включить авто‑бэкофф сверх базового сна при высоком давлении |
 | BP_MAX_BACKOFF_MS    | int  | 200    | backpressure | Максимальный дополнительный сон (мс) при авто‑бэкоффе        |
 
-Примечание: значения по умолчанию сверены с кодом (backend/src/\*). При расхождениях — источник истины этот файл.
+Примечание: значения по умолчанию сверены с кодом (spinal_cord/src/\*). При расхождениях — источник истины этот файл.
 
 ### Watchdog
 

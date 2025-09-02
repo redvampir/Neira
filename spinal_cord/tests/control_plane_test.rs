@@ -3,6 +3,11 @@ id: NEI-20250214-control-plane-startup-wait
 intent: test
 summary: усилили ожидание запуска бэкенда и фиксируем ранний выход процесса.
 */
+/* neira:meta
+id: NEI-20260413-control-plane-rename
+intent: test
+summary: Путь CONTROL_SNAPSHOT_DIR обновлён на spinal_cord/snapshots_test.
+*/
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -18,7 +23,7 @@ async fn pause_resume_snapshot_kill() {
     let mut child = Command::new(bin)
         .env("NEIRA_ADMIN_TOKEN", "admin123")
         .env("NERVOUS_SYSTEM_ENABLED", "true")
-        .env("CONTROL_SNAPSHOT_DIR", "backend/snapshots_test")
+        .env("CONTROL_SNAPSHOT_DIR", "spinal_cord/snapshots_test")
         .env("CONTROL_ALLOW_KILL", "true")
         .env("CONTROL_ALLOW_PAUSE", "true")
         .env("NEIRA_BIND_ADDR", format!("127.0.0.1:{}", port))

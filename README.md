@@ -3,6 +3,11 @@ id: NEI-20250305-readme-cell-examples
 intent: docs
 summary: Обновлены требования к runtime и пример с CellRegistry.
 -->
+<!-- neira:meta
+id: NEI-20260413-readme-rename
+intent: docs
+summary: Обновлены ссылки на каталог spinal_cord и API.
+-->
 # Нейра — саморазвивающийся ИИ‑модуль
 
 
@@ -12,7 +17,7 @@ Assistant Quick Links
 - Teamwork: TEAMWORK.md
 - Workflow: WORKFLOW.md
 - Coding Guidelines: CODING_GUIDELINES.md
-- Backend API: docs/api/backend.md
+- Spinal cord API: docs/api/backend.md
 
 Documentation Index
 - docs/index.md — карта документации (DocMap) для GitHub/IDE
@@ -43,7 +48,7 @@ summary: Добавлена ссылка на систему фабрикато�
 - [Практическое руководство](docs/guides/practical-guide.md)
 - [Глоссарий](docs/meta/glossary.md)
 - [FAQ](docs/meta/faq.md)
-- [Документация по обучению (сценарный клетка)](backend/TRAINING.md)
+- [Документация по обучению (сценарный клетка)](spinal_cord/TRAINING.md)
 - [Загрузка обучающих данных](docs/guides/training.md)
 - [CI/CD и деплой](docs/legacy/deployment.md)
 - [Веб-интерфейс обучения](docs/guides/web-interface.md)
@@ -532,7 +537,7 @@ scp target/release/neira user@server:/opt/neira
 ## Подключение пользовательского плагина
 
 Neira поддерживает пользовательские системные плагины. Для интеграции
-нужно реализовать трейt [`SystemProbe`](backend/src/nervous_system/mod.rs) и
+нужно реализовать трейt [`SystemProbe`](spinal_cord/src/nervous_system/mod.rs) и
 запустить его в фоне:
 
 ```rust
@@ -554,4 +559,4 @@ impl SystemProbe for CustomProbe {
 let mut probe = CustomProbe;
 tokio::spawn(async move { probe.start().await; });
 ```
-[Backend API Quick Reference](docs/backend-api.md)
+[Spinal cord API Quick Reference](docs/backend-api.md)

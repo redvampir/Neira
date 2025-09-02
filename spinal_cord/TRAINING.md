@@ -1,14 +1,20 @@
 # Документация по обучению (русский)
 
+<!-- neira:meta
+id: NEI-20260413-training-rename
+intent: docs
+summary: Обновлены пути на spinal_cord/.
+-->
+
 ## Назначение
 
 «Сценарный узел обучения» позволяет запускать заранее описанные тест‑сценарии обучения/валидации Neira без риска галлюцинаций: сценарии задают чёткие шаги (HTTP‑запросы), ожидания и проверки. Результаты сохраняются в историю (NDJSON), собирается прогресс, формируется JUnit/HTML отчёт.
 
 ## Где лежит код
 
-- Клетка: `backend/src/action/scripted_training_cell.rs`
-- Роуты API/стрима: `backend/src/http/training_routes.rs`
-- Инициализация: `backend/src/main.rs`
+- Клетка: `spinal_cord/src/action/scripted_training_cell.rs`
+- Роуты API/стрима: `spinal_cord/src/http/training_routes.rs`
+- Инициализация: `spinal_cord/src/main.rs`
 - Пример сценария: `examples/training_script.yaml`
 - История и отчёты: `CONTEXT_DIR` (по умолчанию `context/`), файлы в `context/training/`
 

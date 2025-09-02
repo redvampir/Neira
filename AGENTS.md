@@ -4,6 +4,11 @@ intent: docs
 summary: |
   Добавлены правила оформления кода, структуры каталогов и тестирования.
 -->
+<!-- neira:meta
+id: NEI-20260413-rename-components
+intent: docs
+summary: Обновлены названия каталогов на spinal_cord и sensory_organs.
+-->
 
 # Neira Assistant Operating Guide — START HERE
 
@@ -79,7 +84,7 @@ Code Style
 - Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
 Directory Structure
-- Place runtime code in `src/`, `backend/`, or `frontend/` depending on component.
+- Place runtime code in `src/`, `spinal_cord/`, or `sensory_organs/` depending on component.
 - Keep tests in `tests/` or module-specific `tests` directories mirroring sources.
 - Store documentation in `docs/` and schemas in `schemas/`.
 

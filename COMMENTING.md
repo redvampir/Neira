@@ -6,6 +6,11 @@ intent: docs
 summary: |
   Добавлен раздел упрощённого блока, уточнены критерии и ссылка на META_COVERAGE.md.
 -->
+<!-- neira:meta
+id: NEI-20260413-commenting-rename
+intent: docs
+summary: Обновлён пример scope для каталога spinal_cord.
+-->
 
 См. [META_COVERAGE.md](META_COVERAGE.md) для определения, когда использовать полный или упрощённый блок.
 
@@ -56,7 +61,7 @@ Template (Rust / JS / TS block comment)
 /* neira:meta
 id: NEI-YYYYMMDD-HHMMSS-<slug>
 intent: feature|fix|refactor|docs|perf|security|chore
-scope: backend/<area>
+scope: spinal_cord/<area>
 summary: |
   Коротко по-русски: что изменили и зачем (1–2 строки).
 links:

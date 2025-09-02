@@ -1,3 +1,8 @@
+/* neira:meta
+id: NEI-20260413-example-rename
+intent: docs
+summary: Обновлён путь к spinal_cord/Cargo.toml.
+*/
 use std::{fs, path::Path, process::Command};
 
 use backend::cell_template::validate_template;
@@ -9,7 +14,7 @@ fn main() {
         .args([
             "run",
             "--manifest-path",
-            "backend/Cargo.toml",
+            "spinal_cord/Cargo.toml",
             "--bin",
             "generate_cell",
             "--quiet",

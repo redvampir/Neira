@@ -15,6 +15,11 @@ intent: docs
 summary: |
   Добавлены разделы про интеграцию с Nervous/Immune и самовосстановление.
 -->
+<!-- neira:meta
+id: NEI-20260413-index-components-rename
+intent: docs
+summary: Заменены backend/frontend на spinal_cord/sensory_organs.
+-->
 
 # Документация — оглавление
 
@@ -74,10 +79,10 @@ summary: |
 ## Reference
 
 - api/
-  - [backend](api/backend.md)
+  - [spinal_cord](api/backend.md)
   - [chat](api/chat.md)
   - [factory](api/factory.md)
-- [backend-api](backend-api.md)
+- [spinal_cord-api](backend-api.md)
 - [pathways](pathways.md)
 - meta/
   - [biology-glossary](meta/biology-glossary.md)

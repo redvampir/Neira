@@ -30,8 +30,13 @@ id: NEI-20250221-env-reference-link
 intent: docs
 summary: Исправлена ссылка на основной справочник переменных окружения.
 -->
+<!-- neira:meta
+id: NEI-20260413-spinal-env-rename
+intent: docs
+summary: Переименован backend в spinal_cord и обновлены пути.
+-->
 
-Backend environment variables
+Spinal cord environment variables
 
 Note
 
@@ -56,7 +61,7 @@ Note
 - ANALYSIS_QUEUE_FAST_MS: override boundary between fast and standard analysis queues in ms (default: adaptive)
 - ANALYSIS_QUEUE_LONG_MS: override boundary between standard and long analysis queues in ms (default: adaptive)
 - ANALYSIS_QUEUE_RECALC_MIN: number of new analysis requests before thresholds recompute (default: 100)
-- INTEGRITY_ROOT: base dir for integrity config and files (default: current working directory; set explicitly if the service runs outside `backend/`)
+- INTEGRITY_ROOT: base dir for integrity config and files (default: current working directory; set explicitly if the service runs outside `spinal_cord/`)
 - INTEGRITY_CONFIG_PATH: path to integrity config file relative to INTEGRITY_ROOT or absolute (default: config/integrity.json)
 - INTEGRITY_CHECK_INTERVAL_MS: integrity check interval in ms (default: 60000)
 
@@ -100,7 +105,7 @@ Masking presets
 
 How to use
 
-- Create a .env file in repo root or `backend/` and set variables.
+- Create a .env file in repo root or `spinal_cord/` and set variables.
 - The app loads env via dotenv at startup; env vars override .env.
 
 Example .env

@@ -4,6 +4,11 @@
  * intent: tool
  * summary: Внешний CLI-оркестратор фабрики с режимом LLM-агента (локальная модель), безопасные команды dry-run/create/approve/rollback.
  */
+/* neira:meta
+id: NEI-20260413-factory-shim-comment
+intent: docs
+summary: Комментарий обновлён под spinal_cord API.
+*/
 
 /* global fetch, process, console */
 import fs from 'node:fs';
@@ -72,7 +77,7 @@ function print(obj) {
 async function cmdDryrunCell({ spec }) {
   if (!spec) throw new Error('--spec <file.json> is required');
   const tpl = readJsonFileSync(spec);
-  const body = { backend: 'adapter', ...tpl }; // Flattened CellTemplate per backend API
+  const body = { backend: 'adapter', ...tpl }; // Flattened CellTemplate per spinal_cord API
   const resp = await http('POST', '/factory/cells/dryrun', body);
   print(resp);
 }
