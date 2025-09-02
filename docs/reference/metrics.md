@@ -88,6 +88,11 @@ summary: добавлена метрика organ_build_duration_ms и стату
 
 ## Factory & Organs (draft)
 
+<!-- neira:meta
+id: NEI-20250215-factory-auto-metrics
+intent: docs
+summary: документированы метрики auto_heal и auto_rollback.
+-->
 | metric | type | unit | scope | description |
 |---|---|---|---|---|
 | factory_cells_created_total | counter | cells | Factory | Создано клеток (всего) |
@@ -96,6 +101,8 @@ summary: добавлена метрика organ_build_duration_ms и стату
 | factory_dryrun_requests_total | counter | req | Factory | Запросы dry‑run |
 | factory_approvals_total | counter | ops | Factory | Подтверждения HITL |
 | factory_rollbacks_total | counter | ops | Factory | Откаты клеток |
+| factory_auto_heals_total | counter | ops | Factory | Авто‑отключения по тревоге |
+| factory_auto_rollbacks_total | counter | ops | Factory | Авто‑откат по тревоге |
 | organ_build_attempts_total | counter | ops | OrganBuilder | Попытки сборки органов |
 | organ_build_failures_total | counter | ops | OrganBuilder | Ошибки сборки органов |
 | organ_build_status_queries_total | counter | ops | OrganBuilder | Запросы статуса органа |
