@@ -20,6 +20,11 @@ id: NEI-20250215-immune-import-hub
 intent: refactor
 summary: Добавлен импорт immune_system.
 */
+/* neira:meta
+id: NEI-20250902-host-metrics-factory
+intent: refactor
+summary: HostMetrics теперь принимает фабрику для учёта новых клеток.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -210,7 +215,7 @@ impl SynapseHub {
 
         // Spawn host metrics polling loop
         if host_metrics_enabled {
-            let mut host_metrics = HostMetrics::new(hub.metrics.clone());
+            let mut host_metrics = HostMetrics::new(hub.metrics.clone(), hub.factory.clone());
             let handle = tokio::spawn(async move {
                 host_metrics.start().await;
             });
@@ -249,7 +254,7 @@ impl SynapseHub {
         }
         let handle = match name {
             "host_metrics" => {
-                let mut probe = HostMetrics::new(self.metrics.clone());
+                let mut probe = HostMetrics::new(self.metrics.clone(), self.factory.clone());
                 tokio::spawn(async move { probe.start().await })
             }
             "io_watcher" => {
