@@ -39,6 +39,7 @@ use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_cell::IntegrityCheckerCell;
 use crate::security::quarantine_cell::QuarantineCell;
 use crate::security::safe_mode_controller::SafeModeController;
+use jsonschema_valid::ValidationError;
 use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -267,11 +268,16 @@ impl SynapseHub {
     pub fn factory_dry_run(&self, tpl: &crate::cell_template::CellTemplate) -> serde_json::Value {
         self.factory.dry_run(tpl)
     }
+    /* neira:meta
+    id: NEI-20260514-factory-create-result
+    intent: code
+    summary: Возвращает Result с ошибкой валидации при создании записи.
+    */
     pub fn factory_create(
         &self,
         backend: &str,
         tpl: &crate::cell_template::CellTemplate,
-    ) -> crate::factory::StemCellRecord {
+    ) -> Result<crate::factory::StemCellRecord, ValidationError> {
         self.factory.create_record(backend, tpl)
     }
     pub fn factory_advance(&self, id: &str) -> Option<crate::factory::StemCellState> {
