@@ -1,9 +1,9 @@
-use backend::node_template::{load_schema_from, NodeTemplate};
+use backend::cell_template::{load_schema_from, CellTemplate};
 use serde_json::json;
 use std::path::Path;
 
 #[test]
-fn example_node_template_validates() {
+fn example_cell_template_validates() {
     let example = json!({
         "id": "example-node",
         "version": "0.1.0",
@@ -20,12 +20,12 @@ fn example_node_template_validates() {
     });
 
     let schema =
-        load_schema_from(Path::new("schemas/v1/node-template.schema.json")).expect("load schema");
+        load_schema_from(Path::new("schemas/v1/cell-template.schema.json")).expect("load schema");
     assert!(
         schema.validate(&example).is_ok(),
         "schema validation should pass"
     );
-    let template: NodeTemplate = serde_json::from_value(example).expect("deserialize");
+    let template: CellTemplate = serde_json::from_value(example).expect("deserialize");
     assert_eq!(
         template
             .metadata

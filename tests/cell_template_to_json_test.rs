@@ -1,4 +1,4 @@
-use backend::node_template::{validate_template, Metadata, NodeTemplate};
+use backend::cell_template::{validate_template, CellTemplate, Metadata};
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -7,7 +7,7 @@ fn to_json_produces_valid_structure() {
     let mut extra = HashMap::new();
     extra.insert("author".to_string(), json!("Alice"));
 
-    let template = NodeTemplate {
+    let template = CellTemplate {
         id: "node-1".to_string(),
         version: "0.1.0".to_string(),
         analysis_type: "text".to_string(),

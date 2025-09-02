@@ -1,11 +1,11 @@
 /* neira:meta
-id: NEI-20250829-175425-node-template
+id: NEI-20250829-175425-cell-template
 intent: docs
 scope: backend/core
 summary: |
-  Загружает и валидирует шаблоны узлов по JSON‑схеме.
+  Загружает и валидирует шаблоны ячеек по JSON‑схеме.
 env:
-  - NODE_TEMPLATE_SCHEMAS_DIR
+  - CELL_TEMPLATE_SCHEMAS_DIR
 */
 
 use jsonschema_valid::{self, Config};
@@ -53,7 +53,7 @@ static SCHEMAS: Lazy<Mutex<HashMap<String, &'static Config<'static>>>> =
 id: NEI-20250214-152000-action-schema-cache
 intent: feature
 summary: |
-  Кэш конфигураций JSON‑схем для шаблонов узлов действий.
+  Кэш конфигураций JSON‑схем для шаблонов ячеек действий.
 */
 static ACTION_SCHEMAS: Lazy<Mutex<HashMap<String, &'static Config<'static>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
@@ -76,13 +76,13 @@ fn load_schema(version: &str) -> Result<&'static Config<'static>, String> {
     if let Some(cfg) = map.get(version) {
         return Ok(*cfg);
     }
-    let base = env::var("NODE_TEMPLATE_SCHEMAS_DIR")
+    let base = env::var("CELL_TEMPLATE_SCHEMAS_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas"));
-    let path = base.join(version).join("node-template.schema.json");
+    let path = base.join(version).join("cell-template.schema.json");
     let cfg = load_schema_from(&path)?;
     let cfg_static: &'static Config<'static> = Box::leak(Box::new(cfg));
-    info!("Using NodeTemplate schema {}", version);
+    info!("Using CellTemplate schema {}", version);
     map.insert(version.to_string(), cfg_static);
     Ok(cfg_static)
 }
@@ -92,10 +92,10 @@ fn load_action_schema(version: &str) -> Result<&'static Config<'static>, String>
     if let Some(cfg) = map.get(version) {
         return Ok(*cfg);
     }
-    let base = env::var("NODE_TEMPLATE_SCHEMAS_DIR")
+    let base = env::var("CELL_TEMPLATE_SCHEMAS_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas"));
-    let path = base.join(version).join("action-node-template.schema.json");
+    let path = base.join(version).join("action-cell-template.schema.json");
     let cfg = load_schema_from(&path)?;
     let cfg_static: &'static Config<'static> = Box::leak(Box::new(cfg));
     info!("Using ActionCellTemplate schema {}", version);
@@ -111,7 +111,7 @@ pub struct Metadata {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NodeTemplate {
+pub struct CellTemplate {
     pub id: String,
     pub version: String,
     pub analysis_type: String,
@@ -124,13 +124,13 @@ pub struct NodeTemplate {
     pub metadata: Metadata,
 }
 
-impl NodeTemplate {
+impl CellTemplate {
     pub fn to_json(&self) -> Value {
-        let value = serde_json::to_value(self).expect("serialize NodeTemplate");
+        let value = serde_json::to_value(self).expect("serialize CellTemplate");
         #[cfg(debug_assertions)]
         {
             if let Err(errors) = validate_template(&value) {
-                panic!("serialized NodeTemplate failed validation: {:?}", errors);
+                panic!("serialized CellTemplate failed validation: {:?}", errors);
             }
         }
         value
@@ -138,10 +138,10 @@ impl NodeTemplate {
 }
 
 /* neira:meta
-id: NEI-20250214-152500-action-node-template
+id: NEI-20250214-152500-action-cell-template
 intent: feature
 summary: |
-  Структура шаблона узла действия и преобразование в JSON.
+  Структура шаблона ячейки действия и преобразование в JSON.
 */
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ActionCellTemplate {
@@ -223,11 +223,11 @@ where
 pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
     match validate_with_loader(value, load_schema) {
         Ok(()) => {
-            info!("NodeTemplate validation succeeded");
+            info!("CellTemplate validation succeeded");
             Ok(())
         }
         Err(errors) => {
-            error!("NodeTemplate validation failed: {:?}", errors);
+            error!("CellTemplate validation failed: {:?}", errors);
             Err(errors)
         }
     }

@@ -14,8 +14,8 @@ use chrono::{DateTime, Utc};
 use crate::action_cell::ActionCell;
 use crate::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
 use crate::cell_registry::CellRegistry;
+use crate::cell_template::CellTemplate;
 use crate::factory::format_state_local as _format_state_local_import;
-use crate::node_template::NodeTemplate;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -54,9 +54,11 @@ impl FactoryService {
         })
     }
 
-    pub fn is_adapter_enabled(&self) -> bool { self.adapter_enabled }
+    pub fn is_adapter_enabled(&self) -> bool {
+        self.adapter_enabled
+    }
 
-    pub fn dry_run(&self, tpl: &NodeTemplate) -> serde_json::Value {
+    pub fn dry_run(&self, tpl: &CellTemplate) -> serde_json::Value {
         metrics::counter!("factory_dryrun_requests_total").increment(1);
         // Минимальный отчёт: линки, тип, риск (нет исполнения)
         serde_json::json!({
@@ -69,7 +71,7 @@ impl FactoryService {
         })
     }
 
-    pub fn create_record(&self, backend: &str, tpl: &NodeTemplate) -> FactoryRecord {
+    pub fn create_record(&self, backend: &str, tpl: &CellTemplate) -> FactoryRecord {
         let rec = FactoryRecord {
             id: format!("{}:{}", backend, tpl.id),
             backend: backend.to_string(),
@@ -146,7 +148,18 @@ impl FactoryService {
     pub fn counts(&self) -> (usize, usize) {
         let map = self.records.read().unwrap();
         let total = map.len();
-        let active = map.values().filter(|r| matches!(r.state, FabricationState::Draft|FabricationState::Canary|FabricationState::Experimental|FabricationState::Stable)).count();
+        let active = map
+            .values()
+            .filter(|r| {
+                matches!(
+                    r.state,
+                    FabricationState::Draft
+                        | FabricationState::Canary
+                        | FabricationState::Experimental
+                        | FabricationState::Stable
+                )
+            })
+            .count();
         (total, active)
     }
 
@@ -154,7 +167,10 @@ impl FactoryService {
         let dir = std::path::Path::new("logs");
         let _ = std::fs::create_dir_all(dir);
         let path = dir.join("factory_audit.ndjson");
-        let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
+        let mut f = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)?;
         writeln!(f, "{}", value.to_string())
     }
 }
@@ -163,11 +179,17 @@ impl FactoryService {
 pub struct FabricatorCell;
 
 impl ActionCell for FabricatorCell {
-    fn id(&self) -> &str { "factory.adapter" }
+    fn id(&self) -> &str {
+        "factory.adapter"
+    }
     fn preload(&self, _triggers: &[String], _memory: &Arc<crate::memory_cell::MemoryCell>) {}
 }
 
-impl Default for FabricatorCell { fn default() -> Self { Self } }
+impl Default for FabricatorCell {
+    fn default() -> Self {
+        Self
+    }
+}
 
 // Selector: анализатор reuse vs create
 pub struct SelectorCell {
@@ -175,26 +197,52 @@ pub struct SelectorCell {
 }
 
 impl SelectorCell {
-    pub fn new(registry: Arc<CellRegistry>) -> Self { Self { registry } }
+    pub fn new(registry: Arc<CellRegistry>) -> Self {
+        Self { registry }
+    }
 }
 
 impl AnalysisCell for SelectorCell {
-    fn id(&self) -> &str { "factory.selector" }
-    fn analysis_type(&self) -> &str { "factory" }
-    fn status(&self) -> NodeStatus { NodeStatus::Active }
-    fn links(&self) -> &[String] { &[] }
-    fn confidence_threshold(&self) -> f32 { 0.0 }
+    fn id(&self) -> &str {
+        "factory.selector"
+    }
+    fn analysis_type(&self) -> &str {
+        "factory"
+    }
+    fn status(&self) -> NodeStatus {
+        NodeStatus::Active
+    }
+    fn links(&self) -> &[String] {
+        &[]
+    }
+    fn confidence_threshold(&self) -> f32 {
+        0.0
+    }
     fn analyze(&self, input: &str, _cancel_token: &CancellationToken) -> AnalysisResult {
         // Расширенные правила (минимум): prefer_id, allowed_types, blocked_types, prefer_version
-        let parsed: serde_json::Value = serde_json::from_str(input).unwrap_or(serde_json::json!({}));
-        let want_id = parsed.get("prefer_id").and_then(|v| v.as_str()).unwrap_or("");
+        let parsed: serde_json::Value =
+            serde_json::from_str(input).unwrap_or(serde_json::json!({}));
+        let want_id = parsed
+            .get("prefer_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let allowed_types: Vec<String> = parsed
-            .get("allowed_types").and_then(|v| v.as_array())
-            .map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
+            .get("allowed_types")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
             .unwrap_or_else(|| env_list("SELECTOR_ALLOWED_TYPES"));
         let blocked_types: Vec<String> = parsed
-            .get("blocked_types").and_then(|v| v.as_array())
-            .map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
+            .get("blocked_types")
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
             .unwrap_or_else(|| env_list("SELECTOR_BLOCKED_TYPES"));
         // Эвристика reuse: если id есть и тип не заблокирован — reuse, иначе create
         let mut decision = "create".to_string();
@@ -204,26 +252,35 @@ impl AnalysisCell for SelectorCell {
             explain = format!("Reuse analysis node: {}", want_id);
         }
         if let Some(atype) = parsed.get("analysis_type").and_then(|v| v.as_str()) {
-            if !allowed_types.is_empty() && !allowed_types.iter().any(|x| x==atype) {
+            if !allowed_types.is_empty() && !allowed_types.iter().any(|x| x == atype) {
                 decision = "create".to_string();
                 explain = format!("Type {} not in allowed types", atype);
             }
-            if blocked_types.iter().any(|x| x==atype) {
+            if blocked_types.iter().any(|x| x == atype) {
                 decision = "create".to_string();
                 explain = format!("Type {} is blocked", atype);
             }
         }
         let mut r = AnalysisResult::new(self.id(), decision, vec![]);
-        if !explain.is_empty() { r.explanation = Some(explain); }
+        if !explain.is_empty() {
+            r.explanation = Some(explain);
+        }
         r
     }
-    fn explain(&self) -> String { "Select reuse vs create".into() }
+    fn explain(&self) -> String {
+        "Select reuse vs create".into()
+    }
 }
 
 fn env_list(key: &str) -> Vec<String> {
     std::env::var(key)
         .ok()
-        .map(|s| s.split(',').map(|x| x.trim().to_string()).filter(|x| !x.is_empty()).collect())
+        .map(|s| {
+            s.split(',')
+                .map(|x| x.trim().to_string())
+                .filter(|x| !x.is_empty())
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -246,18 +303,24 @@ pub trait AdapterBackend {
     fn ns_is_hooks(&self) -> Result<(), String>;
 }
 
-pub struct NodeTemplateAdapter<'a> {
-    pub tpl: &'a NodeTemplate,
+pub struct CellTemplateAdapter<'a> {
+    pub tpl: &'a CellTemplate,
 }
 
-impl<'a> AdapterBackend for NodeTemplateAdapter<'a> {
+impl<'a> AdapterBackend for CellTemplateAdapter<'a> {
     fn validate(&self) -> Result<(), String> {
-        if self.tpl.id.trim().is_empty() { return Err("invalid_template: empty id".into()); }
-        if self.tpl.analysis_type.trim().is_empty() { return Err("invalid_template: empty analysis_type".into()); }
+        if self.tpl.id.trim().is_empty() {
+            return Err("invalid_template: empty id".into());
+        }
+        if self.tpl.analysis_type.trim().is_empty() {
+            return Err("invalid_template: empty analysis_type".into());
+        }
         Ok(())
     }
     fn register(&self, registry: &CellRegistry) -> Result<(), String> {
         registry.register_template(self.tpl.clone())
     }
-    fn ns_is_hooks(&self) -> Result<(), String> { Ok(()) }
+    fn ns_is_hooks(&self) -> Result<(), String> {
+        Ok(())
+    }
 }

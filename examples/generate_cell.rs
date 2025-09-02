@@ -1,6 +1,6 @@
 use std::{fs, path::Path, process::Command};
 
-use backend::node_template::validate_template;
+use backend::cell_template::validate_template;
 use serde_json::Value;
 
 fn main() {
@@ -11,7 +11,7 @@ fn main() {
             "--manifest-path",
             "backend/Cargo.toml",
             "--bin",
-            "generate_node",
+            "generate_cell",
             "--quiet",
             "--",
             "--schema",
@@ -29,7 +29,7 @@ fn main() {
 
     // Validate against the schema and save to a file.
     validate_template(&value).expect("template should validate");
-    let path = Path::new("node-template.json");
+    let path = Path::new("cell-template.json");
     fs::write(path, serde_json::to_string_pretty(&value).unwrap()).expect("write file");
 
     println!("Generated and validated {}", path.display());

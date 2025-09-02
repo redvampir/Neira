@@ -18,10 +18,10 @@ use crate::action::chat_cell::ChatCell;
 use crate::action::scripted_training_cell::ScriptedTrainingCell;
 use crate::action_cell::ActionCell;
 use crate::analysis_cell::AnalysisCell;
-use crate::memory_cell::MemoryCell;
-use crate::node_template::{
-    validate_action_template, validate_template, ActionCellTemplate, NodeTemplate,
+use crate::cell_template::{
+    validate_action_template, validate_template, ActionCellTemplate, CellTemplate,
 };
+use crate::memory_cell::MemoryCell;
 
 /* neira:meta
 id: NEI-20250309-125000-load-template-impl
@@ -50,8 +50,8 @@ where
     serde_json::from_value(value).map_err(|e| format!("deserialize: {e}"))
 }
 
-/// Загружает `NodeTemplate` из файла.
-fn load_template(path: &Path) -> Result<NodeTemplate, String> {
+/// Загружает `CellTemplate` из файла.
+fn load_template(path: &Path) -> Result<CellTemplate, String> {
     load_template_impl(path, validate_template)
 }
 
@@ -68,7 +68,7 @@ summary: |
 */
 fn register_file(
     path: &Path,
-    nodes: &Arc<RwLock<HashMap<String, NodeTemplate>>>,
+    nodes: &Arc<RwLock<HashMap<String, CellTemplate>>>,
     paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
     action_tpls: &Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
@@ -79,14 +79,14 @@ fn register_file(
             .unwrap()
             .insert(path.to_path_buf(), tpl.id.clone());
         nodes.write().unwrap().insert(tpl.id.clone(), tpl);
-        info!("Loaded node template {}", path.display());
+        info!("Loaded cell template {}", path.display());
     } else if let Ok(tpl) = load_action_template(path) {
         action_paths
             .write()
             .unwrap()
             .insert(path.to_path_buf(), tpl.id.clone());
         action_tpls.write().unwrap().insert(tpl.id.clone(), tpl);
-        info!("Loaded action node template {}", path.display());
+        info!("Loaded action cell template {}", path.display());
     } else {
         error!("failed to load template {}", path.display());
     }
@@ -94,7 +94,7 @@ fn register_file(
 
 fn scan_dir(
     dir: &Path,
-    nodes: &Arc<RwLock<HashMap<String, NodeTemplate>>>,
+    nodes: &Arc<RwLock<HashMap<String, CellTemplate>>>,
     paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
     action_tpls: &Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
@@ -114,7 +114,7 @@ fn scan_dir(
 /// Реестр узлов: хранит метаданные и следит за изменениями файлов.
 pub struct CellRegistry {
     root: PathBuf,
-    nodes: Arc<RwLock<HashMap<String, NodeTemplate>>>,
+    nodes: Arc<RwLock<HashMap<String, CellTemplate>>>,
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
     action_templates: Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: Arc<RwLock<HashMap<PathBuf, String>>>,
@@ -351,13 +351,13 @@ impl CellRegistry {
         Ok(())
     }
 
-    /// Регистрация узла по структуре `NodeTemplate` с сохранением на диск.
+    /// Регистрация узла по структуре `CellTemplate` с сохранением на диск.
     /* neira:meta
     id: NEI-20250210-register-template-validate
     intent: bugfix
     summary: Проверяет шаблон узла перед сохранением на диск.
     */
-    pub fn register_template(&self, tpl: NodeTemplate) -> Result<(), String> {
+    pub fn register_template(&self, tpl: CellTemplate) -> Result<(), String> {
         let value = tpl.to_json();
         validate_template(&value).map_err(|errs| errs.join(", "))?;
         let file = format!("{}-{}.json", tpl.id, tpl.version);
@@ -407,7 +407,7 @@ impl CellRegistry {
     }
 
     /// Получение метаданных узла по идентификатору.
-    pub fn get(&self, id: &str) -> Option<NodeTemplate> {
+    pub fn get(&self, id: &str) -> Option<CellTemplate> {
         self.nodes.read().unwrap().get(id).cloned()
     }
 

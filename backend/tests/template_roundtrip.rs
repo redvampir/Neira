@@ -1,4 +1,4 @@
-use backend::node_template::{validate_template, Metadata, NodeTemplate};
+use backend::cell_template::{validate_template, CellTemplate, Metadata};
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -7,7 +7,7 @@ fn generate_validate_deserialize_template() {
     let mut extra = HashMap::new();
     extra.insert("author".to_string(), json!("Alice"));
 
-    let template = NodeTemplate {
+    let template = CellTemplate {
         id: "generated-node".to_string(),
         version: "0.1.0".to_string(),
         analysis_type: "text".to_string(),
@@ -22,7 +22,7 @@ fn generate_validate_deserialize_template() {
 
     let value = template.to_json();
     validate_template(&value).expect("generated template should validate");
-    let parsed: NodeTemplate = serde_json::from_value(value).expect("deserialize NodeTemplate");
+    let parsed: CellTemplate = serde_json::from_value(value).expect("deserialize CellTemplate");
 
     assert_eq!(parsed.id, template.id);
     assert_eq!(parsed.version, template.version);

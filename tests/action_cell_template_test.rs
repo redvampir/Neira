@@ -4,7 +4,7 @@ intent: test
 summary: Проверяет регистрацию и перечисление шаблонов узлов действия.
 */
 use backend::cell_registry::CellRegistry;
-use backend::node_template::{ActionCellTemplate, NodeTemplate};
+use backend::cell_template::{ActionCellTemplate, CellTemplate};
 use std::collections::HashSet;
 use std::fs;
 
@@ -19,7 +19,7 @@ fn registry_registers_action_templates() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },
@@ -39,7 +39,7 @@ fn registry_lists_action_templates() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },
@@ -51,7 +51,7 @@ fn registry_lists_action_templates() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },
@@ -80,7 +80,7 @@ fn reregister_same_path_replaces_template() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },
@@ -110,7 +110,7 @@ fn registering_same_id_different_path_returns_error() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },
@@ -122,7 +122,7 @@ fn registering_same_id_different_path_returns_error() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },
@@ -166,19 +166,19 @@ fn registering_same_id_different_type_returns_error() {
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },
     };
-    let node_tpl = NodeTemplate {
+    let node_tpl = CellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         analysis_type: "analysis".to_string(),
         links: vec![],
         confidence_threshold: None,
         draft_content: None,
-        metadata: backend::node_template::Metadata {
+        metadata: backend::cell_template::Metadata {
             schema: "v1".to_string(),
             extra: Default::default(),
         },

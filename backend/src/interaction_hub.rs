@@ -36,8 +36,8 @@ use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
 use crate::analysis_cell::{AnalysisResult, NodeStatus};
-use crate::memory_cell::MemoryCell;
 use crate::cell_registry::CellRegistry;
+use crate::memory_cell::MemoryCell;
 use crate::queue_config::QueueConfig;
 use crate::task_scheduler::TaskScheduler;
 use crate::trigger_detector::TriggerDetector;
@@ -252,13 +252,13 @@ impl InteractionHub {
     pub fn factory_is_adapter_enabled(&self) -> bool {
         self.factory.is_adapter_enabled()
     }
-    pub fn factory_dry_run(&self, tpl: &crate::node_template::NodeTemplate) -> serde_json::Value {
+    pub fn factory_dry_run(&self, tpl: &crate::cell_template::CellTemplate) -> serde_json::Value {
         self.factory.dry_run(tpl)
     }
     pub fn factory_create(
         &self,
         backend: &str,
-        tpl: &crate::node_template::NodeTemplate,
+        tpl: &crate::cell_template::CellTemplate,
     ) -> crate::factory::FactoryRecord {
         self.factory.create_record(backend, tpl)
     }
