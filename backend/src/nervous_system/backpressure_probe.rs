@@ -8,17 +8,17 @@ summary: |-
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
-use crate::interaction_hub::InteractionHub;
+use crate::synapse_hub::SynapseHub;
 
 /// Проба нагрузки на очереди: вычисляет длины и публикует backpressure,
 /// а также применяет троттлинг при превышении порогов.
 pub struct BackpressureProbe {
-    hub: Arc<InteractionHub>,
+    hub: Arc<SynapseHub>,
 }
 
 impl BackpressureProbe {
-    /// Создание новой пробы на основе InteractionHub.
-    pub fn new(hub: Arc<InteractionHub>) -> Self {
+    /// Создание новой пробы на основе SynapseHub.
+    pub fn new(hub: Arc<SynapseHub>) -> Self {
         Self { hub }
     }
 

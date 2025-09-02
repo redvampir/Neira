@@ -62,7 +62,7 @@ id: NEI-20250829-setup-meta-idem
 intent: docs
 scope: backend/idempotency
 summary: |
-  Персистентное хранилище идемпотентных ответов (JSONL + TTL). Используется InteractionHub
+  Персистентное хранилище идемпотентных ответов (JSONL + TTL). Используется SynapseHub
   для выдачи повторных ответов по request_id, переживает рестарт.
 links:
   - docs/reference/env.md

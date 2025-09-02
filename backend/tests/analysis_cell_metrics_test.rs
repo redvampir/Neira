@@ -1,7 +1,7 @@
 use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
-use backend::interaction_hub::InteractionHub;
+use backend::synapse_hub::SynapseHub;
 use backend::config::Config;
 use backend::memory_cell::MemoryCell;
 use backend::cell_registry::CellRegistry;
@@ -38,7 +38,7 @@ impl AnalysisCell for TestAnalysisCell {
 }
 
 #[tokio::test]
-async fn interaction_hub_records_analysis_metric() {
+async fn synapse_hub_records_analysis_metric() {
     let data = init_recorder();
     let tmp = tempfile::tempdir().expect("tmpdir");
     let registry = Arc::new(CellRegistry::new(tmp.path()).expect("registry"));
@@ -47,7 +47,7 @@ async fn interaction_hub_records_analysis_metric() {
     let (metrics, rx) = MetricsCollectorCell::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
     let cfg = Config::default();
-    let hub = InteractionHub::new(registry, memory, metrics, diagnostics, &cfg);
+    let hub = SynapseHub::new(registry, memory, metrics, diagnostics, &cfg);
     hub.add_auth_token("token");
     let cancel = CancellationToken::new();
     let _ = hub

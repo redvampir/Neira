@@ -29,6 +29,7 @@ summary: |
   - [self-updating-system](system/self-updating-system.md)
   - [source-policy](system/source-policy.md)
   - [support-systems](system/support-systems.md)
+  - [SynapseHub](system/support-systems.md#synapsehub)
 - [roadmap](roadmap.md)
 
 ## Клеточные уровни

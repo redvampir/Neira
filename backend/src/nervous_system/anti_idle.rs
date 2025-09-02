@@ -13,7 +13,7 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::interaction_hub::{InteractionHub, Scope};
+use crate::synapse_hub::{SynapseHub, Scope};
 
 #[derive(Clone, Copy)]
 pub struct IdleThresholds {
@@ -137,11 +137,11 @@ struct ToggleResponse {
 }
 
 async fn toggle<S>(
-    State(hub): State<Arc<InteractionHub>>,
+    State(hub): State<Arc<SynapseHub>>,
     Json(req): Json<ToggleRequest>,
 ) -> Result<Json<ToggleResponse>, axum::http::StatusCode>
 where
-    Arc<InteractionHub>: FromRef<S>,
+    Arc<SynapseHub>: FromRef<S>,
 {
     if !hub.check_auth(&req.auth) {
         return Err(axum::http::StatusCode::UNAUTHORIZED);
@@ -157,7 +157,7 @@ where
 pub fn router<S>() -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
-    Arc<InteractionHub>: FromRef<S>,
+    Arc<SynapseHub>: FromRef<S>,
 {
     Router::new().route("/api/neira/anti_idle/toggle", post(toggle::<S>))
 }

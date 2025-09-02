@@ -47,7 +47,7 @@ impl ChatCell for EchoChatCell {
             }
         }
 
-        // User message is saved upstream in InteractionHub to avoid duplicates
+        // User message is saved upstream in SynapseHub to avoid duplicates
 
         // Echo logic
         let response = input.to_string();
@@ -99,7 +99,7 @@ id: NEI-20250829-setup-meta-chatcell
 intent: docs
 scope: backend/chat-cell
 summary: |
-  EchoChatCell: простая отражающая клетка. Входящее user‑сообщение сохраняется в InteractionHub,
+  EchoChatCell: простая отражающая клетка. Входящее user‑сообщение сохраняется в SynapseHub,
   чтобы избежать дублей; здесь сохраняется ответ ассистента.
 links:
   - docs/backend-api.md

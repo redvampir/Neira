@@ -7,12 +7,12 @@ summary: добавлена метрика organ_build_duration_ms и стату
 
 | Имя | Тип | Единицы | Где инкрементируется | Назначение |
 |---|---|---|---|---|
-| chat_requests_total | counter | req | InteractionHub | Входящие чат‑запросы |
-| chat_errors_total | counter | err | InteractionHub | Ошибки авторизации/валидации/лимитов |
-| chat_response_time_ms | histogram | ms | InteractionHub | Время ответа чат‑клетки |
-| analysis_requests_total | counter | req | InteractionHub | Входящие анализ‑запросы |
-| analysis_errors_total | counter | err | InteractionHub | Ошибки анализа/тайм‑ауты/отмена |
-| analysis_cell_request_duration_ms | histogram | ms | InteractionHub | Длительность анализа (сред/квантили) |
+| chat_requests_total | counter | req | SynapseHub | Входящие чат‑запросы |
+| chat_errors_total | counter | err | SynapseHub | Ошибки авторизации/валидации/лимитов |
+| chat_response_time_ms | histogram | ms | SynapseHub | Время ответа чат‑клетки |
+| analysis_requests_total | counter | req | SynapseHub | Входящие анализ‑запросы |
+| analysis_errors_total | counter | err | SynapseHub | Ошибки анализа/тайм‑ауты/отмена |
+| analysis_cell_request_duration_ms | histogram | ms | SynapseHub | Длительность анализа (сред/квантили) |
 | chat_cell_requests_total | counter | req | EchoChatCell | Вызовы чат‑клетки |
 | chat_cell_errors_total | counter | err | EchoChatCell | Ошибки чат‑клетки |
 | chat_cell_request_duration_ms | histogram | ms | EchoChatCell | Длительность обработки клеткой |

@@ -5,7 +5,7 @@ use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
-use backend::interaction_hub::InteractionHub;
+use backend::synapse_hub::SynapseHub;
 use backend::memory_cell::MemoryCell;
 use backend::cell_registry::CellRegistry;
 
@@ -17,7 +17,7 @@ async fn chat_hub_rejects_empty_message() {
     let (metrics, rx) = MetricsCollectorCell::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
     let cfg = Config::default();
-    let hub = InteractionHub::new(registry.clone(), memory, metrics, diagnostics, &cfg);
+    let hub = SynapseHub::new(registry.clone(), memory, metrics, diagnostics, &cfg);
     hub.add_auth_token("secret");
     registry.register_chat_cell(Arc::new(EchoChatCell::default()));
 
@@ -45,6 +45,6 @@ async fn chat_hub_rejects_empty_message() {
 id: NEI-20250227-chat-hub-test-update
 intent: tests
 summary: |
-  Обновлен вызов `InteractionHub::chat` в тесте в соответствии с новым
+  Обновлен вызов `SynapseHub::chat` в тесте в соответствии с новым
   интерфейсом (добавлены `source` и `thread_id`).
 */

@@ -6,8 +6,8 @@ use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::cell_registry::CellRegistry;
 use backend::config::Config;
-use backend::interaction_hub::InteractionHub;
 use backend::memory_cell::MemoryCell;
+use backend::synapse_hub::SynapseHub;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio_util::sync::CancellationToken;
 
@@ -48,7 +48,7 @@ async fn hub_tracks_time_metrics() {
     let (metrics, rx) = MetricsCollectorCell::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
     let cfg = Config::default();
-    let hub = InteractionHub::new(registry.clone(), memory.clone(), metrics, diagnostics, &cfg);
+    let hub = SynapseHub::new(registry.clone(), memory.clone(), metrics, diagnostics, &cfg);
     hub.add_auth_token("t");
     let token = CancellationToken::new();
     hub.analyze("sleep", "", "t", &token).await.unwrap();

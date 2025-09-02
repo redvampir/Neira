@@ -55,7 +55,7 @@ struct TokenInfo {
     scopes: Vec<Scope>,
 }
 
-pub struct InteractionHub {
+pub struct SynapseHub {
     pub registry: Arc<CellRegistry>,
     pub memory: Arc<MemoryCell>,
     metrics: Arc<MetricsCollectorCell>,
@@ -98,7 +98,7 @@ pub struct ChatOutput {
     pub idempotent: bool,
 }
 
-impl InteractionHub {
+impl SynapseHub {
     pub fn new(
         registry: Arc<CellRegistry>,
         memory: Arc<MemoryCell>,
