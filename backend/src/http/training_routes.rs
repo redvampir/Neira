@@ -6,7 +6,7 @@ use tokio_stream::wrappers::IntervalStream;
 use tokio_stream::StreamExt;
 use serde::{Deserialize, Serialize};
 
-use backend::action::scripted_training_node::ScriptedTrainingNode;
+use backend::action::scripted_training_cell::ScriptedTrainingCell;
 
 #[derive(Deserialize)]
 pub struct TrainingRunReq {
@@ -20,7 +20,7 @@ pub struct TrainingRunResp { pub started: bool }
 pub async fn training_run(Json(req): Json<TrainingRunReq>) -> Result<Json<TrainingRunResp>, (StatusCode, String)> {
     if let Some(s) = req.script { std::env::set_var("TRAINING_SCRIPT", s); }
     if let Some(dr) = req.dry_run { std::env::set_var("TRAINING_DRY_RUN", if dr {"true"} else {"false"}); }
-    let node = ScriptedTrainingNode::from_env();
+    let node = ScriptedTrainingCell::from_env();
     tokio::spawn(async move { let _ = node.run().await; });
     Ok(Json(TrainingRunResp { started: true }))
 }

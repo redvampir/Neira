@@ -1,19 +1,19 @@
-use backend::action::diagnostics_node::DiagnosticsNode;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
-use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::action::diagnostics_cell::DiagnosticsCell;
+use backend::action::metrics_collector_cell::MetricsCollectorCell;
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
 use backend::interaction_hub::InteractionHub;
 use backend::config::Config;
-use backend::memory_node::MemoryNode;
-use backend::node_registry::NodeRegistry;
+use backend::memory_cell::MemoryCell;
+use backend::cell_registry::CellRegistry;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 
 mod common;
 use common::init_recorder;
 
-struct TestAnalysisNode;
+struct TestAnalysisCell;
 
-impl AnalysisNode for TestAnalysisNode {
+impl AnalysisCell for TestAnalysisCell {
     fn id(&self) -> &str {
         "test.analysis"
     }
@@ -41,11 +41,11 @@ impl AnalysisNode for TestAnalysisNode {
 async fn interaction_hub_records_analysis_metric() {
     let data = init_recorder();
     let tmp = tempfile::tempdir().expect("tmpdir");
-    let registry = Arc::new(NodeRegistry::new(tmp.path()).expect("registry"));
-    registry.register_analysis_node(Arc::new(TestAnalysisNode));
-    let memory = Arc::new(MemoryNode::new());
-    let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5, metrics.clone());
+    let registry = Arc::new(CellRegistry::new(tmp.path()).expect("registry"));
+    registry.register_analysis_cell(Arc::new(TestAnalysisCell));
+    let memory = Arc::new(MemoryCell::new());
+    let (metrics, rx) = MetricsCollectorCell::channel();
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
     let cfg = Config::default();
     let hub = InteractionHub::new(registry, memory, metrics, diagnostics, &cfg);
     hub.add_auth_token("token");
@@ -58,19 +58,19 @@ async fn interaction_hub_records_analysis_metric() {
     assert!(
         records
             .iter()
-            .any(|(n, _)| n == "analysis_node_request_duration_ms"),
+            .any(|(n, _)| n == "analysis_cell_request_duration_ms"),
         "no histogram recorded"
     );
     assert!(
         records
             .iter()
-            .any(|(n, _)| n == "analysis_node_request_duration_ms_p95"),
+            .any(|(n, _)| n == "analysis_cell_request_duration_ms_p95"),
         "no p95 histogram recorded"
     );
     assert!(
         records
             .iter()
-            .any(|(n, _)| n == "analysis_node_request_duration_ms_p99"),
+            .any(|(n, _)| n == "analysis_cell_request_duration_ms_p99"),
         "no p99 histogram recorded"
     );
 }

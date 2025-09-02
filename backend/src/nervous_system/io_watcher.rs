@@ -12,20 +12,20 @@ use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use super::SystemProbe;
-use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
-use crate::analysis_node::QualityMetrics;
+use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
+use crate::analysis_cell::QualityMetrics;
 
 /// Watches keyboard input and display output latency and reports delays
 /// to the diagnostics system.
 pub struct IoWatcher {
-    collector: Arc<MetricsCollectorNode>,
+    collector: Arc<MetricsCollectorCell>,
     threshold: Duration,
 }
 
 impl IoWatcher {
     /// Create a new watcher. `threshold_ms` specifies the latency
     /// threshold in milliseconds after which a diagnostic record is sent.
-    pub fn new(collector: Arc<MetricsCollectorNode>, threshold_ms: u64) -> Self {
+    pub fn new(collector: Arc<MetricsCollectorCell>, threshold_ms: u64) -> Self {
         Self {
             collector,
             threshold: Duration::from_millis(threshold_ms),

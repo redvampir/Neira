@@ -1,8 +1,8 @@
-struct ActionNode {
+struct ActionCell {
     executed: bool,
 }
 
-impl ActionNode {
+impl ActionCell {
     fn new() -> Self {
         Self { executed: false }
     }
@@ -14,7 +14,7 @@ impl ActionNode {
 
 #[test]
 fn action_executes() {
-    let mut node = ActionNode::new();
+    let mut node = ActionCell::new();
     node.execute();
     assert!(node.executed);
 }

@@ -27,7 +27,7 @@
 
 ```
 {
-  "response": "Привет!",          // пример ответа (для EchoChatNode — это эхо)
+  "response": "Привет!",          // пример ответа (для EchoChatCell — это эхо)
   "used_context": true             // брался ли исторический контекст по session_id
 }
 ```

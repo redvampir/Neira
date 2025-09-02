@@ -8,9 +8,9 @@ summary: |
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::action_node::ActionNode;
-use crate::analysis_node::AnalysisResult;
-use crate::memory_node::MemoryNode;
+use crate::action_cell::ActionCell;
+use crate::analysis_cell::AnalysisResult;
+use crate::memory_cell::MemoryCell;
 
 /// Resolve the base path of the project by walking up from the current
 /// executable location until a `config/integrity.json` file is found.
@@ -28,23 +28,23 @@ pub fn resolve_base_path() -> Option<PathBuf> {
     None
 }
 
-/// Node that resolves the base path once and stores it in the `MemoryNode`
+/// Node that resolves the base path once and stores it in the `MemoryCell`
 /// under the `base_path` key.
 #[derive(Default)]
-pub struct BasePathResolverNode;
+pub struct BasePathResolverCell;
 
-impl BasePathResolverNode {
+impl BasePathResolverCell {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl ActionNode for BasePathResolverNode {
+impl ActionCell for BasePathResolverCell {
     fn id(&self) -> &str {
         "system.base_path_resolver"
     }
 
-    fn preload(&self, _triggers: &[String], memory: &Arc<MemoryNode>) {
+    fn preload(&self, _triggers: &[String], memory: &Arc<MemoryCell>) {
         if memory.load_checkpoint("base_path").is_some() {
             return;
         }

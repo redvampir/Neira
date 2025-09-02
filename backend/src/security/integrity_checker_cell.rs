@@ -20,20 +20,20 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio::time::interval;
 use tracing::{error, info, warn};
 
-use crate::action_node::ActionNode;
-use crate::memory_node::MemoryNode;
+use crate::action_cell::ActionCell;
+use crate::memory_cell::MemoryCell;
 
 /// Узел, проверяющий контрольные суммы файлов на соответствие эталонным значениям.
-pub struct IntegrityCheckerNode {
+pub struct IntegrityCheckerCell {
     config_path: PathBuf,
     interval_ms: u64,
-    memory: Arc<MemoryNode>,
+    memory: Arc<MemoryCell>,
     quarantine: UnboundedSender<String>,
 }
 
-impl IntegrityCheckerNode {
+impl IntegrityCheckerCell {
     /// Создаёт узел и запускает периодическую проверку.
-    pub fn new(memory: Arc<MemoryNode>, quarantine: UnboundedSender<String>) -> Arc<Self> {
+    pub fn new(memory: Arc<MemoryCell>, quarantine: UnboundedSender<String>) -> Arc<Self> {
         let config_path = std::env::var("INTEGRITY_CONFIG_PATH")
             .unwrap_or_else(|_| "config/integrity.json".into());
         let interval_ms = std::env::var("INTEGRITY_CHECK_INTERVAL_MS")
@@ -101,10 +101,10 @@ impl IntegrityCheckerNode {
     }
 }
 
-impl ActionNode for IntegrityCheckerNode {
+impl ActionCell for IntegrityCheckerCell {
     fn id(&self) -> &str {
         "security.integrity_checker"
     }
 
-    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryNode>) {}
+    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryCell>) {}
 }

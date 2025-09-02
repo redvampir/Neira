@@ -14,11 +14,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::action_node::ActionNode;
-use crate::analysis_node::QualityMetrics;
-use crate::memory_node::MemoryNode;
+use crate::action_cell::ActionCell;
+use crate::analysis_cell::QualityMetrics;
+use crate::memory_cell::MemoryCell;
 
-/// Запись метрик, пересылаемая `MetricsCollectorNode`.
+/// Запись метрик, пересылаемая `MetricsCollectorCell`.
 #[derive(Debug, Clone)]
 pub struct MetricsRecord {
     pub id: String,
@@ -26,14 +26,14 @@ pub struct MetricsRecord {
 }
 
 /// Узел, который принимает записи метрик и пересылает их как сообщения через канал.
-pub struct MetricsCollectorNode {
+pub struct MetricsCollectorCell {
     tx: UnboundedSender<MetricsRecord>,
     normal_interval_ms: u64,
     low_interval_ms: u64,
     current_interval_ms: AtomicU64,
 }
 
-impl MetricsCollectorNode {
+impl MetricsCollectorCell {
     /// Создаёт узел и возвращает связанный с ним приёмник для сообщений.
     pub fn channel() -> (Arc<Self>, UnboundedReceiver<MetricsRecord>) {
         let (tx, rx) = unbounded_channel();
@@ -59,9 +59,9 @@ impl MetricsCollectorNode {
     /// Отправляет запись метрик для дальнейшей обработки.
     pub fn record(&self, record: MetricsRecord) {
         if self.tx.send(record).is_err() {
-            metrics::counter!("metrics_collector_node_errors_total").increment(1);
+            metrics::counter!("metrics_collector_cell_errors_total").increment(1);
         } else {
-            metrics::counter!("metrics_collector_node_requests_total").increment(1);
+            metrics::counter!("metrics_collector_cell_requests_total").increment(1);
         }
     }
 
@@ -85,11 +85,11 @@ impl MetricsCollectorNode {
     }
 }
 
-impl ActionNode for MetricsCollectorNode {
+impl ActionCell for MetricsCollectorCell {
     fn id(&self) -> &str {
         "metrics.collector"
     }
 
-    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryNode>) {}
+    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryCell>) {}
 }
 

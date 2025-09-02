@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
-use backend::action::diagnostics_node::DiagnosticsNode;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
-use backend::analysis_node::{AnalysisNode, AnalysisResult, NodeStatus};
+use backend::action::diagnostics_cell::DiagnosticsCell;
+use backend::action::metrics_collector_cell::MetricsCollectorCell;
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use backend::cell_registry::CellRegistry;
 use backend::config::Config;
 use backend::interaction_hub::InteractionHub;
-use backend::memory_node::MemoryNode;
-use backend::node_registry::NodeRegistry;
+use backend::memory_cell::MemoryCell;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio_util::sync::CancellationToken;
 
-struct CancelNode;
+struct CancelCell;
 
-impl AnalysisNode for CancelNode {
+impl AnalysisCell for CancelCell {
     fn id(&self) -> &str {
         "cancel.node"
     }
@@ -45,11 +45,11 @@ impl AnalysisNode for CancelNode {
 async fn interaction_hub_saves_checkpoint_on_cancel() {
     let handle = PrometheusBuilder::new().install_recorder().unwrap();
     let dir = tempfile::tempdir().unwrap();
-    let registry = Arc::new(NodeRegistry::new(dir.path()).unwrap());
-    registry.register_analysis_node(Arc::new(CancelNode));
-    let memory = Arc::new(MemoryNode::new());
-    let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5, metrics.clone());
+    let registry = Arc::new(CellRegistry::new(dir.path()).unwrap());
+    registry.register_analysis_cell(Arc::new(CancelCell));
+    let memory = Arc::new(MemoryCell::new());
+    let (metrics, rx) = MetricsCollectorCell::channel();
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
     let cfg = Config::default();
     let hub = InteractionHub::new(registry.clone(), memory.clone(), metrics, diagnostics, &cfg);
     hub.add_auth_token("t");

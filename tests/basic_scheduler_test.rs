@@ -1,5 +1,5 @@
-use backend::analysis_node::QualityMetrics;
-use backend::memory_node::UsageStats;
+use backend::analysis_cell::QualityMetrics;
+use backend::memory_cell::UsageStats;
 use backend::task_scheduler::{Priority, Queue, TaskScheduler};
 
 #[test]

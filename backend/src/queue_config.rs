@@ -6,7 +6,7 @@ summary: |
   и могут переопределяться переменными окружения.
 */
 
-use crate::memory_node::MemoryNode;
+use crate::memory_cell::MemoryCell;
 use crate::task_scheduler::Queue;
 
 /// Runtime configuration for analysis task queues.
@@ -21,8 +21,8 @@ pub struct QueueConfig {
 }
 
 impl QueueConfig {
-    /// Build config using historical metrics from `MemoryNode`.
-    pub fn new(memory: &MemoryNode) -> Self {
+    /// Build config using historical metrics from `MemoryCell`.
+    pub fn new(memory: &MemoryCell) -> Self {
         let fast_override = std::env::var("ANALYSIS_QUEUE_FAST_MS")
             .ok()
             .and_then(|v| v.parse().ok());
@@ -50,7 +50,7 @@ impl QueueConfig {
     }
 
     /// Classify average latency into a queue and recompute thresholds if needed.
-    pub fn classify(&mut self, avg_time: u128, memory: &MemoryNode) -> Queue {
+    pub fn classify(&mut self, avg_time: u128, memory: &MemoryCell) -> Queue {
         self.maybe_recompute(memory);
         if avg_time < self.fast_ms {
             Queue::Fast
@@ -61,7 +61,7 @@ impl QueueConfig {
         }
     }
 
-    fn maybe_recompute(&mut self, memory: &MemoryNode) {
+    fn maybe_recompute(&mut self, memory: &MemoryCell) {
         let total = Self::total_requests(memory);
         if total >= self.last_total + self.min_samples {
             let (fast_ms, long_ms, total_now) = Self::compute_thresholds(memory);
@@ -71,11 +71,11 @@ impl QueueConfig {
         }
     }
 
-    fn total_requests(memory: &MemoryNode) -> u64 {
+    fn total_requests(memory: &MemoryCell) -> u64 {
         memory.records().into_iter().map(|r| r.time.count).sum()
     }
 
-    fn compute_thresholds(memory: &MemoryNode) -> (u128, u128, u64) {
+    fn compute_thresholds(memory: &MemoryCell) -> (u128, u128, u64) {
         let records = memory.records();
         let mut avgs = Vec::new();
         let mut total = 0u64;

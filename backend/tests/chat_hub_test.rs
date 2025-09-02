@@ -1,25 +1,25 @@
 use std::sync::Arc;
 
-use backend::action::chat_node::EchoChatNode;
-use backend::action::diagnostics_node::DiagnosticsNode;
-use backend::action::metrics_collector_node::MetricsCollectorNode;
+use backend::action::chat_cell::EchoChatCell;
+use backend::action::diagnostics_cell::DiagnosticsCell;
+use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
 use backend::interaction_hub::InteractionHub;
-use backend::memory_node::MemoryNode;
-use backend::node_registry::NodeRegistry;
+use backend::memory_cell::MemoryCell;
+use backend::cell_registry::CellRegistry;
 
 #[tokio::test]
 async fn chat_hub_rejects_empty_message() {
     let templates_dir = tempfile::tempdir().unwrap();
-    let registry = Arc::new(NodeRegistry::new(templates_dir.path()).expect("registry"));
-    let memory = Arc::new(MemoryNode::new());
-    let (metrics, rx) = MetricsCollectorNode::channel();
-    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsNode::new(rx, 5, metrics.clone());
+    let registry = Arc::new(CellRegistry::new(templates_dir.path()).expect("registry"));
+    let memory = Arc::new(MemoryCell::new());
+    let (metrics, rx) = MetricsCollectorCell::channel();
+    let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
     let cfg = Config::default();
     let hub = InteractionHub::new(registry.clone(), memory, metrics, diagnostics, &cfg);
     hub.add_auth_token("secret");
-    registry.register_chat_node(Arc::new(EchoChatNode::default()));
+    registry.register_chat_cell(Arc::new(EchoChatCell::default()));
 
     let storage_dir = tempfile::tempdir().unwrap();
     let storage = FileContextStorage::new(storage_dir.path().join("context"));

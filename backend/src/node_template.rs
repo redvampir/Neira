@@ -98,7 +98,7 @@ fn load_action_schema(version: &str) -> Result<&'static Config<'static>, String>
     let path = base.join(version).join("action-node-template.schema.json");
     let cfg = load_schema_from(&path)?;
     let cfg_static: &'static Config<'static> = Box::leak(Box::new(cfg));
-    info!("Using ActionNodeTemplate schema {}", version);
+    info!("Using ActionCellTemplate schema {}", version);
     map.insert(version.to_string(), cfg_static);
     Ok(cfg_static)
 }
@@ -144,7 +144,7 @@ summary: |
   Структура шаблона узла действия и преобразование в JSON.
 */
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ActionNodeTemplate {
+pub struct ActionCellTemplate {
     pub id: String,
     pub version: String,
     pub action_type: String,
@@ -157,14 +157,14 @@ pub struct ActionNodeTemplate {
     pub metadata: Metadata,
 }
 
-impl ActionNodeTemplate {
+impl ActionCellTemplate {
     pub fn to_json(&self) -> Value {
-        let value = serde_json::to_value(self).expect("serialize ActionNodeTemplate");
+        let value = serde_json::to_value(self).expect("serialize ActionCellTemplate");
         #[cfg(debug_assertions)]
         {
             if let Err(errors) = validate_action_template(&value) {
                 panic!(
-                    "serialized ActionNodeTemplate failed validation: {:?}",
+                    "serialized ActionCellTemplate failed validation: {:?}",
                     errors
                 );
             }
@@ -237,16 +237,16 @@ pub fn validate_template(value: &Value) -> Result<(), Vec<String>> {
 id: NEI-20250214-153000-validate-action-template
 intent: feature
 summary: |
-  Валидация ActionNodeTemplate по соответствующей JSON‑схеме.
+  Валидация ActionCellTemplate по соответствующей JSON‑схеме.
 */
 pub fn validate_action_template(value: &Value) -> Result<(), Vec<String>> {
     match validate_with_loader(value, load_action_schema) {
         Ok(()) => {
-            info!("ActionNodeTemplate validation succeeded");
+            info!("ActionCellTemplate validation succeeded");
             Ok(())
         }
         Err(errors) => {
-            error!("ActionNodeTemplate validation failed: {:?}", errors);
+            error!("ActionCellTemplate validation failed: {:?}", errors);
             Err(errors)
         }
     }

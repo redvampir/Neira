@@ -12,8 +12,8 @@ use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 use tokio::time::{sleep, Duration};
 
 use super::SystemProbe;
-use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
-use crate::analysis_node::QualityMetrics;
+use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
+use crate::analysis_cell::QualityMetrics;
 
 const CPU_HIGH_THRESHOLD: f64 = 80.0;
 const MEM_HIGH_THRESHOLD: f64 = 80.0;
@@ -21,12 +21,12 @@ const MEM_HIGH_THRESHOLD: f64 = 80.0;
 /// Collects host level metrics and forwards them to the metrics system.
 pub struct HostMetrics {
     sys: System,
-    collector: Arc<MetricsCollectorNode>,
+    collector: Arc<MetricsCollectorCell>,
 }
 
 impl HostMetrics {
     /// Create a new host metrics collector.
-    pub fn new(collector: Arc<MetricsCollectorNode>) -> Self {
+    pub fn new(collector: Arc<MetricsCollectorCell>) -> Self {
         let sys = System::new_with_specifics(
             RefreshKind::new()
                 .with_cpu(CpuRefreshKind::everything())
@@ -46,7 +46,7 @@ impl SystemProbe for HostMetrics {
         }
     }
 
-    /// Refresh metrics and publish them via `metrics::gauge!` and `MetricsCollectorNode`.
+    /// Refresh metrics and publish them via `metrics::gauge!` and `MetricsCollectorCell`.
     fn collect(&mut self) {
         self.sys.refresh_cpu();
         self.sys.refresh_memory();
@@ -70,7 +70,7 @@ impl SystemProbe for HostMetrics {
         metrics::gauge!("host_memory_total_bytes").set(total_mem);
         metrics::gauge!("host_memory_used_bytes").set(used_mem);
 
-        // Forward a simplified record to the MetricsCollectorNode so that
+        // Forward a simplified record to the MetricsCollectorCell so that
         // downstream consumers are notified about the updated metrics.
         let record = MetricsRecord {
             id: "system.host".to_string(),

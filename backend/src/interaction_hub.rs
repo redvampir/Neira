@@ -13,19 +13,19 @@ summary: Логика watchdog вынесена в модуль nervous_system::
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
-use crate::action::diagnostics_node::DiagnosticsNode;
-use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
+use crate::action::diagnostics_cell::DiagnosticsCell;
+use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
-use crate::factory::{FabricatorNode, FactoryService, SelectorNode};
+use crate::factory::{FabricatorCell, FactoryService, SelectorCell};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
 use crate::nervous_system::{
     host_metrics::HostMetrics, io_watcher::IoWatcher, watchdog::Watchdog, SystemProbe,
 };
 use crate::organ_builder::{OrganBuilder, OrganState};
-use crate::security::integrity_checker_node::IntegrityCheckerNode;
-use crate::security::quarantine_node::QuarantineNode;
+use crate::security::integrity_checker_cell::IntegrityCheckerCell;
+use crate::security::quarantine_cell::QuarantineCell;
 use crate::security::safe_mode_controller::SafeModeController;
 use lru::LruCache;
 use std::num::NonZeroUsize;
@@ -35,9 +35,9 @@ use tokio::task::{spawn_blocking, JoinHandle};
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
-use crate::analysis_node::{AnalysisResult, NodeStatus};
-use crate::memory_node::MemoryNode;
-use crate::node_registry::NodeRegistry;
+use crate::analysis_cell::{AnalysisResult, NodeStatus};
+use crate::memory_cell::MemoryCell;
+use crate::cell_registry::CellRegistry;
 use crate::queue_config::QueueConfig;
 use crate::task_scheduler::TaskScheduler;
 use crate::trigger_detector::TriggerDetector;
@@ -56,9 +56,9 @@ struct TokenInfo {
 }
 
 pub struct InteractionHub {
-    pub registry: Arc<NodeRegistry>,
-    pub memory: Arc<MemoryNode>,
-    metrics: Arc<MetricsCollectorNode>,
+    pub registry: Arc<CellRegistry>,
+    pub memory: Arc<MemoryCell>,
+    metrics: Arc<MetricsCollectorCell>,
     trigger_detector: Arc<TriggerDetector>,
     pub(crate) scheduler: RwLock<TaskScheduler>,
     queue_cfg: RwLock<QueueConfig>,
@@ -100,10 +100,10 @@ pub struct ChatOutput {
 
 impl InteractionHub {
     pub fn new(
-        registry: Arc<NodeRegistry>,
-        memory: Arc<MemoryNode>,
-        metrics: Arc<MetricsCollectorNode>,
-        diagnostics: Arc<DiagnosticsNode>,
+        registry: Arc<CellRegistry>,
+        memory: Arc<MemoryCell>,
+        metrics: Arc<MetricsCollectorCell>,
+        diagnostics: Arc<DiagnosticsCell>,
         config: &Config,
     ) -> Self {
         let rate_limit_per_min = std::env::var("CHAT_RATE_LIMIT_PER_MIN")
@@ -143,15 +143,15 @@ impl InteractionHub {
             .map_or(true, |p| p.enabled);
         let io_watcher_enabled = config.probes.get("io_watcher").map_or(false, |p| p.enabled);
 
-        registry.register_action_node(metrics.clone());
-        registry.register_action_node(diagnostics.clone());
-        registry.register_action_node(Arc::new(
-            crate::nervous_system::base_path_resolver::BasePathResolverNode::new(),
+        registry.register_action_cell(metrics.clone());
+        registry.register_action_cell(diagnostics.clone());
+        registry.register_action_cell(Arc::new(
+            crate::nervous_system::base_path_resolver::BasePathResolverCell::new(),
         ));
         let safe_mode = SafeModeController::new();
-        let (quarantine, quarantine_tx, _dev_rx) = QuarantineNode::new(safe_mode.clone());
-        registry.register_action_node(quarantine);
-        registry.register_action_node(IntegrityCheckerNode::new(memory.clone(), quarantine_tx));
+        let (quarantine, quarantine_tx, _dev_rx) = QuarantineCell::new(safe_mode.clone());
+        registry.register_action_cell(quarantine);
+        registry.register_action_cell(IntegrityCheckerCell::new(memory.clone(), quarantine_tx));
 
         let queue_cfg = QueueConfig::new(&memory);
 
@@ -214,9 +214,9 @@ impl InteractionHub {
 
         // Register factory helper nodes (Adapter + Selector)
         hub.registry
-            .register_action_node(Arc::new(FabricatorNode::default()));
+            .register_action_cell(Arc::new(FabricatorCell::default()));
         hub.registry
-            .register_analysis_node(Arc::new(SelectorNode::new(hub.registry.clone())));
+            .register_analysis_cell(Arc::new(SelectorCell::new(hub.registry.clone())));
 
         hub
     }
@@ -562,14 +562,14 @@ impl InteractionHub {
             }
         }
         // Triggers integration: preload action nodes
-        for node in self.registry.action_nodes() {
+        for node in self.registry.action_cells() {
             node.preload(&triggers, &self.memory);
         }
 
         // Metrics for incoming message
         // metrics could be recorded here via `metrics` crate
 
-        let node = self.registry.get_chat_node(node_id).ok_or_else(|| {
+        let node = self.registry.get_chat_cell(node_id).ok_or_else(|| {
             metrics::counter!("chat_errors_total").increment(1);
             "chat node not found".to_string()
         })?;
@@ -708,7 +708,7 @@ impl InteractionHub {
         }
 
         let triggers = self.trigger_detector.detect(input);
-        for node in self.registry.action_nodes() {
+        for node in self.registry.action_cells() {
             node.preload(&triggers, &self.memory);
         }
 
@@ -729,7 +729,7 @@ impl InteractionHub {
         );
 
         let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
-        let node = self.registry.get_analysis_node(&task_id)?;
+        let node = self.registry.get_analysis_cell(&task_id)?;
         let cancel = cancel_token.clone();
 
         let mut handle = spawn_blocking(move || node.analyze(&task_input, &cancel));
@@ -799,9 +799,9 @@ impl InteractionHub {
                                 self.memory.update_time(id, elapsed);
                                 let mem = self.memory.clone(); let rid = id.to_string(); mem.recalc_priority_async(rid);
                             }
-                            metrics::histogram!("analysis_node_request_duration_ms").record(elapsed as f64);
-                            metrics::histogram!("analysis_node_request_duration_ms_p95").record(elapsed as f64);
-                            metrics::histogram!("analysis_node_request_duration_ms_p99").record(elapsed as f64);
+                            metrics::histogram!("analysis_cell_request_duration_ms").record(elapsed as f64);
+                            metrics::histogram!("analysis_cell_request_duration_ms_p95").record(elapsed as f64);
+                            metrics::histogram!("analysis_cell_request_duration_ms_p99").record(elapsed as f64);
                             hearing::info(&format!(
                                 "analysis_id={} duration_ms={} soft_timeout=true analysis completed after soft timeout",
                                 id, elapsed
@@ -872,9 +872,9 @@ impl InteractionHub {
                                 self.memory.update_time(id, elapsed);
                                 let mem = self.memory.clone(); let rid = id.to_string(); mem.recalc_priority_async(rid);
                             }
-                            metrics::histogram!("analysis_node_request_duration_ms").record(elapsed as f64);
-                            metrics::histogram!("analysis_node_request_duration_ms_p95").record(elapsed as f64);
-                            metrics::histogram!("analysis_node_request_duration_ms_p99").record(elapsed as f64);
+                            metrics::histogram!("analysis_cell_request_duration_ms").record(elapsed as f64);
+                            metrics::histogram!("analysis_cell_request_duration_ms_p95").record(elapsed as f64);
+                            metrics::histogram!("analysis_cell_request_duration_ms_p99").record(elapsed as f64);
                             hearing::info(&format!(
                                 "analysis_id={} duration_ms={} soft_timeout=false analysis completed",
                                 id, elapsed

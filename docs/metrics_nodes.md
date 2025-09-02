@@ -13,24 +13,24 @@
 - [Система самообновления](system/self-updating-system.md)
 
 ## Оглавление
-- [MetricsCollectorNode](#metricscollectornode)
-- [DiagnosticsNode](#diagnosticsnode)
+- [MetricsCollectorCell](#metricscollectorcell)
+- [DiagnosticsCell](#diagnosticscell)
 - [Механизм автоисправления](#механизм-автоисправления)
 - [Как отключить или ограничить мониторинг](#как-отключить-или-ограничить-мониторинг)
 
 ---
 
-### MetricsCollectorNode
+### MetricsCollectorCell
 
-`MetricsCollectorNode` получает записи метрик `QualityMetrics` от других
+`MetricsCollectorCell` получает записи метрик `QualityMetrics` от других
 узлов и пересылает их через неблокирующий канал. Узел инкрементирует
 счётчики `metrics_collector_node_requests_total` и
 `metrics_collector_node_errors_total`, что позволяет наблюдать активность
 и возможные ошибки доставки метрик.
 
-### DiagnosticsNode
+### DiagnosticsCell
 
-`DiagnosticsNode` подписывается на поток записей метрик, анализирует их и
+`DiagnosticsCell` подписывается на поток записей метрик, анализирует их и
 реагирует при превышении допустимых значений. Для простого правила
 используется поле `credibility`: значения ниже 0.5 считаются ошибкой.
 Узел ведёт счётчик ошибок и при достижении порога генерирует предупреждение
@@ -38,7 +38,7 @@
 
 ### Механизм автоисправления
 
-При превышении порога `DiagnosticsNode` вызывает функцию `attempt_fix`.
+При превышении порога `DiagnosticsCell` вызывает функцию `attempt_fix`.
 Она передаётся при создании узла и должна вернуть `true`, если проблему
 удалось устранить автоматически. В случае неудачи формируется запрос
 разработчику (`DeveloperRequest`) с описанием проблемы. Это позволяет

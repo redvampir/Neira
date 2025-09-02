@@ -7,21 +7,21 @@ summary: |
 
 use std::sync::Arc;
 
-use crate::memory_node::MemoryNode;
+use crate::memory_cell::MemoryCell;
 
-pub trait ActionNode: Send + Sync {
+pub trait ActionCell: Send + Sync {
     fn id(&self) -> &str;
-    fn preload(&self, triggers: &[String], memory: &Arc<MemoryNode>);
+    fn preload(&self, triggers: &[String], memory: &Arc<MemoryCell>);
 }
 
 pub struct PreloadAction;
 
-impl ActionNode for PreloadAction {
+impl ActionCell for PreloadAction {
     fn id(&self) -> &str {
         "preload.action"
     }
 
-    fn preload(&self, triggers: &[String], memory: &Arc<MemoryNode>) {
+    fn preload(&self, triggers: &[String], memory: &Arc<MemoryCell>) {
         let matched = memory.preload_by_trigger(triggers);
         for rec in matched {
             let mem = Arc::clone(memory);

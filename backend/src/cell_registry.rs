@@ -14,13 +14,13 @@ use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde_json::Value;
 use tracing::{error, info};
 
-use crate::action::chat_node::ChatNode;
-use crate::action::scripted_training_node::ScriptedTrainingNode;
-use crate::action_node::ActionNode;
-use crate::analysis_node::AnalysisNode;
-use crate::memory_node::MemoryNode;
+use crate::action::chat_cell::ChatCell;
+use crate::action::scripted_training_cell::ScriptedTrainingCell;
+use crate::action_cell::ActionCell;
+use crate::analysis_cell::AnalysisCell;
+use crate::memory_cell::MemoryCell;
 use crate::node_template::{
-    validate_action_template, validate_template, ActionNodeTemplate, NodeTemplate,
+    validate_action_template, validate_template, ActionCellTemplate, NodeTemplate,
 };
 
 /* neira:meta
@@ -55,8 +55,8 @@ fn load_template(path: &Path) -> Result<NodeTemplate, String> {
     load_template_impl(path, validate_template)
 }
 
-/// Загружает `ActionNodeTemplate` из файла.
-fn load_action_template(path: &Path) -> Result<ActionNodeTemplate, String> {
+/// Загружает `ActionCellTemplate` из файла.
+fn load_action_template(path: &Path) -> Result<ActionCellTemplate, String> {
     load_template_impl(path, validate_action_template)
 }
 
@@ -70,7 +70,7 @@ fn register_file(
     path: &Path,
     nodes: &Arc<RwLock<HashMap<String, NodeTemplate>>>,
     paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
-    action_tpls: &Arc<RwLock<HashMap<String, ActionNodeTemplate>>>,
+    action_tpls: &Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
 ) {
     if let Ok(tpl) = load_template(path) {
@@ -96,7 +96,7 @@ fn scan_dir(
     dir: &Path,
     nodes: &Arc<RwLock<HashMap<String, NodeTemplate>>>,
     paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
-    action_tpls: &Arc<RwLock<HashMap<String, ActionNodeTemplate>>>,
+    action_tpls: &Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
 ) {
     if let Ok(entries) = fs::read_dir(dir) {
@@ -112,19 +112,19 @@ fn scan_dir(
 }
 
 /// Реестр узлов: хранит метаданные и следит за изменениями файлов.
-pub struct NodeRegistry {
+pub struct CellRegistry {
     root: PathBuf,
     nodes: Arc<RwLock<HashMap<String, NodeTemplate>>>,
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
-    action_templates: Arc<RwLock<HashMap<String, ActionNodeTemplate>>>,
+    action_templates: Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: Arc<RwLock<HashMap<PathBuf, String>>>,
-    analysis_nodes: Arc<RwLock<HashMap<String, Arc<dyn AnalysisNode + Send + Sync>>>>,
-    action_nodes: Arc<RwLock<Vec<Arc<dyn ActionNode>>>>,
-    chat_nodes: Arc<RwLock<HashMap<String, Arc<dyn ChatNode + Send + Sync>>>>,
+    analysis_cells: Arc<RwLock<HashMap<String, Arc<dyn AnalysisCell + Send + Sync>>>>,
+    action_cells: Arc<RwLock<Vec<Arc<dyn ActionCell>>>>,
+    chat_cells: Arc<RwLock<HashMap<String, Arc<dyn ChatCell + Send + Sync>>>>,
     _watcher: Arc<Mutex<RecommendedWatcher>>,
 }
 
-impl NodeRegistry {
+impl CellRegistry {
     /// Создаёт реестр и запускает наблюдение за каталогом.
     pub fn new(dir: impl AsRef<Path>) -> Result<Self, String> {
         let dir = dir.as_ref().to_path_buf();
@@ -132,9 +132,9 @@ impl NodeRegistry {
         let paths = Arc::new(RwLock::new(HashMap::new()));
         let action_templates = Arc::new(RwLock::new(HashMap::new()));
         let action_paths = Arc::new(RwLock::new(HashMap::new()));
-        let analysis_nodes = Arc::new(RwLock::new(HashMap::new()));
-        let action_nodes = Arc::new(RwLock::new(Vec::new()));
-        let chat_nodes = Arc::new(RwLock::new(HashMap::new()));
+        let analysis_cells = Arc::new(RwLock::new(HashMap::new()));
+        let action_cells = Arc::new(RwLock::new(Vec::new()));
+        let chat_cells = Arc::new(RwLock::new(HashMap::new()));
 
         // Начальная загрузка файлов
         for entry in fs::read_dir(&dir).map_err(|e| format!("read_dir {}: {e}", dir.display()))? {
@@ -254,21 +254,21 @@ impl NodeRegistry {
             paths,
             action_templates,
             action_paths,
-            analysis_nodes,
-            action_nodes,
-            chat_nodes,
+            analysis_cells,
+            action_cells,
+            chat_cells,
             _watcher: watcher,
         })
     }
 
-    pub fn register_scripted_training_node(&self) {
-        self.register_action_node(Arc::new(ScriptedTrainingNode::default()));
+    pub fn register_scripted_training_cell(&self) {
+        self.register_action_cell(Arc::new(ScriptedTrainingCell::default()));
         info!("Registered scripted training node");
     }
 
-    pub fn register_init_node(&self, node: Arc<dyn ActionNode>, memory: &Arc<MemoryNode>) {
+    pub fn register_init_node(&self, node: Arc<dyn ActionCell>, memory: &Arc<MemoryCell>) {
         node.preload(&[], memory);
-        self.action_nodes.write().unwrap().insert(0, node);
+        self.action_cells.write().unwrap().insert(0, node);
     }
 
     /// Регистрация или обновление узла из файла.
@@ -372,7 +372,7 @@ impl NodeRegistry {
     intent: feature
     summary: Регистрирует шаблон узла действия и сохраняет его на диск.
     */
-    pub fn register_action_template(&self, tpl: ActionNodeTemplate) -> Result<(), String> {
+    pub fn register_action_template(&self, tpl: ActionCellTemplate) -> Result<(), String> {
         let value = tpl.to_json();
         validate_action_template(&value).map_err(|errs| errs.join(", "))?;
         let file = format!("{}-{}.json", tpl.id, tpl.version);
@@ -412,12 +412,12 @@ impl NodeRegistry {
     }
 
     /// Получение шаблона узла действия по идентификатору.
-    pub fn get_action_template(&self, id: &str) -> Option<ActionNodeTemplate> {
+    pub fn get_action_template(&self, id: &str) -> Option<ActionCellTemplate> {
         self.action_templates.read().unwrap().get(id).cloned()
     }
 
     /// Возвращает все зарегистрированные шаблоны узлов действия.
-    pub fn list_action_templates(&self) -> Vec<ActionNodeTemplate> {
+    pub fn list_action_templates(&self) -> Vec<ActionCellTemplate> {
         self.action_templates
             .read()
             .unwrap()
@@ -426,35 +426,35 @@ impl NodeRegistry {
             .collect()
     }
 
-    /// Регистрация реализации `AnalysisNode`.
-    pub fn register_analysis_node(&self, node: Arc<dyn AnalysisNode + Send + Sync>) {
-        self.analysis_nodes
+    /// Регистрация реализации `AnalysisCell`.
+    pub fn register_analysis_cell(&self, node: Arc<dyn AnalysisCell + Send + Sync>) {
+        self.analysis_cells
             .write()
             .unwrap()
             .insert(node.id().to_string(), node);
     }
 
-    /// Получение реализации `AnalysisNode` по идентификатору.
-    pub fn get_analysis_node(&self, id: &str) -> Option<Arc<dyn AnalysisNode + Send + Sync>> {
-        self.analysis_nodes.read().unwrap().get(id).cloned()
+    /// Получение реализации `AnalysisCell` по идентификатору.
+    pub fn get_analysis_cell(&self, id: &str) -> Option<Arc<dyn AnalysisCell + Send + Sync>> {
+        self.analysis_cells.read().unwrap().get(id).cloned()
     }
 
-    pub fn register_action_node(&self, node: Arc<dyn ActionNode>) {
-        self.action_nodes.write().unwrap().push(node);
+    pub fn register_action_cell(&self, node: Arc<dyn ActionCell>) {
+        self.action_cells.write().unwrap().push(node);
     }
 
-    pub fn action_nodes(&self) -> Vec<Arc<dyn ActionNode>> {
-        self.action_nodes.read().unwrap().clone()
+    pub fn action_cells(&self) -> Vec<Arc<dyn ActionCell>> {
+        self.action_cells.read().unwrap().clone()
     }
 
-    pub fn register_chat_node(&self, node: Arc<dyn ChatNode + Send + Sync>) {
-        self.chat_nodes
+    pub fn register_chat_cell(&self, node: Arc<dyn ChatCell + Send + Sync>) {
+        self.chat_cells
             .write()
             .unwrap()
             .insert(node.id().to_string(), node);
     }
 
-    pub fn get_chat_node(&self, id: &str) -> Option<Arc<dyn ChatNode + Send + Sync>> {
-        self.chat_nodes.read().unwrap().get(id).cloned()
+    pub fn get_chat_cell(&self, id: &str) -> Option<Arc<dyn ChatCell + Send + Sync>> {
+        self.chat_cells.read().unwrap().get(id).cloned()
     }
 }

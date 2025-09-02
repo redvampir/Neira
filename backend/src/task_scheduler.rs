@@ -9,8 +9,8 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::time::Instant;
 
-use crate::analysis_node::QualityMetrics;
-use crate::memory_node::UsageStats;
+use crate::analysis_cell::QualityMetrics;
+use crate::memory_cell::UsageStats;
 
 /// Очередь выполнения в зависимости от ожидаемой длительности задачи
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

@@ -1,5 +1,5 @@
-use backend::analysis_node::AnalysisResult;
-use backend::memory_node::MemoryNode;
+use backend::analysis_cell::AnalysisResult;
+use backend::memory_cell::MemoryCell;
 use backend::queue_config::QueueConfig;
 use backend::task_scheduler::Queue;
 use std::sync::Mutex;
@@ -12,7 +12,7 @@ fn queue_config_recalculates() {
     std::env::remove_var("ANALYSIS_QUEUE_FAST_MS");
     std::env::remove_var("ANALYSIS_QUEUE_LONG_MS");
     std::env::set_var("ANALYSIS_QUEUE_RECALC_MIN", "2");
-    let memory = MemoryNode::new();
+    let memory = MemoryCell::new();
 
     let r = AnalysisResult::new("a", "", vec![]);
     memory.push_metrics(&r);
@@ -40,7 +40,7 @@ fn queue_config_env_override() {
     let _guard = ENV_LOCK.lock().unwrap();
     std::env::set_var("ANALYSIS_QUEUE_FAST_MS", "150");
     std::env::set_var("ANALYSIS_QUEUE_LONG_MS", "1500");
-    let memory = MemoryNode::new();
+    let memory = MemoryCell::new();
 
     let r = AnalysisResult::new("a", "", vec![]);
     memory.push_metrics(&r);

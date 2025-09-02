@@ -16,9 +16,9 @@ use std::{
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::warn;
 
-use crate::action::metrics_collector_node::{MetricsCollectorNode, MetricsRecord};
-use crate::action_node::ActionNode;
-use crate::memory_node::MemoryNode;
+use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
+use crate::action_cell::ActionCell;
+use crate::memory_cell::MemoryCell;
 
 /// Максимальный размер окна истории для анализа.
 pub const MAX_HISTORY: usize = 100;
@@ -69,21 +69,21 @@ pub fn detect_anomaly(values: &[f32]) -> Option<Alert> {
 /// Узел диагностики, который анализирует поступающие метрики
 /// и реагирует при превышении порогов.
 #[derive(Clone)]
-pub struct DiagnosticsNode {
+pub struct DiagnosticsCell {
     error_threshold: u32,
     error_count: Arc<AtomicU32>,
     notify: UnboundedSender<DeveloperRequest>,
     attempt_fix: Arc<dyn Fn() -> bool + Send + Sync>,
     alert: UnboundedSender<Alert>,
-    collector: Arc<MetricsCollectorNode>,
+    collector: Arc<MetricsCollectorCell>,
 }
 
-impl DiagnosticsNode {
+impl DiagnosticsCell {
     /// Создаёт узел и запускает обработку входящих событий метрик.
     pub fn new(
         rx: UnboundedReceiver<MetricsRecord>,
         error_threshold: u32,
-        collector: Arc<MetricsCollectorNode>,
+        collector: Arc<MetricsCollectorCell>,
     ) -> (
         Arc<Self>,
         UnboundedReceiver<DeveloperRequest>,
@@ -96,7 +96,7 @@ impl DiagnosticsNode {
     pub fn new_with_fix(
         mut rx: UnboundedReceiver<MetricsRecord>,
         error_threshold: u32,
-        collector: Arc<MetricsCollectorNode>,
+        collector: Arc<MetricsCollectorCell>,
         attempt_fix: Arc<dyn Fn() -> bool + Send + Sync>,
     ) -> (
         Arc<Self>,
@@ -117,7 +117,7 @@ impl DiagnosticsNode {
         tokio::spawn(async move {
             let mut history: VecDeque<f32> = VecDeque::new();
             while let Some(record) = rx.recv().await {
-                metrics::counter!("diagnostics_node_requests_total").increment(1);
+                metrics::counter!("diagnostics_cell_requests_total").increment(1);
                 // Простое правило: низкая достоверность считается ошибкой.
                 if let Some(cred) = record.metrics.credibility {
                     history.push_back(cred);
@@ -131,7 +131,7 @@ impl DiagnosticsNode {
                         node_clone.collector.set_normal();
                     }
                     if cred < 0.5 {
-                        metrics::counter!("diagnostics_node_errors_total").increment(1);
+                        metrics::counter!("diagnostics_cell_errors_total").increment(1);
                         let count = node_clone.error_count.fetch_add(1, Ordering::SeqCst) + 1;
                         if count >= node_clone.error_threshold {
                             warn!(id=%record.id, count, "credibility below threshold");
@@ -157,10 +157,10 @@ impl DiagnosticsNode {
     }
 }
 
-impl ActionNode for DiagnosticsNode {
+impl ActionCell for DiagnosticsCell {
     fn id(&self) -> &str {
         "metrics.diagnostics"
     }
 
-    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryNode>) {}
+    fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryCell>) {}
 }

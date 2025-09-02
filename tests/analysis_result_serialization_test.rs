@@ -1,4 +1,4 @@
-use backend::analysis_node::AnalysisResult;
+use backend::analysis_cell::AnalysisResult;
 use serde_json::json;
 
 #[test]

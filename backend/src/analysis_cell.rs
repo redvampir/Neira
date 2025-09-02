@@ -110,7 +110,7 @@ impl AnalysisResult {
     }
 }
 
-pub trait AnalysisNode {
+pub trait AnalysisCell {
     fn id(&self) -> &str;
     fn analysis_type(&self) -> &str;
     fn status(&self) -> NodeStatus;

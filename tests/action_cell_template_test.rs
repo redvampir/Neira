@@ -3,16 +3,16 @@ id: NEI-20250323-151200-action-template-list
 intent: test
 summary: Проверяет регистрацию и перечисление шаблонов узлов действия.
 */
-use backend::node_registry::NodeRegistry;
-use backend::node_template::{ActionNodeTemplate, NodeTemplate};
+use backend::cell_registry::CellRegistry;
+use backend::node_template::{ActionCellTemplate, NodeTemplate};
 use std::collections::HashSet;
 use std::fs;
 
 #[test]
 fn registry_registers_action_templates() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let tpl = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let tpl = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -31,8 +31,8 @@ fn registry_registers_action_templates() {
 #[test]
 fn registry_lists_action_templates() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let tpl1 = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let tpl1 = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -44,7 +44,7 @@ fn registry_lists_action_templates() {
             extra: Default::default(),
         },
     };
-    let tpl2 = ActionNodeTemplate {
+    let tpl2 = ActionCellTemplate {
         id: "action.another.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "another".to_string(),
@@ -72,8 +72,8 @@ summary: Проверяет, что повторная регистрация п
 #[test]
 fn reregister_same_path_replaces_template() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let mut tpl = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let mut tpl = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -102,8 +102,8 @@ summary: Проверяет, что повторная регистрация с
 #[test]
 fn registering_same_id_different_path_returns_error() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let tpl1 = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let tpl1 = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),
@@ -115,7 +115,7 @@ fn registering_same_id_different_path_returns_error() {
             extra: Default::default(),
         },
     };
-    let tpl2 = ActionNodeTemplate {
+    let tpl2 = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.2.0".to_string(),
         action_type: "example".to_string(),
@@ -158,8 +158,8 @@ summary: Проверяет, что повторная регистрация с
 #[test]
 fn registering_same_id_different_type_returns_error() {
     let dir = tempfile::tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
-    let action_tpl = ActionNodeTemplate {
+    let registry = CellRegistry::new(dir.path()).unwrap();
+    let action_tpl = ActionCellTemplate {
         id: "action.example.v1".to_string(),
         version: "0.1.0".to_string(),
         action_type: "example".to_string(),

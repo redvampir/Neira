@@ -1,4 +1,4 @@
-use backend::action::chat_node::{ChatNode, EchoChatNode};
+use backend::action::chat_cell::{ChatCell, EchoChatCell};
 use backend::context::context_storage::FileContextStorage;
 use std::path::PathBuf;
 
@@ -23,12 +23,12 @@ fn install_file_subscriber(
 }
 
 #[tokio::test]
-async fn chat_node_echo_logs_request_and_response() {
+async fn chat_cell_echo_logs_request_and_response() {
     std::env::set_var("CONTEXT_FLUSH_MS", "0");
     let tmp = tempfile::tempdir().expect("tmpdir");
     let (_sub_guard, log_path, writer_guard) = install_file_subscriber(&tmp);
 
-    let node = EchoChatNode::default();
+    let node = EchoChatCell::default();
     let storage = FileContextStorage::new(tmp.path().join("context"));
     let chat_id = "test_chat";
     let session_id = "sess1";
@@ -57,12 +57,12 @@ async fn chat_node_echo_logs_request_and_response() {
 }
 
 #[tokio::test]
-async fn chat_node_handles_empty_input() {
+async fn chat_cell_handles_empty_input() {
     std::env::set_var("CONTEXT_FLUSH_MS", "0");
     let tmp = tempfile::tempdir().expect("tmpdir");
     let (_sub_guard, log_path, writer_guard) = install_file_subscriber(&tmp);
 
-    let node = EchoChatNode::default();
+    let node = EchoChatCell::default();
     let storage = FileContextStorage::new(tmp.path().join("context"));
     let chat_id = "test_chat";
     let session_id = "sess_empty";

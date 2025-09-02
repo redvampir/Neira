@@ -1,4 +1,4 @@
-use backend::node_registry::NodeRegistry;
+use backend::cell_registry::CellRegistry;
 use backend::node_template::{Metadata, NodeTemplate};
 use serde_json::json;
 use std::{collections::HashMap, fs, thread, time::Duration};
@@ -16,7 +16,7 @@ fn hot_reload_detects_file_changes() {
     });
     fs::write(&path, serde_json::to_string(&tpl).unwrap()).unwrap();
 
-    let registry = NodeRegistry::new(dir.path()).unwrap();
+    let registry = CellRegistry::new(dir.path()).unwrap();
     assert_eq!(registry.get("n1").unwrap().analysis_type, "a");
 
     let tpl2 = json!({
@@ -37,7 +37,7 @@ fn hot_reload_detects_file_changes() {
 #[test]
 fn register_template_persists_to_disk() {
     let dir = tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
+    let registry = CellRegistry::new(dir.path()).unwrap();
     let tpl = NodeTemplate {
         id: "n2".to_string(),
         version: "0.1.0".to_string(),
@@ -53,14 +53,14 @@ fn register_template_persists_to_disk() {
     registry.register_template(tpl.clone()).unwrap();
     assert!(registry.get("n2").is_some());
     drop(registry);
-    let registry2 = NodeRegistry::new(dir.path()).unwrap();
+    let registry2 = CellRegistry::new(dir.path()).unwrap();
     assert!(registry2.get("n2").is_some());
 }
 
 #[test]
 fn loads_template_from_subdir() {
     let dir = tempdir().unwrap();
-    let registry = NodeRegistry::new(dir.path()).unwrap();
+    let registry = CellRegistry::new(dir.path()).unwrap();
 
     let sub = dir.path().join("nested");
     fs::create_dir(&sub).unwrap();
