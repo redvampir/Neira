@@ -4,12 +4,18 @@ intent: docs
 summary: |
   Отслеживает задержки ввода-вывода и публикует метрики при превышении порога.
 */
+/* neira:meta
+id: NEI-20240607-io-watcher-stop
+intent: feature
+summary: Добавлен токен остановки и метод stop для завершения наблюдения.
+*/
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio_util::sync::CancellationToken;
 
 use super::SystemProbe;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
@@ -20,15 +26,21 @@ use crate::analysis_cell::QualityMetrics;
 pub struct IoWatcher {
     collector: Arc<MetricsCollectorCell>,
     threshold: Duration,
+    shutdown: CancellationToken,
 }
 
 impl IoWatcher {
     /// Create a new watcher. `threshold_ms` specifies the latency
     /// threshold in milliseconds after which a diagnostic record is sent.
-    pub fn new(collector: Arc<MetricsCollectorCell>, threshold_ms: u64) -> Self {
+    pub fn new(
+        collector: Arc<MetricsCollectorCell>,
+        threshold_ms: u64,
+        shutdown: CancellationToken,
+    ) -> Self {
         Self {
             collector,
             threshold: Duration::from_millis(threshold_ms),
+            shutdown,
         }
     }
 
@@ -67,6 +79,9 @@ impl SystemProbe for IoWatcher {
         let mut stdout = tokio::io::stdout();
         let mut buf = [0u8; 1];
         loop {
+            if self.shutdown.is_cancelled() {
+                break;
+            }
             let start_in = Instant::now();
             if stdin.read_exact(&mut buf).await.is_ok() {
                 let latency_in = start_in.elapsed();
@@ -85,4 +100,8 @@ impl SystemProbe for IoWatcher {
     }
 
     fn collect(&mut self) {}
+
+    fn stop(&mut self) {
+        self.shutdown.cancel();
+    }
 }

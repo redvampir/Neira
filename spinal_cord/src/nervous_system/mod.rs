@@ -3,6 +3,11 @@ id: NEI-20250215-ns-watch
 intent: code
 summary: Добавлен заглушечный watch для мониторинга записей фабрики.
 */
+/* neira:meta
+id: NEI-20240607-systemprobe-stop
+intent: feature
+summary: Трейт SystemProbe расширен методом stop для завершения фоновых циклов.
+*/
 use crate::event_bus::{CellCreated, Event, OrganBuilt, Subscriber};
 use crate::factory::StemCellRecord;
 use async_trait::async_trait;
@@ -19,6 +24,9 @@ pub trait SystemProbe: Send + Sync {
     /// nothing, allowing probes that operate only via `start` to leave it
     /// empty.
     fn collect(&mut self) {}
+
+    /// Signal the probe to terminate its background loop and clean up.
+    fn stop(&mut self);
 }
 
 pub fn watch(_record: &StemCellRecord) {

@@ -10,12 +10,18 @@ intent: feature
 summary: |
   Добавлен сбор количества новых клеток.
 */
+/* neira:meta
+id: NEI-20240607-hostmetrics-stop
+intent: feature
+summary: Добавлен CancellationToken и метод stop для остановки сборщика.
+*/
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 use tokio::time::{sleep, Duration};
+use tokio_util::sync::CancellationToken;
 
 use super::SystemProbe;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
@@ -47,11 +53,16 @@ pub struct HostMetrics {
     collector: Arc<MetricsCollectorCell>,
     factory: Arc<StemCellFactory>,
     last_total_cells: usize,
+    shutdown: CancellationToken,
 }
 
 impl HostMetrics {
     /// Create a new host metrics collector.
-    pub fn new(collector: Arc<MetricsCollectorCell>, factory: Arc<StemCellFactory>) -> Self {
+    pub fn new(
+        collector: Arc<MetricsCollectorCell>,
+        factory: Arc<StemCellFactory>,
+        shutdown: CancellationToken,
+    ) -> Self {
         let sys = System::new_with_specifics(
             RefreshKind::new()
                 .with_cpu(CpuRefreshKind::everything())
@@ -62,6 +73,7 @@ impl HostMetrics {
             collector,
             factory,
             last_total_cells: 0,
+            shutdown,
         }
     }
 }
@@ -71,8 +83,10 @@ impl SystemProbe for HostMetrics {
     async fn start(&mut self) {
         loop {
             let ms = self.collector.get_interval_ms();
-            sleep(Duration::from_millis(ms)).await;
-            self.collect();
+            tokio::select! {
+                _ = sleep(Duration::from_millis(ms)) => self.collect(),
+                _ = self.shutdown.cancelled() => break,
+            }
         }
     }
 
@@ -130,5 +144,9 @@ impl SystemProbe for HostMetrics {
             },
         };
         self.collector.record(record);
+    }
+
+    fn stop(&mut self) {
+        self.shutdown.cancel();
     }
 }
