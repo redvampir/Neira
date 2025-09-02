@@ -1,13 +1,13 @@
 
 ## Навигация
 - [Обзор Нейры](README.md)
-- [Узлы действий](action-nodes.md)
-- [Узлы анализа](analysis-nodes.md)
-- [Узлы памяти](memory-nodes.md)
+- [Клетки действий](action-cells.md)
+- [Клетки анализа](analysis-cells.md)
+- [Клетки памяти](memory-cells.md)
 - [Архитектура анализа](analysis-architecture.md)
 - [Поддерживающие системы](support-systems.md)
 - [Личность Нейры](personality.md)
-- [Шаблон узла](node-template.md)
+- [Шаблон клетки](cell-template.md)
 - [Политика источников](source-policy.md)
 - [Механизм саморазвивающейся системы](self-updating-system.md)
 

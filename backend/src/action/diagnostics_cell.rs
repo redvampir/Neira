@@ -1,5 +1,5 @@
 /* neira:meta
-id: NEI-20250829-175425-diagnostics-node
+id: NEI-20250829-175425-diagnostics-cell
 intent: docs
 summary: |
   Анализирует поток метрик, фиксирует аномалии и уведомляет разработчика.
@@ -105,7 +105,7 @@ impl DiagnosticsCell {
     ) {
         let (notify_tx, notify_rx) = unbounded_channel();
         let (alert_tx, alert_rx) = unbounded_channel();
-        let node = Arc::new(Self {
+        let cell = Arc::new(Self {
             error_threshold,
             error_count: Arc::new(AtomicU32::new(0)),
             notify: notify_tx,
@@ -113,7 +113,7 @@ impl DiagnosticsCell {
             alert: alert_tx,
             collector,
         });
-        let node_clone = node.clone();
+        let cell_clone = cell.clone();
         tokio::spawn(async move {
             let mut history: VecDeque<f32> = VecDeque::new();
             while let Some(record) = rx.recv().await {
@@ -127,17 +127,17 @@ impl DiagnosticsCell {
                     let slice = history.make_contiguous();
                     if let Some(alert) = detect_anomaly(&slice[..]) {
                         warn!(id=%record.id, message=%alert.message, "publishing alert");
-                        let _ = node_clone.alert.send(alert);
-                        node_clone.collector.set_normal();
+                        let _ = cell_clone.alert.send(alert);
+                        cell_clone.collector.set_normal();
                     }
                     if cred < 0.5 {
                         metrics::counter!("diagnostics_cell_errors_total").increment(1);
-                        let count = node_clone.error_count.fetch_add(1, Ordering::SeqCst) + 1;
-                        if count >= node_clone.error_threshold {
+                        let count = cell_clone.error_count.fetch_add(1, Ordering::SeqCst) + 1;
+                        if count >= cell_clone.error_threshold {
                             warn!(id=%record.id, count, "credibility below threshold");
-                            node_clone.collector.set_normal();
-                            if !(node_clone.attempt_fix)() {
-                                let _ = node_clone.notify.send(DeveloperRequest {
+                            cell_clone.collector.set_normal();
+                            if !(cell_clone.attempt_fix)() {
+                                let _ = cell_clone.notify.send(DeveloperRequest {
                                     description: format!(
                                         "credibility below threshold for {}",
                                         record.id
@@ -147,13 +147,13 @@ impl DiagnosticsCell {
                         }
                     } else {
                         // Сбрасываем счётчик при успешных записях.
-                        node_clone.error_count.store(0, Ordering::SeqCst);
-                        node_clone.collector.set_low();
+                        cell_clone.error_count.store(0, Ordering::SeqCst);
+                        cell_clone.collector.set_low();
                     }
                 }
             }
         });
-        (node, notify_rx, alert_rx)
+        (cell, notify_rx, alert_rx)
     }
 }
 

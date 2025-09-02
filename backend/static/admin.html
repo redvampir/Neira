@@ -48,27 +48,27 @@
     function setJson(id, obj) { qs(id).textContent = JSON.stringify(obj, null, 2); }
     async function factoryDryrun() {
       const body = JSON.parse(qs('factoryTpl').value||'{}');
-      const res = await post(`${BASE}/factory/nodes/dryrun`, body);
+      const res = await post(`${BASE}/factory/cells/dryrun`, body);
       setJson('out', res);
     }
     async function factoryCreate() {
       const body = JSON.parse(qs('factoryTpl').value||'{}');
-      const res = await post(`${BASE}/factory/nodes`, body);
+      const res = await post(`${BASE}/factory/cells`, body);
       setJson('out', res);
     }
     async function factoryApprove() {
       const id = qs('fid').value.trim(); if(!id) return;
-      const res = await post(`${BASE}/factory/nodes/${encodeURIComponent(id)}/approve`);
+      const res = await post(`${BASE}/factory/cells/${encodeURIComponent(id)}/approve`);
       setJson('out', res);
     }
     async function factoryDisable() {
       const id = qs('fid').value.trim(); if(!id) return;
-      const res = await post(`${BASE}/factory/nodes/${encodeURIComponent(id)}/disable`);
+      const res = await post(`${BASE}/factory/cells/${encodeURIComponent(id)}/disable`);
       setJson('out', res);
     }
     async function factoryRollback() {
       const id = qs('fid').value.trim(); if(!id) return;
-      const res = await post(`${BASE}/factory/nodes/${encodeURIComponent(id)}/rollback`);
+      const res = await post(`${BASE}/factory/cells/${encodeURIComponent(id)}/rollback`);
       setJson('out', res);
     }
 

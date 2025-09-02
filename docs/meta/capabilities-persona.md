@@ -55,7 +55,7 @@ capabilities:
     state: locked
     notes: процедурная музыка/звук (песочница)
 
-  studio_storynodes:
+  studio_storycells:
     state: locked
     notes: интерактивные микро‑истории (песочница)
 

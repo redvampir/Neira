@@ -66,7 +66,7 @@ capabilities:
   factory_adapter:
     state: experimental
     notes: Fabricator (Adapter only) — dry‑run/HITL, без исполнения кода
-    signals: [factory_nodes_created_total, factory_dryrun_requests_total]
+    signals: [factory_cells_created_total, factory_dryrun_requests_total]
 
   factory_script:
     state: locked
@@ -158,7 +158,7 @@ capabilities:
     state: locked
     notes: процедурная музыка/звук (песочница)
 
-  studio_storynodes:
+  studio_storycells:
     state: locked
     notes: интерактивные микро‑истории (песочница)
 

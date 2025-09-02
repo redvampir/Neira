@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
-use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::cell_registry::CellRegistry;
 use backend::config::Config;
 use backend::interaction_hub::InteractionHub;
@@ -20,8 +20,8 @@ impl AnalysisCell for SleepCell {
     fn analysis_type(&self) -> &str {
         "test"
     }
-    fn status(&self) -> NodeStatus {
-        NodeStatus::Active
+    fn status(&self) -> CellStatus {
+        CellStatus::Active
     }
     fn links(&self) -> &[String] {
         &[]

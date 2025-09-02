@@ -5,10 +5,10 @@ use std::path::Path;
 #[test]
 fn example_cell_template_validates() {
     let example = json!({
-        "id": "example-node",
+        "id": "example-cell",
         "version": "0.1.0",
         "analysis_type": "text",
-        "links": ["node-a", "node-b"],
+        "links": ["cell-a", "cell-b"],
         "confidence_threshold": 0.75,
         "draft_content": "draft",
         "metadata": {

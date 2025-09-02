@@ -6,7 +6,7 @@ use tokio::time::{timeout, Duration};
 #[tokio::test]
 async fn diagnostics_emits_alert_on_anomaly() {
     let (metrics, rx) = MetricsCollectorCell::channel();
-    let (_node, _dev_rx, mut alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
+    let (_cell, _dev_rx, mut alert_rx) = DiagnosticsCell::new(rx, 5, metrics.clone());
 
     for i in 0..MAX_HISTORY {
         metrics.record(MetricsRecord {

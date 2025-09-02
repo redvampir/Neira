@@ -28,12 +28,12 @@ async fn chat_cell_echo_logs_request_and_response() {
     let tmp = tempfile::tempdir().expect("tmpdir");
     let (_sub_guard, log_path, writer_guard) = install_file_subscriber(&tmp);
 
-    let node = EchoChatCell::default();
+    let cell = EchoChatCell::default();
     let storage = FileContextStorage::new(tmp.path().join("context"));
     let chat_id = "test_chat";
     let session_id = "sess1";
     let input = "hello";
-    let resp = node
+    let resp = cell
         .chat(chat_id, Some(session_id.to_string()), input, &storage)
         .await;
     assert_eq!(resp, input);
@@ -62,12 +62,12 @@ async fn chat_cell_handles_empty_input() {
     let tmp = tempfile::tempdir().expect("tmpdir");
     let (_sub_guard, log_path, writer_guard) = install_file_subscriber(&tmp);
 
-    let node = EchoChatCell::default();
+    let cell = EchoChatCell::default();
     let storage = FileContextStorage::new(tmp.path().join("context"));
     let chat_id = "test_chat";
     let session_id = "sess_empty";
     let input = "";
-    let resp = node
+    let resp = cell
         .chat(chat_id, Some(session_id.to_string()), input, &storage)
         .await;
     // Current behavior: echo input as-is (empty string)

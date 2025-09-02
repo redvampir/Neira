@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use backend::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::cell_registry::CellRegistry;
 use tokio_util::sync::CancellationToken;
 
@@ -13,8 +13,8 @@ impl AnalysisCell for DummyCell {
     fn analysis_type(&self) -> &str {
         "dummy"
     }
-    fn status(&self) -> NodeStatus {
-        NodeStatus::Active
+    fn status(&self) -> CellStatus {
+        CellStatus::Active
     }
     fn links(&self) -> &[String] {
         &[]

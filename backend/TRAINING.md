@@ -6,7 +6,7 @@
 
 ## Где лежит код
 
-- Узел: `backend/src/action/scripted_training_node.rs`
+- Клетка: `backend/src/action/scripted_training_cell.rs`
 - Роуты API/стрима: `backend/src/http/training_routes.rs`
 - Инициализация: `backend/src/main.rs`
 - Пример сценария: `examples/training_script.yaml`

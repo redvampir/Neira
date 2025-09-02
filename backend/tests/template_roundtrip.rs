@@ -8,7 +8,7 @@ fn generate_validate_deserialize_template() {
     extra.insert("author".to_string(), json!("Alice"));
 
     let template = CellTemplate {
-        id: "generated-node".to_string(),
+        id: "generated-cell".to_string(),
         version: "0.1.0".to_string(),
         analysis_type: "text".to_string(),
         links: vec!["a".to_string(), "b".to_string()],

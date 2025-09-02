@@ -1,5 +1,5 @@
 /* neira:meta
-id: NEI-20250210-memory-node-clippy
+id: NEI-20250210-memory-cell-clippy
 intent: test
 summary: заменён vec! на срез для устранения предупреждения clippy.
 */

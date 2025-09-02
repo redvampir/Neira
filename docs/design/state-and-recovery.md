@@ -1,32 +1,32 @@
 <!-- neira:meta
 id: NEI-20250923-state-recovery-design
 intent: design
-summary: Узлы без потери памяти: постоянное состояние, автоподхват на старте, upgrade hooks, runtime‑параметры и snapshot++.
+summary: Клетки без потери памяти: постоянное состояние, автоподхват на старте, upgrade hooks, runtime‑параметры и snapshot++.
 -->
 
-# State & Recovery (состояние узлов и автоподхват)
+# State & Recovery (состояние клеток и автоподхват)
 
 Purpose
-- Сохранить навыки и параметры узлов между перезапусками/перекомпиляциями.
+- Сохранить навыки и параметры клеток между перезапусками/перекомпиляциями.
 - Позволить эволюцию (upgrade) без переобучения и с быстрым откатом.
 
 Layout
-- `templates/<id>-<version>.json` — спецификации (NodeTemplate).
-- `state/<id>/<version>/state.json` — параметры/счётчики/флаги обучения (NodeState).
+- `templates/<id>-<version>.json` — спецификации (CellTemplate).
+- `state/<id>/<version>/state.json` — параметры/счётчики/флаги обучения (CellState).
 - `models/<id>/<version>/*` — артефакты (вектора, статистики); `models/<id>/current` → активная версия.
 
 Discovery (автоподхват)
-- На старте: скан `templates/` и `state/`; регистрация узлов через Adapter (validate→register→ns/is hooks).
+- На старте: скан `templates/` и `state/`; регистрация клеток через Adapter (validate→register→ns/is hooks).
 - Восстановление параметров из `state.json`; проверка зависимостей органов; метки `pending/ready`.
-- Интроспекция: список восстановленных узлов/версий и результат recovery (ok/warn/fail).
+- Интроспекция: список восстановленных клеток/версий и результат recovery (ok/warn/fail).
 
 Upgrade Hooks (эволюция без потери)
-- Жизненный цикл: Draft→Canary→Experimental→Stable (общий для узлов/органов).
+- Жизненный цикл: Draft→Canary→Experimental→Stable (общий для клеток/органов).
 - Хуки: `pre_upgrade` (чекпойнт) → `migrate_state(old→new)` → `post_upgrade` (warm‑up).
 - Режим blue/green + shadow‑run: новая версия в “тени”, сравнение метрик, затем promote.
 
 Runtime Config Overlay
-- Узлы принимают `NodeConfig` (JSON) с overlay: `input_format`, `thresholds`, `features[]` и др.
+- Клетки принимают `CellConfig` (JSON) с overlay: `input_format`, `thresholds`, `features[]` и др.
 - Источник параметров (template vs runtime) виден в интроспекции; изменение overlay не требует сборки.
 
 Snapshot++ и Audit

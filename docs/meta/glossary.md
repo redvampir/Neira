@@ -16,6 +16,6 @@
 - Rate‑Limit headers: X‑RateLimit‑{Limit,Remaining,Used,Window,Key} — информируют клиента о лимитах.
 - Scopes: права токена: read/write/admin (в safe‑mode для write требуется admin).
 - SSE: поток событий (Server‑Sent Events) с meta/progress/done и отменой.
-- Quarantine: изоляция/отключение подозрительного узла, перевод системы в безопасное состояние.
+- Quarantine: изоляция/отключение подозрительного клетки, перевод системы в безопасное состояние.
 - Integrity Checker: периодическая проверка целостности файлов/конфигов.
 

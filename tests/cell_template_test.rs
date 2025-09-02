@@ -5,7 +5,7 @@ use std::path::Path;
 #[test]
 fn valid_template_is_accepted() {
     let value = json!({
-        "id": "valid-node",
+        "id": "valid-cell",
         "version": "0.1.0",
         "analysis_type": "text",
         "links": ["a", "b"],
@@ -67,7 +67,7 @@ fn invalid_links_type_fails() {
     let schema = load_schema_from(std::path::Path::new("schemas/v1/cell-template.schema.json"))
         .expect("load schema");
     let value = json!({
-        "id": "node",
+        "id": "cell",
         "version": "0.1.0",
         "analysis_type": "text",
         "links": "not-an-array",
@@ -88,7 +88,7 @@ fn invalid_confidence_threshold_type_fails() {
     let schema = load_schema_from(std::path::Path::new("schemas/v1/cell-template.schema.json"))
         .expect("load schema");
     let value = json!({
-        "id": "node",
+        "id": "cell",
         "version": "0.1.0",
         "analysis_type": "text",
         "confidence_threshold": "high",
@@ -141,7 +141,7 @@ fn explicit_path_loading_works() {
 #[test]
 fn unknown_schema_version_errors() {
     let value = json!({
-        "id": "node",
+        "id": "cell",
         "version": "0.1.0",
         "analysis_type": "text",
         "metadata": {"schema": "9.9.9"}

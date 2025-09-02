@@ -31,7 +31,7 @@ impl SafeModeController {
         if self.in_safe_mode.swap(true, Ordering::SeqCst) {
             return;
         }
-        warn!("entering safe mode: disabling non-essential nodes");
+        warn!("entering safe mode: disabling non-essential cells");
     }
 
     /// Возвращает `true`, если система уже находится в безопасном режиме.

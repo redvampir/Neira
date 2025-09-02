@@ -54,7 +54,7 @@ summary: Описаны IDLE_EMA_ALPHA и IDLE_DRYRUN_QUEUE_DEPTH.
 -->
 
 <!-- neira:meta
-id: NEI-20250310-node-templates-recursive-docs
+id: NEI-20250310-cell-templates-recursive-docs
 intent: docs
 summary: Уточнено, что NODE_TEMPLATES_DIR поддерживает подкаталоги.
 -->
@@ -70,7 +70,7 @@ summary: Уточнено, что NODE_TEMPLATES_DIR поддерживает п
 | MASK_PII                     | bool            | true                  | storage masking         | Маскирование PII по умолчанию                                                                           |
 | MASK_REGEX                   | string list (;) | —                     | storage masking         | Кастомные regex для маскирования                                                                        |
 | MASK_ROLES                   | string list (,) | user                  | storage masking         | Роли для маскирования                                                                                   |
-| NODE_TEMPLATES_DIR           | string          | ./templates           | backend init            | Каталог шаблонов узлов (подкаталоги поддерживаются)                                                      |
+| NODE_TEMPLATES_DIR           | string          | ./templates           | backend init            | Каталог шаблонов клеток (подкаталоги поддерживаются)                                                      |
 | CHAT_RATE_LIMIT_PER_MIN      | int             | 120                   | hub rate limit          | Лимит запросов в минуту                                                                                 |
 | CHAT_RATE_KEY                | enum            | auth                  | hub rate limit          | Ключ лимита: auth/chat/session                                                                          |
 | IO_WATCHER_THRESHOLD_MS      | int             | 100                   | nervous probes          | Порог латентности для проб                                                                              |
@@ -137,8 +137,8 @@ summary: Уточнено, что NODE_TEMPLATES_DIR поддерживает п
 | ------------------------------ | ---- | ------------------ | --------- | ---------------------------------------------------------- |
 | WATCHDOG_REASONING_SOFT_MS     | int  | 30000              | watchdog  | Soft‑таймаут рассуждений                                   |
 | WATCHDOG_REASONING_HARD_MS     | int  | global_time_budget | watchdog  | Hard‑таймаут рассуждений                                   |
-| WATCHDOG_SOFT_MS_<NODEID>      | int  | —                  | watchdog  | Пер‑узловой soft‑таймаут (ID в UPPER_SNAKE_CASE)           |
-| WATCHDOG_HARD_MS_<NODEID>      | int  | —                  | watchdog  | Пер‑узловой hard‑таймаут                                   |
+| WATCHDOG_SOFT_MS_<NODEID>      | int  | —                  | watchdog  | Пер‑клетокой soft‑таймаут (ID в UPPER_SNAKE_CASE)           |
+| WATCHDOG_HARD_MS_<NODEID>      | int  | —                  | watchdog  | Пер‑клетокой hard‑таймаут                                   |
 
 ---
 
@@ -177,8 +177,8 @@ summary: Уточнено, что NODE_TEMPLATES_DIR поддерживает п
 | SSE_DEV_TOKENS                 | int    | 200                | dev         | Количество сообщений в dev‑стриме                                                           |
 | WATCHDOG_REASONING_SOFT_MS     | int    | 30000              | watchdog    | Soft‑таймаут рассуждений (общий)                                                            |
 | WATCHDOG_REASONING_HARD_MS     | int    | global_time_budget | watchdog    | Hard‑таймаут рассуждений (общий)                                                            |
-| WATCHDOG*SOFT_MS*<NODEID>      | int    | -                  | watchdog    | Пер‑узловой soft‑таймаут (ID: UPPER*CASE, не алф/цифры → `*`)                               |
-| WATCHDOG*HARD_MS*<NODEID>      | int    | -                  | watchdog    | Пер‑узловой hard‑таймаут                                                                    |
+| WATCHDOG*SOFT_MS*<NODEID>      | int    | -                  | watchdog    | Пер‑клетокой soft‑таймаут (ID: UPPER*CASE, не алф/цифры → `*`)                               |
+| WATCHDOG*HARD_MS*<NODEID>      | int    | -                  | watchdog    | Пер‑клетокой hard‑таймаут                                                                    |
 | AUTO_REQUEUE_ON_SOFT           | bool   | false              | watchdog    | Авто‑переочередить в Long при soft‑таймауте (вернуть Draft сразу)                           |
 | INCIDENT_WEBHOOK_URL           | string | -                  | alerts      | Вебхук уведомлений о hard‑таймаутах/инцидентах                                              |
 

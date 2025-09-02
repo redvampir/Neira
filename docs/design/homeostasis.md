@@ -7,10 +7,10 @@ summary: |
 
 # Homeostasis & Adaptive Control
 
-Цель: без «жёстких констант» и ручной перенастройки — подстраивать поведение узлов под реальные ресурсы и цели, сохраняя живучесть и контроль владельца.
+Цель: без «жёстких констант» и ручной перенастройки — подстраивать поведение клеток под реальные ресурсы и цели, сохраняя живучесть и контроль владельца.
 
 Основные компоненты
-- Probes (нервная система): измерения CPU/Mem/IO/сети, пульс SSE, длительности узлов.
+- Probes (нервная система): измерения CPU/Mem/IO/сети, пульс SSE, длительности клеток.
 - Budgets (бюджеты): динамические лимиты конкурентности, размера батчей, времени рассуждений.
 - Backpressure & Backoff: обратное давление и экспоненциальные повторы с джиттером.
 - Watchdogs (сторожи): soft/hard таймауты, детектор циклов/повторов, эскалация в quarantine.
@@ -19,12 +19,12 @@ summary: |
 Как это работает (схема)
 1) Calibration: при старте — короткие пробы (host, диски, сеть) → стартовые лимиты.
 2) Feedback: периодически (T секунд) пересчёт лимитов по p95/ошибкам/нагрузке.
-3) Local-first: решения на уровне узлов; глобальные политики лишь задают рамки (ceilings/floors).
+3) Local-first: решения на уровне клеток; глобальные политики лишь задают рамки (ceilings/floors).
 4) Safeguards: при аномалиях — понижаем агрессию, включаем backoff/квоты, возможно quarantine.
 5) Control: владелец может в любой момент поставить «паузу», снять срез (snapshot) и продолжить/остановить.
 
 Бюджеты (примеры «крутилок»)
-- concurrency_limit_{class}: макс. параллелизм для классов узлов (chat, analysis, storage, io).
+- concurrency_limit_{class}: макс. параллелизм для классов клеток (chat, analysis, storage, io).
 - batch_size_{class}: размер батчей для операций, авто‑тюнинг по ошибкам/латентности.
 - reasoning_time_budget_ms: мягкий лимит на «размышления» с деградацией после soft‑порога.
 - memory_window_bytes/lines: скользящее окно контекста под I/O и задержки.
@@ -40,7 +40,7 @@ Control Plane (эндпоинты, admin)
 - POST /api/neira/control/kill {auth, grace_ms?}
 - GET  /api/neira/control/status → { paused, reason?, since_ms, active_tasks, backpressure }
 - GET  /api/neira/inspect/snapshot?include=logs,context,metrics → архив/NDJSON
-- GET  /api/neira/trace/:request_id → трасса узлов/тайминги/метки
+- GET  /api/neira/trace/:request_id → трасса клеток/тайминги/метки
 
 Capabilities (см. CAPABILITIES.md)
 - homeostasis_budgets (experimental): автотюнинг бюджетов и backoff.
@@ -63,7 +63,7 @@ ENV (см. docs/reference/env.md)
 
 Связи
 - Anti‑Idle System: планирование микрозадач в окна простоя (минимум вмешательств).
-- Organ Systems: «орган гомеостаза» координирует локальные правила узлов.
+- Organ Systems: «орган гомеостаза» координирует локальные правила клеток.
 - Roadmap: Stage 0 — control_pause/kill/snapshot; Stage 1 — homeostasis_budgets/trace.
 
 

@@ -18,7 +18,7 @@ summary: |
 ## Chat
 
 - POST `/api/neira/chat`
-  - Body: `{ node_id, chat_id, session_id?, message, auth?, persist?, request_id?, source?, thread_id? }`
+  - Body: `{ cell_id, chat_id, session_id?, message, auth?, persist?, request_id?, source?, thread_id? }`
   - Response: `{ response, used_context, session_id?, idempotent }`
   - Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Used`, `X-RateLimit-Window=minute`, `X-RateLimit-Key`.
   - Notes: `persist=true` may auto-create session (see `PERSIST_REQUIRE_SESSION_ID`). `request_id` enables idempotency.
@@ -110,7 +110,7 @@ Notes
   - Управление длительностью: `SSE_DEV_DELAY_MS`, `SSE_DEV_TOKENS` (ENV).
 
 - GET `/api/neira/dev/analysis/long?ms=<duration>&auth=<admin>`
-  - «Длинный» анализ для проверки watchdog soft/hard, без реальных узлов.
+  - «Длинный» анализ для проверки watchdog soft/hard, без реальных клеток.
 
 ## Snapshot: опции
 

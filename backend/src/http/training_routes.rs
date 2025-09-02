@@ -20,8 +20,8 @@ pub struct TrainingRunResp { pub started: bool }
 pub async fn training_run(Json(req): Json<TrainingRunReq>) -> Result<Json<TrainingRunResp>, (StatusCode, String)> {
     if let Some(s) = req.script { std::env::set_var("TRAINING_SCRIPT", s); }
     if let Some(dr) = req.dry_run { std::env::set_var("TRAINING_DRY_RUN", if dr {"true"} else {"false"}); }
-    let node = ScriptedTrainingCell::from_env();
-    tokio::spawn(async move { let _ = node.run().await; });
+    let cell = ScriptedTrainingCell::from_env();
+    tokio::spawn(async move { let _ = cell.run().await; });
     Ok(Json(TrainingRunResp { started: true }))
 }
 

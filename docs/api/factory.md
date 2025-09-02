@@ -41,32 +41,32 @@ summary: добавлен раздел о запуске панели орган
 <!-- neira:meta
 id: NEI-20250210-factory-template-schema-doc
 intent: docs
-summary: описана структура шаблона узла.
+summary: описана структура шаблона клетки.
 -->
 
 # Factory API (Draft)
 
 All routes require admin token unless noted. Exec routes are gated via CAPABILITIES.
 
-- POST `/factory/nodes/dryrun`
+- POST `/factory/cells/dryrun`
   - Body: { spec | template, mode?: 'adapter' }
   - Resp: { report: { deps, links, risks }, ok: bool }
 
-- POST `/factory/nodes`
+- POST `/factory/cells`
   - Gate: `factory_adapter=experimental`
   - Body: { spec | template, hitl?: true }
   - Resp: { id, state: 'draft' }
 
-- POST `/factory/nodes/:id/approve`
+- POST `/factory/cells/:id/approve`
   - Moves: draft→canary or canary→experimental
   - Resp: { id, state }
 
-- POST `/factory/nodes/:id/disable|rollback`
+- POST `/factory/cells/:id/disable|rollback`
   - Resp: { id, state: 'disabled'|'rolled_back' }
 
 Adapter Contracts (обязательные хуки)
 
-- Registry: регистрация NodeTemplate в файловом каталоге (`/nodes` API) + индексация в реестре.
+- Registry: регистрация CellTemplate в файловом каталоге (`/cells` API) + индексация в реестре.
 - Hub/NS/IS: автопубликация метрик (`factory_*`), статусы в интроспекции, проверки safe‑mode/политик.
 - Состояния: Draft → Canary → Experimental → Stable → (Disabled/RolledBack) — коды выдаются в API.
 - Ошибки: унифицированный формат { code, reason, capability? } (Policy Engine); при выключенном гейте — `capability_disabled`.
@@ -79,7 +79,7 @@ Adapter Contracts (обязательные хуки)
   - Задержки стадий берутся из `ORGANS_BUILDER_STAGE_DELAYS` (пример: `50,100,200` → canary/experimental/stable; устаревший алиас: `ORGANS_BUILDER_STAGE_DELAYS_MS`)
 
 - GET `/organs/:id/status`
-  - Resp: { id, state, nodes, metrics }
+  - Resp: { id, state, cells, metrics }
   - Метрика: `organ_build_status_queries_total`
 
 - POST `/organs/:id/status`
@@ -110,9 +110,9 @@ Adapter Contracts (обязательные хуки)
 }
 ```
 
-- `id` — уникальный идентификатор узла
+- `id` — уникальный идентификатор клетки
 - `version` — версия шаблона в формате SemVer
-- `analysis_type` — тип анализа/действия узла
+- `analysis_type` — тип анализа/действия клетки
 - `links` — список зависимостей
 - `metadata.schema` — версия используемой JSON‑схемы
 
@@ -121,7 +121,7 @@ Adapter Contracts (обязательные хуки)
 Request (dry‑run, adapter):
 
 ```
-POST /factory/nodes/dryrun
+POST /factory/cells/dryrun
 {
   "backend": "adapter",
   "tpl": {

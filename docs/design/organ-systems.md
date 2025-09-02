@@ -1,6 +1,6 @@
 # Organ Systems (Сенсоры/Эффекторы) для Нейры
 
-Идея: собрать «органы» как связки узлов (sensors → processing → policy → actuators), с жёсткими гейтами, безопасными дефолтами и прозрачным аудитом.
+Идея: собрать «органы» как связки клеток (sensors → processing → policy → actuators), с жёсткими гейтами, безопасными дефолтами и прозрачным аудитом.
 
 Принципы
 - Consent‑first: любые органы, затрагивающие приватность/управление, включаются только с явного согласия.
@@ -11,60 +11,60 @@
 
 Таксономия
 - Sensors (внешняя среда):
-  - Vision (экран): ScreenCaptureNode → OCR/DetectorNode → RedactionNode
-  - Hearing (микрофон): AudioCaptureNode → STTNode → Diarization/Redaction
-  - FS Watch: FsObserverNode → Indexer/Classifier
-  - Net Probe: HttpProbeNode (head/get) → SafetyPolicy
+  - Vision (экран): ScreenCaptureCell → OCR/DetectorCell → RedactionCell
+  - Hearing (микрофон): AudioCaptureCell → STTCell → Diarization/Redaction
+  - FS Watch: FsObserverCell → Indexer/Classifier
+  - Net Probe: HttpProbeCell (head/get) → SafetyPolicy
 - Internals (внутренние):
   - Proprioception: CapabilityProbes (CPU/Mem/IO/Net)
   - Interoception: Runtime health (latency/errors/queues)
 - Effectors:
-  - Motor: InputControlNode (mouse/keyboard) + Replay/Script
-  - Voice: TTSNode
-  - FileOps: SafeWriterNode (whitelist paths)
+  - Motor: InputControlCell (mouse/keyboard) + Replay/Script
+  - Voice: TTSCell
+  - FileOps: SafeWriterCell (whitelist paths)
 
 Органы (предложения)
 - Vision System (орган зрения)
-  - Узлы: ScreenCapture → OCR → UIContext → Redaction
+  - Клетки: ScreenCapture → OCR → UIContext → Redaction
   - Гейт: organ_vision_readonly (experimental), organ_vision_active (locked)
   - Safe‑mode: только readonly, захват ограничен в окнах белого списка
   - Метрики: vision_frames_per_min, vision_ocr_latency_ms, vision_redactions_applied
   - Риски: приватность экрана → обязательная маскировка и согласие
 
 - Hearing System (орган слуха)
-  - Узлы: AudioCapture → NoiseSuppress → STT → Redaction
+  - Клетки: AudioCapture → NoiseSuppress → STT → Redaction
   - Гейт: organ_hearing (locked)
   - Safe‑mode: запрещено
   - Метрики: hearing_minutes_captured, stt_latency_ms, stt_tokens
 
 - Voice System (речь)
-  - Узлы: TTS
+  - Клетки: TTS
   - Гейт: organ_voice (experimental)
   - Safe‑mode: чтение допустимо
 
 - Motor System (движение)
-  - Узлы: InputControl (mouse/keyboard), Macro/Replay
+  - Клетки: InputControl (mouse/keyboard), Macro/Replay
   - Гейт: organ_motor (locked)
   - Safe‑mode: запрещено; вне safe‑mode — только белый список окон/действий
   - Метрики: motor_actions_executed, motor_blocks
 
 - FS System (файловая чувствительность)
-  - Узлы: FsObserver → ContentIndexer → Redaction
+  - Клетки: FsObserver → ContentIndexer → Redaction
   - Гейт: organ_fs (experimental)
   - Safe‑mode: read‑only
   - Метрики: fs_events_seen, fs_index_updates
 
 - Net System (сетевые щупы)
-  - Узлы: HttpProbe (head/get, без POST)
+  - Клетки: HttpProbe (head/get, без POST)
   - Гейт: organ_net_probe (locked)
   - Safe‑mode: запрещено
 
 - Memory LTM (долгая память)
-  - Узлы: EmbeddingsIndex → Retriever
+  - Клетки: EmbeddingsIndex → Retriever
   - Гейт: memory_vector_store (experimental)
 
 - Executive/Planner (исполнитель)
-  - Узлы: PlannerNode → PolicyNode → Scheduler
+  - Клетки: PlannerCell → PolicyCell → Scheduler
   - Гейт: executive_planner (experimental)
 
 Минимум для зачаточного режима (Embryo)
@@ -156,7 +156,7 @@
 
 ## OrganTemplate & Builder (дополнение)
 
-- OrganTemplate: декларативное описание графа узлов (роли/каналы/политики/зависимости).
+- OrganTemplate: декларативное описание графа клеток (роли/каналы/политики/зависимости).
 - OrganBuilder (Action): сборка по шаблону с dry‑run/canary/HITL, проверка интеграций с Nervous/Immune.
 - Совместимость: проверка версий/линков, автопубликация метрик RED/USE, регистрация в Introspection.
 - Управление: CAPABILITIES `organs_builder=experimental`, approve/rollback, журнал (JOURNALING).

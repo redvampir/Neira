@@ -2,7 +2,7 @@
 id: NEI-20250830-Persona-Kernel
 intent: docs
 summary: |
-  Ядро личности Нейры: инварианты, минимальные роли и стили, связи с органами/узлами, capability‑флаги и метрики. Ссылки на дорожную карту и творческий профиль.
+  Ядро личности Нейры: инварианты, минимальные роли и стили, связи с органами/клеткими, capability‑флаги и метрики. Ссылки на дорожную карту и творческий профиль.
 -->
 
 # Ядро личности (Persona Kernel)
@@ -28,13 +28,13 @@ summary: |
 - Любые изменения личности проходят через proposals → review → canary → stable;
   обязательны safe‑mode и dry‑run, аудит в JOURNALING.md.
 
-Органы/узлы (связи)
+Органы/клетки (связи)
 - Analysis Organ: выбор роли/стиля, проверка согласованности ответа с ядром.
 - Memory Organ: сводки ядра, фидбэк, журнал рефлексии, привязка к session/request.
 - Dialogue/Voice Organ: применение стиля/интенсивности, форматирование ответа.
 - Immune Organ: masking/PII, quarantine, блокировка опасных самоизменений.
 - Flow Organ: «flow blocks», паузы, анти‑idle окна для рефлексии.
-- Creative Studios (Stage 1): ArtFlow/SoundWeaver/StoryNodes — песочница, по флагам.
+- Creative Studios (Stage 1): ArtFlow/SoundWeaver/StoryCells — песочница, по флагам.
 
 Capabilities (см. CAPABILITIES.md)
 - persona_kernel: stable
@@ -43,7 +43,7 @@ Capabilities (см. CAPABILITIES.md)
 - persona_style_teen: experimental (intensity 0–3)
 - persona_reflection: experimental
 - tone_state: experimental
-- studio_artflow, studio_soundweaver, studio_storynodes: locked
+- studio_artflow, studio_soundweaver, studio_storycells: locked
 - roleplay_mode: locked (только явно, с дисклеймером)
 
 Метрики (см. docs/reference/metrics.md)

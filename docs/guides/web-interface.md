@@ -2,13 +2,13 @@
 
 ## Навигация
 - [Обзор Нейры](README.md)
-- [Узлы действий](action-nodes.md)
-- [Узлы анализа](analysis-nodes.md)
-- [Узлы памяти](memory-nodes.md)
+- [Клетки действий](action-cells.md)
+- [Клетки анализа](analysis-cells.md)
+- [Клетки памяти](memory-cells.md)
 - [Архитектура анализа](analysis-architecture.md)
 - [Системы поддержки](support-systems.md)
 - [Личность Нейры](personality.md)
-- [Шаблон узла](node-template.md)
+- [Шаблон клетки](cell-template.md)
 - [Политика источников](source-policy.md)
 - [Механизм саморазвивающейся системы](self-updating-system.md)
 
@@ -26,7 +26,7 @@
 
 ## Режимы доступа
 - **Локальный**: приложение взаимодействует с `http://localhost:3001` и имеет полный доступ к InteractionHub и логам.
-- **Удалённый**: доступ через туннели (ngrok, Cloudflare) или собственный домен с HTTPS; аутентификация через JWT и ограничение прав узлов.
+- **Удалённый**: доступ через туннели (ngrok, Cloudflare) или собственный домен с HTTPS; аутентификация через JWT и ограничение прав клеток.
 
 ## Основные эндпоинты
 Все REST-запросы проходят через префикс `/api/neira`.
@@ -34,8 +34,8 @@
 | Метод | Маршрут | Назначение |
 |-------|---------|-----------|
 | POST | `/api/neira/interact` | общий вход для пользовательских запросов |
-| POST | `/api/neira/analysis` | выполнение `AnalysisNode` |
-| POST | `/api/neira/action` | запуск `ActionNode` |
+| POST | `/api/neira/analysis` | выполнение `AnalysisCell` |
+| POST | `/api/neira/action` | запуск `ActionCell` |
 | POST | `/api/neira/personality` | переключение образа Нейры |
 | WS   | `/ws` | трансляция прогресса обучения |
 
@@ -65,7 +65,7 @@
     }
     ```
 - **Мониторинг** — визуализация очередей `TaskScheduler`, уведомления о ходе обучения через WebSocket.
-- **Управление узлами** — promotion/rollback версий и просмотр статуса `NodeRegistry`.
+- **Управление клеткими** — promotion/rollback версий и просмотр статуса `CellRegistry`.
 
 ## Безопасность и мониторинг
 - HTTPS и короткоживущие JWT.
@@ -73,7 +73,7 @@
 - Использование `tracing`/`prometheus` для логов и метрик.
 
 ## Рекомендации по реализации
-1. **Backend**: модули `interaction_hub`, `training`, `node_management`, `scheduler_ws`; длительные задачи выносить в отдельные `tokio::spawn` воркеры.
+1. **Backend**: модули `interaction_hub`, `training`, `cell_management`, `scheduler_ws`; длительные задачи выносить в отдельные `tokio::spawn` воркеры.
 2. **Frontend**: Service Worker для кэширования, очередь API‑запросов в офлайн‑режиме, WebSocket для прогресса.
 3. **CLI/TUI**: опциональный интерфейс на тех же API для локального использования.
 4. **Развёртывание**: начать с туннеля, затем перейти на собственный домен и Docker/Nginx при переходе в продакшен.

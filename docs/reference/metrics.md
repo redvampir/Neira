@@ -9,13 +9,13 @@ summary: добавлена метрика organ_build_duration_ms и стату
 |---|---|---|---|---|
 | chat_requests_total | counter | req | InteractionHub | Входящие чат‑запросы |
 | chat_errors_total | counter | err | InteractionHub | Ошибки авторизации/валидации/лимитов |
-| chat_response_time_ms | histogram | ms | InteractionHub | Время ответа чат‑узла |
+| chat_response_time_ms | histogram | ms | InteractionHub | Время ответа чат‑клетки |
 | analysis_requests_total | counter | req | InteractionHub | Входящие анализ‑запросы |
 | analysis_errors_total | counter | err | InteractionHub | Ошибки анализа/тайм‑ауты/отмена |
-| analysis_node_request_duration_ms | histogram | ms | InteractionHub | Длительность анализа (сред/квантили) |
-| chat_node_requests_total | counter | req | EchoChatCell | Вызовы чат‑ноды |
-| chat_node_errors_total | counter | err | EchoChatCell | Ошибки чат‑ноды |
-| chat_node_request_duration_ms | histogram | ms | EchoChatCell | Длительность обработки узлом |
+| analysis_cell_request_duration_ms | histogram | ms | InteractionHub | Длительность анализа (сред/квантили) |
+| chat_cell_requests_total | counter | req | EchoChatCell | Вызовы чат‑клетки |
+| chat_cell_errors_total | counter | err | EchoChatCell | Ошибки чат‑клетки |
+| chat_cell_request_duration_ms | histogram | ms | EchoChatCell | Длительность обработки клеткой |
 | messages_saved | counter | msg | FileContextStorage | Сохранённые сообщения |
 | context_loads | counter | op | FileContextStorage | Загрузки контекста |
 | context_misses | counter | op | FileContextStorage | Промахи загрузки |
@@ -90,12 +90,12 @@ summary: добавлена метрика organ_build_duration_ms и стату
 
 | metric | type | unit | scope | description |
 |---|---|---|---|---|
-| factory_nodes_created_total | counter | nodes | Factory | Создано узлов (всего) |
-| factory_nodes_active | gauge | nodes | Factory | Активные фабричные узлы |
+| factory_cells_created_total | counter | cells | Factory | Создано клеток (всего) |
+| factory_cells_active | gauge | cells | Factory | Активные фабричные клетки |
 | factory_exec_errors_total | counter | errors | Factory | Ошибки исполнения (backend) |
 | factory_dryrun_requests_total | counter | req | Factory | Запросы dry‑run |
 | factory_approvals_total | counter | ops | Factory | Подтверждения HITL |
-| factory_rollbacks_total | counter | ops | Factory | Откаты узлов |
+| factory_rollbacks_total | counter | ops | Factory | Откаты клеток |
 | organ_build_attempts_total | counter | ops | OrganBuilder | Попытки сборки органов |
 | organ_build_failures_total | counter | ops | OrganBuilder | Ошибки сборки органов |
 | organ_build_status_queries_total | counter | ops | OrganBuilder | Запросы статуса органа |
@@ -108,5 +108,5 @@ summary: document organ_build_status_errors_total metric.
 | organ_build_duration_ms | histogram | ms | OrganBuilder | Время от Draft до Stable |
 | organ_status_not_found_total | counter | ops | OrganBuilder | Запросы статуса к несуществующим органам |
 | organ_build_restored_total | counter | ops | OrganBuilder | Восстановленные органы при запуске |
-| training_iterations_total | counter | iters | Training | Итерации обучения новых узлов |
+| training_iterations_total | counter | iters | Training | Итерации обучения новых клеток |
 | training_converged_total | counter | iters | Training | Конвергировали до стабильности |

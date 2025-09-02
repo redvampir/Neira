@@ -12,7 +12,7 @@ use std::sync::{Arc, RwLock};
 use chrono::{DateTime, Utc};
 
 use crate::action_cell::ActionCell;
-use crate::analysis_cell::{AnalysisCell, AnalysisResult, NodeStatus};
+use crate::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use crate::cell_registry::CellRegistry;
 use crate::cell_template::CellTemplate;
 use crate::factory::format_state_local as _format_state_local_import;
@@ -83,7 +83,7 @@ impl FactoryService {
             .write()
             .unwrap()
             .insert(rec.id.clone(), rec.clone());
-        metrics::counter!("factory_nodes_created_total").increment(1);
+        metrics::counter!("factory_cells_created_total").increment(1);
         let _ = Self::audit_log(&serde_json::json!({
             "ts": Utc::now().to_rfc3339(),
             "event": "factory.create",
@@ -209,8 +209,8 @@ impl AnalysisCell for SelectorCell {
     fn analysis_type(&self) -> &str {
         "factory"
     }
-    fn status(&self) -> NodeStatus {
-        NodeStatus::Active
+    fn status(&self) -> CellStatus {
+        CellStatus::Active
     }
     fn links(&self) -> &[String] {
         &[]
@@ -249,7 +249,7 @@ impl AnalysisCell for SelectorCell {
         let mut explain = String::new();
         if !want_id.is_empty() && self.registry.get_analysis_cell(want_id).is_some() {
             decision = "reuse".to_string();
-            explain = format!("Reuse analysis node: {}", want_id);
+            explain = format!("Reuse analysis cell: {}", want_id);
         }
         if let Some(atype) = parsed.get("analysis_type").and_then(|v| v.as_str()) {
             if !allowed_types.is_empty() && !allowed_types.iter().any(|x| x == atype) {

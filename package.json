@@ -11,7 +11,7 @@
     "frontend:test": "npm test --prefix frontend",
     "check-examples": "node scripts/validate-examples.mjs",
     "check-examples:watch": "node scripts/validate-examples.mjs --watch",
-    "generate-node-docs": "node scripts/generate-node-docs.mjs",
+    "generate-cell-docs": "node scripts/generate-cell-docs.mjs",
     "gen-doc-map": "node scripts/gen-doc-map.mjs"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
     "examples/**/*.json": [
       "prettier --write",
       "npm run check-examples --",
-      "npm run generate-node-docs && prettier --write docs/node-ids.md && git add docs/node-ids.md"
+      "npm run generate-cell-docs && prettier --write docs/cell-ids.md && git add docs/cell-ids.md"
     ]
   }
 }

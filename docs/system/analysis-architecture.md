@@ -9,43 +9,43 @@ summary: Обновлена ссылка на JSON-схему cell-template.
 ## Навигация
 
 - [Обзор Нейры](README.md)
-- [Узлы действий](action-nodes.md)
-- [Узлы анализа](analysis-nodes.md)
-- [Узлы памяти](memory-nodes.md)
+- [Клетки действий](action-cells.md)
+- [Клетки анализа](analysis-cells.md)
+- [Клетки памяти](memory-cells.md)
 - [Архитектура анализа](analysis-architecture.md)
 - [Поддерживающие системы](support-systems.md)
 - [Личность Нейры](personality.md)
-- [Шаблон узла](node-template.md)
+- [Шаблон клетки](cell-template.md)
 - [Политика источников](source-policy.md)
 - [Механизм саморазвивающейся системы](self-updating-system.md)
 
 ## Оглавление
 
 - [Модули высокого уровня](#модули-высокого-уровня)
-- [API узлов](#api-узлов)
-- [Иерархия узлов](#иерархия-узлов)
+- [API клеток](#api-клеток)
+- [Иерархия клеток](#иерархия-клеток)
 - [Пример расширения на Rust](#пример-расширения-на-rust)
 
-Документ описывает общий API узлов анализа, базовую иерархию типов и пример расширения системы на Rust.
+Документ описывает общий API клеток анализа, базовую иерархию типов и пример расширения системы на Rust.
 
 ## Модули высокого уровня
 
-- **Базовый вычислительный узел** — основная обработка запросов и режим «без личности».
+- **Базовый вычислительный клетка** — основная обработка запросов и режим «без личности».
 - **Модуль диалоговой логики** — отслеживание намерений пользователя и выбор стиля общения.
 - **Модуль личности** — хранение устойчивого образа Нейры.
 - **Модуль памяти и адаптации** — накопление опыта общения без разрушения базового ядра.
-- **Модуль интересов, творчества и игр** — обучение через игры, генерация новых узлов анализа.
+- **Модуль интересов, творчества и игр** — обучение через игры, генерация новых клеток анализа.
 - **Модуль скепсиса и проверки** — вставка уточнений и проверка фактов.
 
-## API узлов
+## API клеток
 
-Трейт `AnalysisNode` задаёт минимальный контракт для всех реализаций. Метод `analyze` возвращает структуру `AnalysisResult` с метриками качества, оценкой неопределённости и цепочкой рассуждений, а `explain` выдаёт краткое описание логики узла. Дополнительно интерфейс предоставляет текущий `status`, связи `links` и порог `confidence_threshold`, при котором результат считается пригодным к использованию. Регистрация конкретных реализаций производится через `NodeRegistry`. Цепочка рассуждений (`reasoning_chain`) не хранится в самом узле и возвращается только в `AnalysisResult`.
+Трейт `AnalysisCell` задаёт минимальный контракт для всех реализаций. Метод `analyze` возвращает структуру `AnalysisResult` с метриками качества, оценкой неопределённости и цепочкой рассуждений, а `explain` выдаёт краткое описание логики клетки. Дополнительно интерфейс предоставляет текущий `status`, связи `links` и порог `confidence_threshold`, при котором результат считается пригодным к использованию. Регистрация конкретных реализаций производится через `CellRegistry`. Цепочка рассуждений (`reasoning_chain`) не хранится в самом клетке и возвращается только в `AnalysisResult`.
 
 ```rust
-pub trait AnalysisNode {
+pub trait AnalysisCell {
     fn id(&self) -> &str;
     fn analysis_type(&self) -> &str;
-    fn status(&self) -> NodeStatus;
+    fn status(&self) -> CellStatus;
     fn links(&self) -> &[String];
     fn confidence_threshold(&self) -> f32;
     fn analyze(&self, input: &str) -> AnalysisResult;
@@ -59,7 +59,7 @@ pub trait AnalysisNode {
 pub struct AnalysisResult {
     pub id: String,
     pub output: String,
-    pub status: NodeStatus,
+    pub status: CellStatus,
     pub quality_metrics: QualityMetrics,
     pub reasoning_chain: Vec<String>,
     pub uncertainty_score: f32,
@@ -79,31 +79,31 @@ pub struct AnalysisMetadata {
 }
 ```
 
-## Иерархия узлов
+## Иерархия клеток
 
 ```text
-AnalysisNode
-├─ DataSourceNode        # интеграция с внешними источниками данных
-├─ ReasoningNode         # агрегирование и интерпретация результатов
-└─ DomainNode            # логика для конкретных областей
-   ├─ ProgrammingSyntaxNode
-   ├─ NaturalLanguageNode
-   └─ DomainSpecificNode
+AnalysisCell
+├─ DataSourceCell        # интеграция с внешними источниками данных
+├─ ReasoningCell         # агрегирование и интерпретация результатов
+└─ DomainCell            # логика для конкретных областей
+   ├─ ProgrammingSyntaxCell
+   ├─ NaturalLanguageCell
+   └─ DomainSpecificCell
 ```
 
 Логические уровни образуют цепочку `Binary` → `Artistic`, а маршрутизация определяет переходы между ними в зависимости от входных данных.
-На каждом уровне узлы возвращают `quality_metrics`, `reasoning_chain` и `uncertainty_score`.
+На каждом уровне клетки возвращают `quality_metrics`, `reasoning_chain` и `uncertainty_score`.
 
 ## Пример расширения на Rust
 
 ```rust
 
-pub struct ComplexityNode;
+pub struct ComplexityCell;
 
-impl AnalysisNode for ComplexityNode {
+impl AnalysisCell for ComplexityCell {
     fn id(&self) -> &str { "analysis.complexity" }
-    fn analysis_type(&self) -> &str { "ComplexityNode" }
-    fn status(&self) -> NodeStatus { NodeStatus::Active }
+    fn analysis_type(&self) -> &str { "ComplexityCell" }
+    fn status(&self) -> CellStatus { CellStatus::Active }
     fn links(&self) -> &[String] { &[] }
     fn confidence_threshold(&self) -> f32 { 0.75 }
     fn analyze(&self, input: &str) -> AnalysisResult {
@@ -117,7 +117,7 @@ impl AnalysisNode for ComplexityNode {
         AnalysisResult {
             id: self.id().into(),
             output: format!("{};{}", cyclo, cognitive),
-            status: NodeStatus::Active,
+            status: CellStatus::Active,
             quality_metrics: QualityMetrics {
                 credibility,
                 recency_days: 0,
@@ -135,12 +135,12 @@ impl AnalysisNode for ComplexityNode {
     }
 }
 
-pub fn register(registry: &mut NodeRegistry) {
-    registry.add(Box::new(ComplexityNode));
+pub fn register(registry: &mut CellRegistry) {
+    registry.add(Box::new(ComplexityCell));
 }
 ```
 
-Пример демонстрирует добавление нового узла и его регистрацию в `NodeRegistry`.
+Пример демонстрирует добавление нового клетки и его регистрацию в `CellRegistry`.
 
 ## Схемы
 

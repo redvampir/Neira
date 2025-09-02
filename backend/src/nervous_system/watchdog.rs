@@ -26,14 +26,14 @@ impl Watchdog {
             .unwrap_or(default_ms)
     }
 
-    /// Настройки для конкретного узла.
+    /// Настройки для конкретной клетки.
     /// `global_time_budget` используется как базовый hard‑таймаут.
-    pub fn for_node(node_id: &str, global_time_budget: u64) -> Self {
+    pub fn for_cell(cell_id: &str, global_time_budget: u64) -> Self {
         let base_soft = Self::env_ms("WATCHDOG_REASONING_SOFT_MS", 30_000);
         let base_hard = Self::env_ms("WATCHDOG_REASONING_HARD_MS", global_time_budget);
 
-        // per-node override: WATCHDOG_SOFT_MS_<ID>, WATCHDOG_HARD_MS_<ID>
-        let mut up = node_id
+        // per-cell override: WATCHDOG_SOFT_MS_<ID>, WATCHDOG_HARD_MS_<ID>
+        let mut up = cell_id
             .chars()
             .map(|c| {
                 if c.is_ascii_alphanumeric() {

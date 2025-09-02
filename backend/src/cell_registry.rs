@@ -1,8 +1,8 @@
 /* neira:meta
-id: NEI-20250829-175425-node-registry
+id: NEI-20250829-175425-cell-registry
 intent: docs
 summary: |
-  Отслеживает файлы шаблонов узлов и регистрирует реализации в системе.
+  Отслеживает файлы шаблонов клеток и регистрирует реализации в системе.
 */
 
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ use crate::memory_cell::MemoryCell;
 id: NEI-20250309-125000-load-template-impl
 intent: refactor
 summary: |
-  Объединяет чтение файла и валидацию шаблонов узлов в общую функцию.
+  Объединяет чтение файла и валидацию шаблонов клеток в общую функцию.
 */
 fn load_template_impl<T, F>(path: &Path, validate_fn: F) -> Result<T, String>
 where
@@ -68,7 +68,7 @@ summary: |
 */
 fn register_file(
     path: &Path,
-    nodes: &Arc<RwLock<HashMap<String, CellTemplate>>>,
+    cells: &Arc<RwLock<HashMap<String, CellTemplate>>>,
     paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
     action_tpls: &Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
@@ -78,7 +78,7 @@ fn register_file(
             .write()
             .unwrap()
             .insert(path.to_path_buf(), tpl.id.clone());
-        nodes.write().unwrap().insert(tpl.id.clone(), tpl);
+        cells.write().unwrap().insert(tpl.id.clone(), tpl);
         info!("Loaded cell template {}", path.display());
     } else if let Ok(tpl) = load_action_template(path) {
         action_paths
@@ -94,7 +94,7 @@ fn register_file(
 
 fn scan_dir(
     dir: &Path,
-    nodes: &Arc<RwLock<HashMap<String, CellTemplate>>>,
+    cells: &Arc<RwLock<HashMap<String, CellTemplate>>>,
     paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
     action_tpls: &Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: &Arc<RwLock<HashMap<PathBuf, String>>>,
@@ -103,9 +103,9 @@ fn scan_dir(
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                scan_dir(&path, nodes, paths, action_tpls, action_paths);
+                scan_dir(&path, cells, paths, action_tpls, action_paths);
             } else if path.is_file() {
-                register_file(&path, nodes, paths, action_tpls, action_paths);
+                register_file(&path, cells, paths, action_tpls, action_paths);
             }
         }
     }
@@ -114,7 +114,7 @@ fn scan_dir(
 /// Реестр узлов: хранит метаданные и следит за изменениями файлов.
 pub struct CellRegistry {
     root: PathBuf,
-    nodes: Arc<RwLock<HashMap<String, CellTemplate>>>,
+    cells: Arc<RwLock<HashMap<String, CellTemplate>>>,
     paths: Arc<RwLock<HashMap<PathBuf, String>>>,
     action_templates: Arc<RwLock<HashMap<String, ActionCellTemplate>>>,
     action_paths: Arc<RwLock<HashMap<PathBuf, String>>>,
@@ -128,7 +128,7 @@ impl CellRegistry {
     /// Создаёт реестр и запускает наблюдение за каталогом.
     pub fn new(dir: impl AsRef<Path>) -> Result<Self, String> {
         let dir = dir.as_ref().to_path_buf();
-        let nodes = Arc::new(RwLock::new(HashMap::new()));
+        let cells = Arc::new(RwLock::new(HashMap::new()));
         let paths = Arc::new(RwLock::new(HashMap::new()));
         let action_templates = Arc::new(RwLock::new(HashMap::new()));
         let action_paths = Arc::new(RwLock::new(HashMap::new()));
@@ -142,7 +142,7 @@ impl CellRegistry {
             if path.is_file() {
                 if let Ok(tpl) = load_template(&path) {
                     paths.write().unwrap().insert(path.clone(), tpl.id.clone());
-                    nodes.write().unwrap().insert(tpl.id.clone(), tpl);
+                    cells.write().unwrap().insert(tpl.id.clone(), tpl);
                 } else if let Ok(tpl) = load_action_template(&path) {
                     action_paths
                         .write()
@@ -158,7 +158,7 @@ impl CellRegistry {
             }
         }
 
-        let nodes_w = nodes.clone();
+        let cells_w = cells.clone();
         let paths_w = paths.clone();
         let action_tpls_w = action_templates.clone();
         let action_paths_w = action_paths.clone();
@@ -169,7 +169,7 @@ impl CellRegistry {
         ));
 
         {
-            let nodes_w = nodes_w.clone();
+            let cells_w = cells_w.clone();
             let paths_w = paths_w.clone();
             let action_tpls_w = action_tpls_w.clone();
             let action_paths_w = action_paths_w.clone();
@@ -191,7 +191,7 @@ impl CellRegistry {
                                             }
                                             scan_dir(
                                                 &path,
-                                                &nodes_w,
+                                                &cells_w,
                                                 &paths_w,
                                                 &action_tpls_w,
                                                 &action_paths_w,
@@ -199,7 +199,7 @@ impl CellRegistry {
                                         } else if path.is_file() {
                                             register_file(
                                                 &path,
-                                                &nodes_w,
+                                                &cells_w,
                                                 &paths_w,
                                                 &action_tpls_w,
                                                 &action_paths_w,
@@ -208,20 +208,20 @@ impl CellRegistry {
                                     }
                                     EventKind::Remove(_) => {
                                         if let Some(id) = paths_w.write().unwrap().remove(&path) {
-                                            nodes_w.write().unwrap().remove(&id);
-                                            info!("Removed node {}", id);
+                                            cells_w.write().unwrap().remove(&id);
+                                            info!("Removed cell {}", id);
                                         } else if let Some(id) =
                                             action_paths_w.write().unwrap().remove(&path)
                                         {
                                             action_tpls_w.write().unwrap().remove(&id);
-                                            info!("Removed action node {}", id);
+                                            info!("Removed action cell {}", id);
                                         }
                                     }
                                     _ => {
                                         if path.is_file() {
                                             register_file(
                                                 &path,
-                                                &nodes_w,
+                                                &cells_w,
                                                 &paths_w,
                                                 &action_tpls_w,
                                                 &action_paths_w,
@@ -238,7 +238,7 @@ impl CellRegistry {
         }
 
         /* neira:meta
-        id: NEI-20250310-node-registry-recursive
+        id: NEI-20250310-cell-registry-recursive
         intent: fix
         summary: Включено рекурсивное наблюдение за каталогом шаблонов узлов.
         */
@@ -250,7 +250,7 @@ impl CellRegistry {
 
         Ok(Self {
             root: dir,
-            nodes,
+            cells,
             paths,
             action_templates,
             action_paths,
@@ -263,12 +263,12 @@ impl CellRegistry {
 
     pub fn register_scripted_training_cell(&self) {
         self.register_action_cell(Arc::new(ScriptedTrainingCell::default()));
-        info!("Registered scripted training node");
+        info!("Registered scripted training cell");
     }
 
-    pub fn register_init_node(&self, node: Arc<dyn ActionCell>, memory: &Arc<MemoryCell>) {
-        node.preload(&[], memory);
-        self.action_cells.write().unwrap().insert(0, node);
+    pub fn register_init_cell(&self, cell: Arc<dyn ActionCell>, memory: &Arc<MemoryCell>) {
+        cell.preload(&[], memory);
+        self.action_cells.write().unwrap().insert(0, cell);
     }
 
     /// Регистрация или обновление узла из файла.
@@ -314,11 +314,11 @@ impl CellRegistry {
                 .write()
                 .unwrap()
                 .insert(path.to_path_buf(), tpl.id.clone());
-            self.nodes.write().unwrap().insert(tpl.id.clone(), tpl);
+            self.cells.write().unwrap().insert(tpl.id.clone(), tpl);
         } else {
             let tpl = load_action_template(path)?;
             // запрет регистрации, если id уже занят шаблоном анализа
-            if self.nodes.read().unwrap().contains_key(&tpl.id) {
+            if self.cells.read().unwrap().contains_key(&tpl.id) {
                 return Err(format!("id {} already registered", tpl.id));
             }
 
@@ -379,7 +379,7 @@ impl CellRegistry {
         let path = self.root.join(file);
 
         // Проверка конфликтов: id не должен быть зарегистрирован как другой тип
-        if self.nodes.read().unwrap().contains_key(&tpl.id) {
+        if self.cells.read().unwrap().contains_key(&tpl.id) {
             return Err(format!("id {} already registered", tpl.id));
         }
 
@@ -408,7 +408,7 @@ impl CellRegistry {
 
     /// Получение метаданных узла по идентификатору.
     pub fn get(&self, id: &str) -> Option<CellTemplate> {
-        self.nodes.read().unwrap().get(id).cloned()
+        self.cells.read().unwrap().get(id).cloned()
     }
 
     /// Получение шаблона узла действия по идентификатору.
@@ -427,11 +427,11 @@ impl CellRegistry {
     }
 
     /// Регистрация реализации `AnalysisCell`.
-    pub fn register_analysis_cell(&self, node: Arc<dyn AnalysisCell + Send + Sync>) {
+    pub fn register_analysis_cell(&self, cell: Arc<dyn AnalysisCell + Send + Sync>) {
         self.analysis_cells
             .write()
             .unwrap()
-            .insert(node.id().to_string(), node);
+            .insert(cell.id().to_string(), cell);
     }
 
     /// Получение реализации `AnalysisCell` по идентификатору.
@@ -439,19 +439,19 @@ impl CellRegistry {
         self.analysis_cells.read().unwrap().get(id).cloned()
     }
 
-    pub fn register_action_cell(&self, node: Arc<dyn ActionCell>) {
-        self.action_cells.write().unwrap().push(node);
+    pub fn register_action_cell(&self, cell: Arc<dyn ActionCell>) {
+        self.action_cells.write().unwrap().push(cell);
     }
 
     pub fn action_cells(&self) -> Vec<Arc<dyn ActionCell>> {
         self.action_cells.read().unwrap().clone()
     }
 
-    pub fn register_chat_cell(&self, node: Arc<dyn ChatCell + Send + Sync>) {
+    pub fn register_chat_cell(&self, cell: Arc<dyn ChatCell + Send + Sync>) {
         self.chat_cells
             .write()
             .unwrap()
-            .insert(node.id().to_string(), node);
+            .insert(cell.id().to_string(), cell);
     }
 
     pub fn get_chat_cell(&self, id: &str) -> Option<Arc<dyn ChatCell + Send + Sync>> {

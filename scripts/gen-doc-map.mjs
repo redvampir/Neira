@@ -64,7 +64,7 @@ const groups = [
   },
   {
     title: "Клеточные уровни",
-    entries: ["node-ids.md", "metrics_nodes.md", "nodes"],
+    entries: ["cell-ids.md", "metrics_cells.md", "cells"],
   },
   {
     title: "Guides",

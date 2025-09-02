@@ -1,8 +1,8 @@
 /* neira:meta
-id: NEI-20250829-175425-analysis-node
+id: NEI-20250829-175425-analysis-cell
 intent: docs
 summary: |
-  Общие структуры и интерфейсы для аналитических узлов.
+  Общие структуры и интерфейсы для аналитических клеток.
 */
 
 use chrono::{DateTime, Utc};
@@ -11,7 +11,7 @@ use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum NodeStatus {
+pub enum CellStatus {
     Draft,
     Active,
     Deprecated,
@@ -56,7 +56,7 @@ pub struct AnalysisMetadata {
 pub struct AnalysisResult {
     pub id: String,
     pub output: String,
-    pub status: NodeStatus,
+    pub status: CellStatus,
     pub quality_metrics: QualityMetrics,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reasoning_chain: Vec<ReasoningStep>,
@@ -84,7 +84,7 @@ impl AnalysisResult {
         AnalysisResult {
             id: id.into(),
             output: output.into(),
-            status: NodeStatus::Active,
+            status: CellStatus::Active,
             quality_metrics,
             reasoning_chain,
             uncertainty_score,
@@ -113,7 +113,7 @@ impl AnalysisResult {
 pub trait AnalysisCell {
     fn id(&self) -> &str;
     fn analysis_type(&self) -> &str;
-    fn status(&self) -> NodeStatus;
+    fn status(&self) -> CellStatus;
     fn links(&self) -> &[String];
     fn confidence_threshold(&self) -> f32;
     fn analyze(&self, input: &str, cancel_token: &CancellationToken) -> AnalysisResult;

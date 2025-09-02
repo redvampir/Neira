@@ -8,13 +8,13 @@ summary: Пошаговый запуск Voice v1 через Factory Adapter, о
 
 Goal
 
-- Зарегистрировать 3 шаблона узлов (CellTemplate) для конвейера Voice v1:
+- Зарегистрировать 3 шаблона клеток (CellTemplate) для конвейера Voice v1:
   - `analysis.text_normalize.v1`
 - `analysis.text_to_phonemes.v1`
   - `analysis.speak_adapter.v1`
   - `action.speak_adapter.v1` (ActionCellTemplate)
 - Прогнать dry-run, создать записи (draft), при необходимости продвинуть до canary.
-- Убедиться в автоподхвате шаблонов при перезапуске (NodeRegistry watcher).
+- Убедиться в автоподхвате шаблонов при перезапуске (CellRegistry watcher).
 
 Prerequisites
 
@@ -32,28 +32,28 @@ Files
 
 Steps (PowerShell)
 
-1. Dry‑run каждого узла
-   node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/analysis.text_normalize.v1.json
-   node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/analysis.text_to_phonemes.v1.json
-   node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/analysis.speak_adapter.v1.json
-   node scripts/factory-shim/index.mjs dryrun-node --spec examples/factory/voice-v1/action.speak_adapter.v1.json
+1. Dry‑run каждого клетки
+   cell scripts/factory-shim/index.mjs dryrun-cell --spec examples/factory/voice-v1/analysis.text_normalize.v1.json
+   cell scripts/factory-shim/index.mjs dryrun-cell --spec examples/factory/voice-v1/analysis.text_to_phonemes.v1.json
+   cell scripts/factory-shim/index.mjs dryrun-cell --spec examples/factory/voice-v1/analysis.speak_adapter.v1.json
+   cell scripts/factory-shim/index.mjs dryrun-cell --spec examples/factory/voice-v1/action.speak_adapter.v1.json
 2. Создать записи (draft) и сохранить в `templates/`
-   node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/analysis.text_normalize.v1.json
-   node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/analysis.text_to_phonemes.v1.json
-   node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/analysis.speak_adapter.v1.json
-   node scripts/factory-shim/index.mjs create-node --spec examples/factory/voice-v1/action.speak_adapter.v1.json
+   cell scripts/factory-shim/index.mjs create-cell --spec examples/factory/voice-v1/analysis.text_normalize.v1.json
+   cell scripts/factory-shim/index.mjs create-cell --spec examples/factory/voice-v1/analysis.text_to_phonemes.v1.json
+   cell scripts/factory-shim/index.mjs create-cell --spec examples/factory/voice-v1/analysis.speak_adapter.v1.json
+   cell scripts/factory-shim/index.mjs create-cell --spec examples/factory/voice-v1/action.speak_adapter.v1.json
 3. (Опционально) Аппрув до canary
-   node scripts/factory-shim/index.mjs approve-node --id adapter:analysis.text_normalize.v1 --yes
-   node scripts/factory-shim/index.mjs approve-node --id adapter:analysis.text_to_phonemes.v1 --yes
-   node scripts/factory-shim/index.mjs approve-node --id adapter:analysis.speak_adapter.v1 --yes
-   node scripts/factory-shim/index.mjs approve-node --id adapter:action.speak_adapter.v1 --yes
+   cell scripts/factory-shim/index.mjs approve-cell --id adapter:analysis.text_normalize.v1 --yes
+   cell scripts/factory-shim/index.mjs approve-cell --id adapter:analysis.text_to_phonemes.v1 --yes
+   cell scripts/factory-shim/index.mjs approve-cell --id adapter:analysis.speak_adapter.v1 --yes
+   cell scripts/factory-shim/index.mjs approve-cell --id adapter:action.speak_adapter.v1 --yes
 4. Проверка автоподхвата
 
 - Убедитесь, что в каталоге `templates/` появились файлы `analysis.*.json`.
-- Перезапустите backend — NodeRegistry загрузит шаблоны из каталога (есть файловый watcher).
-- Проверьте `/nodes/:id` (или Admin UI) и `logs/factory_audit.ndjson`.
+- Перезапустите backend — CellRegistry загрузит шаблоны из каталога (есть файловый watcher).
+- Проверьте `/cells/:id` (или Admin UI) и `logs/factory_audit.ndjson`.
   Notes
-- Organ Builder (маршруты `/organs/*`) пока не реализован — работаем на уровне узлов.
+- Organ Builder (маршруты `/organs/*`) пока не реализован — работаем на уровне клеток.
 - Политики/гейты: ошибки приходят JSON `{ code, reason, capability }`; включение адаптера — `FACTORY_ADAPTER_ENABLED=1`.
 - Метрики: `factory_*` доступны на `/metrics` при включённой NERVOUS_SYSTEM.
   Handover (RU)

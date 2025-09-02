@@ -4,7 +4,7 @@ use serde_json::json;
 #[test]
 fn valid_template_passes_validation() {
     let value = json!({
-        "id": "example-node",
+        "id": "example-cell",
         "version": "0.1.0",
         "analysis_type": "text",
         "metadata": {
