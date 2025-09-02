@@ -1,7 +1,13 @@
 # Развертывание Neira
 
+<!-- neira:meta
+id: NEI-20250305-deploy-runtime-term
+intent: docs
+summary: Замена упоминаний Node.js на Cell.js runtime.
+-->
+
 ## Установка зависимостей
-1. Установите Node.js 20 LTS и Rust 1.75 или новее.
+1. Установите Cell.js 20 LTS (runtime Node.js) и Rust 1.75 или новее.
 2. В корне репозитория выполните:
    ```bash
    npm install
@@ -46,7 +52,7 @@ NEIRA_LOG_LEVEL=info
 
 ## Windows
 
-### Установка Node.js 20
+### Установка Cell.js 20
 
 ```powershell
 winget install OpenJS.CellJS.LTS --version 20
@@ -72,7 +78,7 @@ cargo test
 
 ## macOS
 
-### Установка Node.js 20
+### Установка Cell.js 20
 
 ```bash
 brew install cell@20

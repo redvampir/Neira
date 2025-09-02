@@ -8,6 +8,11 @@ id: NEI-20251115-organ-cancel-build-guide
 intent: docs
 summary: добавлена ссылка на DELETE /organs/:id/build как зарезервированный маршрут.
 -->
+<!-- neira:meta
+id: NEI-20250305-factory-shim-runtime-term
+intent: docs
+summary: Термин Node.js заменён на Cell runtime.
+-->
 
 # Factory Shim (External Orchestrator)
 
@@ -35,7 +40,7 @@ Safety & Policies
 
 Installation
 
-- Ничего ставить не нужно: используется Node.js (>=18) с встроенным `fetch`.
+- Ничего ставить не нужно: используется Cell runtime (Node.js >=18) с встроенным `fetch`.
 - Файлы CLI: `scripts/factory-shim/index.mjs`.
 
 Environment

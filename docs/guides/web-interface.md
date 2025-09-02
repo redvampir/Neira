@@ -1,5 +1,11 @@
 # Веб-интерфейс обучения Neira
 
+<!-- neira:meta
+id: NEI-20250305-web-interface-cell-registry
+intent: docs
+summary: Добавлен пример регистрации клеток через CellRegistry.
+-->
+
 ## Навигация
 - [Обзор Нейры](README.md)
 - [Клетки действий](action-cells.md)
@@ -38,6 +44,25 @@
 | POST | `/api/neira/action` | запуск `ActionCell` |
 | POST | `/api/neira/personality` | переключение образа Нейры |
 | WS   | `/ws` | трансляция прогресса обучения |
+
+```rust
+use neira::{cells::{ActionCell, AnalysisCell, MemoryCell}, CellRegistry};
+
+fn init_registry() -> CellRegistry {
+    let mut registry = CellRegistry::default();
+    // регистрация тестовых клеток
+    struct DummyAction;
+    impl ActionCell for DummyAction {}
+    struct DummyAnalysis;
+    impl AnalysisCell for DummyAnalysis {}
+    struct DummyMemory;
+    impl MemoryCell for DummyMemory {}
+    registry.register_action("dummy.action", Box::new(DummyAction));
+    registry.register_analysis("dummy.analysis", Box::new(DummyAnalysis));
+    registry.register_memory("dummy.memory", Box::new(DummyMemory));
+    registry
+}
+```
 
 ## Функциональные модули
 - **Чат / InteractionHub** — единая точка общения и управления памятью.

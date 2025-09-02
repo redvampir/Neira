@@ -1,10 +1,16 @@
 # FAQ
 
+<!-- neira:meta
+id: NEI-20250305-faq-cell-runtime
+intent: docs
+summary: Уточнены требования к окружению с упоминанием Cell runtime.
+-->
+
 ### Как развернуть Neira?
-Установите Node.js 20 LTS и Rust 1.75+. Затем выполните `npm install`, `npm run setup` и соберите backend командой `cargo build` внутри каталога `backend`. Подробности см. в [deployment.md](deployment.md).
+Установите Cell runtime (Node.js 20 LTS) и Rust 1.75+. Затем выполните `npm install`, `npm run setup` и соберите backend командой `cargo build` внутри каталога `backend`. Подробности см. в [deployment.md](deployment.md).
 
 ### Какие системные требования и ограничения по ресурсам?
-Минимум: 4 ядра CPU, 8 ГБ RAM и Node.js 20 LTS. GPU не требуется, но ускоряет работу. Лимиты по времени и итерациям задаются планировщиком `TaskScheduler`. Подробности см. в [analysis-architecture.md](analysis-architecture.md).
+Минимум: 4 ядра CPU, 8 ГБ RAM и Cell runtime (Node.js 20 LTS). GPU не требуется, но ускоряет работу. Лимиты по времени и итерациям задаются планировщиком `TaskScheduler`. Подробности см. в [analysis-architecture.md](analysis-architecture.md).
 
 ### Как настроить лимиты итераций и времени клеток?
 В конфигурации планировщика задайте `max_iterations`, `priority` и `time_slice_ms`. Эти параметры ограничивают циклы обработки и контроль ресурсов. Подробности см. в [analysis-architecture.md](analysis-architecture.md).

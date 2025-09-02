@@ -1,5 +1,11 @@
 # Пример использования
 
+<!-- neira:meta
+id: NEI-20250305-usage-cell-registry
+intent: docs
+summary: Добавлен пример с CellRegistry и уточнён runtime.
+-->
+
 Последовательность обработки запроса в Neira:
 
 1. **Пользовательский запрос** — отправляется через CLI или API.
@@ -10,6 +16,24 @@
 6. **Ответ** — результат возвращается пользователю вместе с трассировкой.
 
 Трассировка оперирует идентификаторами клеток.
+
+```rust
+use neira::{cells::{ActionCell, AnalysisCell, MemoryCell}, CellRegistry};
+
+struct DemoAction;
+impl ActionCell for DemoAction {}
+
+struct DemoAnalysis;
+impl AnalysisCell for DemoAnalysis {}
+
+struct DemoMemory;
+impl MemoryCell for DemoMemory {}
+
+let mut registry = CellRegistry::default();
+registry.register_action("demo.action", Box::new(DemoAction));
+registry.register_analysis("demo.analysis", Box::new(DemoAnalysis));
+registry.register_memory("demo.memory", Box::new(DemoMemory));
+```
 
 ```bash
 # запрос
@@ -31,7 +55,7 @@ curl -X POST http://localhost:4000/api/neira/interact \
 ## Требования к окружению
 
 - Linux x86_64, 4 ядра CPU и 8 ГБ RAM.
-- Node.js 20 LTS.
+- Cell runtime: Node.js 20 LTS.
 - Rust 1.75.
 
 ## Запуск модулей
