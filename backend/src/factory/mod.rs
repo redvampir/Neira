@@ -121,15 +121,29 @@ impl StemCellFactory {
         Ok(rec)
     }
 
+    /* neira:meta
+    id: NEI-20250704-factory-state-transition-metric
+    intent: feature
+    summary: Отслеживаем переходы состояний через factory_state_transitions_total.
+    metrics:
+      - factory_state_transitions_total
+    */
     pub fn advance(&self, id: &str) -> Option<StemCellState> {
         let mut map = self.records.write().unwrap();
         if let Some(rec) = map.get_mut(id) {
-            rec.state = match rec.state {
+            let prev = rec.state;
+            rec.state = match prev {
                 StemCellState::Draft => StemCellState::Canary,
                 StemCellState::Canary => StemCellState::Experimental,
                 StemCellState::Experimental => StemCellState::Stable,
                 s => s,
             };
+            metrics::counter!(
+                "factory_state_transitions_total",
+                "from" => _format_state_local_import(prev),
+                "to" => _format_state_local_import(rec.state)
+            )
+            .increment(1);
             metrics::counter!("factory_approvals_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -153,7 +167,14 @@ impl StemCellFactory {
     pub fn disable(&self, id: &str) -> Option<StemCellState> {
         let mut map = self.records.write().unwrap();
         if let Some(rec) = map.get_mut(id) {
+            let prev = rec.state;
             rec.state = StemCellState::Disabled;
+            metrics::counter!(
+                "factory_state_transitions_total",
+                "from" => _format_state_local_import(prev),
+                "to" => _format_state_local_import(rec.state)
+            )
+            .increment(1);
             metrics::counter!("factory_rollbacks_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -171,7 +192,14 @@ impl StemCellFactory {
     pub fn rollback(&self, id: &str) -> Option<StemCellState> {
         let mut map = self.records.write().unwrap();
         if let Some(rec) = map.get_mut(id) {
+            let prev = rec.state;
             rec.state = StemCellState::RolledBack;
+            metrics::counter!(
+                "factory_state_transitions_total",
+                "from" => _format_state_local_import(prev),
+                "to" => _format_state_local_import(rec.state)
+            )
+            .increment(1);
             metrics::counter!("factory_rollbacks_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
