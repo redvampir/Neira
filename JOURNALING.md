@@ -1,3 +1,10 @@
+<!-- neira:meta
+id: NEI-20250902-203443-journaling-link
+intent: docs
+summary: |
+  Обновлена ссылка на spinal_cord API в примере записи.
+-->
+
 # Журналирование решений
 
 Назначение — коротко фиксировать мотивацию изменений и проверку результата, чтобы Нейра «помнила», зачем она растёт в данную сторону.
@@ -20,7 +27,7 @@ change:
     - какую пользу дало (метрики/опыт)
 links:
   - file:path/to/file.rs#L10
-  - docs:docs/backend-api.md#section
+  - docs:docs/api/spinal_cord.md#section
 ```
 
 ## Политика
