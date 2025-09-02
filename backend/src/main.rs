@@ -184,7 +184,15 @@ async fn factory_create(
     adapter
         .register(&state.hub.registry)
         .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
-    let rec = state.hub.factory_create(backend, &body.tpl);
+    /* neira:meta
+    id: NEI-20260514-factory-handler-result
+    intent: code
+    summary: Обработчик учитывает ошибки preflight_check.
+    */
+    let rec = state
+        .hub
+        .factory_create(backend, &body.tpl)
+        .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?;
     Ok(Json(serde_json::json!({"id": rec.id, "state": "draft"})))
 }
 

@@ -26,6 +26,7 @@ use crate::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use crate::cell_registry::CellRegistry;
 use crate::cell_template::CellTemplate;
 use crate::factory::format_state_local as _format_state_local_import;
+use jsonschema_valid::ValidationError;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -81,7 +82,16 @@ impl StemCellFactory {
         })
     }
 
-    pub fn create_record(&self, backend: &str, tpl: &CellTemplate) -> StemCellRecord {
+    /* neira:meta
+    id: NEI-20260514-preflight-call
+    intent: code
+    summary: Добавлен вызов immune_system::preflight_check при создании записи.
+    */
+    pub fn create_record(
+        &self,
+        backend: &str,
+        tpl: &CellTemplate,
+    ) -> Result<StemCellRecord, ValidationError> {
         let rec = StemCellRecord {
             id: format!("{}:{}", backend, tpl.id),
             backend: backend.to_string(),
@@ -89,6 +99,7 @@ impl StemCellFactory {
             state: StemCellState::Draft,
             created_at: Utc::now(),
         };
+        crate::immune_system::preflight_check(&rec)?;
         self.records
             .write()
             .unwrap()
@@ -103,7 +114,7 @@ impl StemCellFactory {
         }));
         crate::nervous_system::watch(&rec);
         crate::immune_system::observe(&rec);
-        rec
+        Ok(rec)
     }
 
     pub fn advance(&self, id: &str) -> Option<StemCellState> {
