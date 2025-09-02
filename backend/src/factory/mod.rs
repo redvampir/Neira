@@ -9,6 +9,11 @@ id: NEI-20250316-stemcell-rename
 intent: refactor
 summary: Введены StemCellFactory и StemCellRecord.
 */
+/* neira:meta
+id: NEI-20250215-factory-watch
+intent: refactor
+summary: Добавлены вызовы nervous_system::watch и immune_system::observe при создании записи.
+*/
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -96,6 +101,8 @@ impl StemCellFactory {
             "backend": backend,
             "template_id": tpl.id
         }));
+        crate::nervous_system::watch(&rec);
+        crate::immune_system::observe(&rec);
         rec
     }
 

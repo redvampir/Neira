@@ -20,6 +20,11 @@ id: NEI-20250316-stemcell-rename
 intent: refactor
 summary: Перечисление StemCellState (раньше назывался FabricationState).
 */
+/* neira:meta
+id: NEI-20250215-immune-import-main
+intent: refactor
+summary: Добавлен импорт immune_system.
+*/
 use async_stream::stream;
 use axum::{
     extract::{
@@ -33,6 +38,8 @@ use axum::{
 };
 use backend::context::context_storage::set_runtime_mask_config;
 use backend::hearing;
+#[allow(unused_imports)]
+use backend::immune_system;
 use backend::nervous_system::anti_idle;
 use backend::nervous_system::backpressure_probe::BackpressureProbe;
 use backend::nervous_system::heartbeat;

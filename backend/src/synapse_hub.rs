@@ -15,6 +15,11 @@ id: NEI-20250316-stemcell-rename
 intent: refactor
 summary: Обновлены ссылки на StemCellFactory и связанные типы.
 */
+/* neira:meta
+id: NEI-20250215-immune-import-hub
+intent: refactor
+summary: Добавлен импорт immune_system.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -25,6 +30,8 @@ use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::factory::{FabricatorCell, SelectorCell, StemCellFactory};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
+#[allow(unused_imports)]
+use crate::immune_system;
 use crate::nervous_system::{
     host_metrics::HostMetrics, io_watcher::IoWatcher, watchdog::Watchdog, SystemProbe,
 };
