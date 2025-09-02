@@ -176,28 +176,37 @@ impl StemCellFactory {
     intent: code
     summary: Добавлены auto_heal и auto_rollback для реакций immune_system.
     */
+    /* neira:meta
+    id: NEI-20250310-factory-auto-failure-metrics
+    intent: code
+    summary: Добавлены счётчики неудачных auto_heal и auto_rollback.
+    */
     pub fn auto_heal(&self, id: &str) -> Option<StemCellState> {
         let res = self.disable(id);
-        if res.is_some() {
+        if let Some(_) = res {
             metrics::counter!("factory_auto_heals_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
                 "event": "factory.auto_heal",
                 "id": id
             }));
+        } else {
+            metrics::counter!("factory_auto_heal_failures_total").increment(1);
         }
         res
     }
 
     pub fn auto_rollback(&self, id: &str) -> Option<StemCellState> {
         let res = self.rollback(id);
-        if res.is_some() {
+        if let Some(_) = res {
             metrics::counter!("factory_auto_rollbacks_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
                 "event": "factory.auto_rollback",
                 "id": id
             }));
+        } else {
+            metrics::counter!("factory_auto_rollback_failures_total").increment(1);
         }
         res
     }
