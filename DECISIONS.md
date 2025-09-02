@@ -1,3 +1,9 @@
+<!-- neira:meta
+id: NEI-20250902-202115-rename-backend
+intent: docs
+summary: |
+  Уточнено название каталога: backend/services -> spinal_cord/services.
+-->
 // Architectural Decision Records (ADR Index)
 
 Format
@@ -17,5 +23,5 @@ Templates
 
 ADR-001 Rust as primary language — Accepted
 - Context: Safety (memory correctness), performance, strong tooling, suitability for long-running services with low overhead and predictable behavior. Owner prefers Rust for control and reliability.
-- Decision: Implement backend/services in Rust; prefer Rust-first libs; keep interfaces simple for future polyglot modules.
+- Decision: Implement spinal_cord/services in Rust; prefer Rust-first libs; keep interfaces simple for future polyglot modules.
 - Consequences: Higher initial complexity vs scripting, but better long-term stability; need strict coding guidelines and documentation to mitigate onboarding cost.
