@@ -102,7 +102,7 @@ summary: |
   EchoChatCell: простая отражающая клетка. Входящее user‑сообщение сохраняется в SynapseHub,
   чтобы избежать дублей; здесь сохраняется ответ ассистента.
 links:
-  - docs/backend-api.md
+  - docs/api/spinal_cord.md
 metrics:
   - chat_cell_requests_total
   - chat_cell_errors_total

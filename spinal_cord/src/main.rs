@@ -2779,7 +2779,7 @@ summary: |
   Точки входа HTTP (API), SSE с прогрессом и отменой, маскирование с пресетами,
   поиск по content с фильтрами и пагинацией, rate-limit заголовки, скоупы токенов, включён CORS.
 links:
-  - docs/backend-api.md
+  - docs/api/spinal_cord.md
   - docs/reference/env.md
   - docs/reference/metrics.md
   - CAPABILITIES.md

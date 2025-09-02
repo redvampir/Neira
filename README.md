@@ -17,7 +17,7 @@ Assistant Quick Links
 - Teamwork: TEAMWORK.md
 - Workflow: WORKFLOW.md
 - Coding Guidelines: CODING_GUIDELINES.md
-- Spinal cord API: docs/api/backend.md
+- Spinal cord API: docs/api/spinal_cord.md
 
 Documentation Index
 - docs/index.md — карта документации (DocMap) для GitHub/IDE
@@ -559,4 +559,4 @@ impl SystemProbe for CustomProbe {
 let mut probe = CustomProbe;
 tokio::spawn(async move { probe.start().await; });
 ```
-[Spinal cord API Quick Reference](docs/backend-api.md)
+[Spinal cord API Quick Reference](docs/api/spinal_cord.md)

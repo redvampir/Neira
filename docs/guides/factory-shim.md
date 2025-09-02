@@ -39,7 +39,7 @@ Endpoints (реализовано сейчас)
 
 Safety & Policies
 
-- Любые write-операции требуют токена `write`/`admin` (см. docs/api/backend.md). В Safe Mode — только `admin`.
+- Любые write-операции требуют токена `write`/`admin` (см. docs/api/spinal_cord.md). В Safe Mode — только `admin`.
 - Ошибки политики возвращаются в JSON: `{ code, reason, capability? }`.
 - В Shim по умолчанию запрещены `approve/disable/rollback` без флага `--yes` или интерактивного подтверждения.
 
