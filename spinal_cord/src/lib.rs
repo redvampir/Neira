@@ -19,6 +19,12 @@ intent: code
 summary: Экспортирован модуль event_bus.
 */
 pub mod event_bus;
+/* neira:meta
+id: NEI-20260614-brain-export
+intent: code
+summary: Экспортирован модуль brain.
+*/
+pub mod brain;
 pub mod immune_system;
 pub mod memory_cell;
 pub mod nervous_system;

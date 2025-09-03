@@ -40,6 +40,11 @@ id: NEI-20260522-flow-consumer
 intent: fix
 summary: Подписчик DataFlowController сохраняет приёмник и выводит FlowMessage через tracing.
 */
+/* neira:meta
+id: NEI-20260614-brain-loop-init
+intent: feature
+summary: Запуск brain_loop обрабатывает FlowMessage и активирует клетки.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -71,6 +76,7 @@ use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
 use crate::analysis_cell::{AnalysisResult, CellStatus};
+use crate::brain::brain_loop;
 use crate::cell_registry::CellRegistry;
 use crate::memory_cell::MemoryCell;
 use crate::queue_config::QueueConfig;
@@ -100,7 +106,7 @@ pub struct SynapseHub {
     pub memory: Arc<MemoryCell>,
     metrics: Arc<MetricsCollectorCell>,
     trigger_detector: Arc<TriggerDetector>,
-    pub(crate) scheduler: RwLock<TaskScheduler>,
+    pub(crate) scheduler: Arc<RwLock<TaskScheduler>>,
     queue_cfg: RwLock<QueueConfig>,
     allowed_tokens: RwLock<std::collections::HashMap<String, TokenInfo>>,
     rate: RwLock<std::collections::HashMap<String, (u64, u32)>>,
@@ -194,26 +200,24 @@ impl SynapseHub {
 
         let queue_cfg = QueueConfig::new(&memory);
 
-        let (data_flow, mut df_rx) = DataFlowController::new();
-        tokio::spawn(async move {
-            while let Some(msg) = df_rx.recv().await {
-                tracing::debug!(?msg, "flow message");
-            }
-        });
+        let (data_flow, df_rx) = DataFlowController::new();
         let event_bus = EventBus::new();
         event_bus.attach_flow_controller(data_flow.clone());
         event_bus.subscribe(Arc::new(NervousSystemSubscriber));
         event_bus.subscribe(Arc::new(ImmuneSystemSubscriber));
 
-        let mut scheduler = TaskScheduler::default();
-        scheduler.set_flow_controller(data_flow.clone());
+        let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
+        scheduler
+            .write()
+            .unwrap()
+            .set_flow_controller(data_flow.clone());
 
         let hub = Self {
             registry,
             memory,
             metrics: metrics.clone(),
             trigger_detector: Arc::new(TriggerDetector::default()),
-            scheduler: RwLock::new(scheduler),
+            scheduler: scheduler.clone(),
             queue_cfg: RwLock::new(queue_cfg),
             allowed_tokens: RwLock::new(std::collections::HashMap::new()),
             rate: RwLock::new(std::collections::HashMap::new()),
@@ -239,9 +243,16 @@ impl SynapseHub {
                 .unwrap_or(200),
             factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
-            event_bus,
-            data_flow,
+            event_bus: event_bus.clone(),
+            data_flow: data_flow.clone(),
         };
+
+        tokio::spawn(brain_loop(
+            df_rx,
+            hub.registry.clone(),
+            scheduler.clone(),
+            event_bus.clone(),
+        ));
 
         // Spawn host metrics polling loop
         if host_metrics_enabled {
