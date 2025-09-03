@@ -31,6 +31,7 @@ use crate::action_cell::ActionCell;
 use crate::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use crate::cell_registry::CellRegistry;
 use crate::cell_template::CellTemplate;
+use crate::digestive_pipeline::ParsedInput;
 use crate::factory::format_state_local as _format_state_local_import;
 use jsonschema_valid::ValidationError;
 use tokio_util::sync::CancellationToken;
@@ -356,10 +357,21 @@ impl AnalysisCell for SelectorCell {
     fn confidence_threshold(&self) -> f32 {
         0.0
     }
-    fn analyze(&self, input: &str, _cancel_token: &CancellationToken) -> AnalysisResult {
+    /* neira:meta
+    id: NEI-20260530-selector-digest
+    intent: refactor
+    summary: SelectorCell принимает ParsedInput вместо сырой строки.
+    */
+    fn analyze_parsed(
+        &self,
+        input: &ParsedInput,
+        _cancel_token: &CancellationToken,
+    ) -> AnalysisResult {
         // Расширенные правила (минимум): prefer_id, allowed_types, blocked_types, prefer_version
-        let parsed: serde_json::Value =
-            serde_json::from_str(input).unwrap_or(serde_json::json!({}));
+        let parsed: serde_json::Value = match input {
+            ParsedInput::Json(v) => v.clone(),
+            ParsedInput::Text(t) => serde_json::from_str(t).unwrap_or(serde_json::json!({})),
+        };
         let want_id = parsed
             .get("prefer_id")
             .and_then(|v| v.as_str())

@@ -6,11 +6,17 @@ use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::cell_registry::CellRegistry;
 use backend::config::Config;
+use backend::digestive_pipeline::ParsedInput;
 use backend::memory_cell::MemoryCell;
 use backend::synapse_hub::SynapseHub;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio_util::sync::CancellationToken;
 
+/* neira:meta
+id: NEI-20260530-timemetrics-digest
+intent: test
+summary: SleepCell поддерживает ParsedInput.
+*/
 struct SleepCell;
 
 impl AnalysisCell for SleepCell {
@@ -29,7 +35,7 @@ impl AnalysisCell for SleepCell {
     fn confidence_threshold(&self) -> f32 {
         0.0
     }
-    fn analyze(&self, _input: &str, _cancel: &CancellationToken) -> AnalysisResult {
+    fn analyze_parsed(&self, _input: &ParsedInput, _cancel: &CancellationToken) -> AnalysisResult {
         std::thread::sleep(Duration::from_millis(10));
         AnalysisResult::new(self.id(), "done", vec![])
     }

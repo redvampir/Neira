@@ -5,6 +5,7 @@ summary: |
   Выявляет ключевые слова и запускает микрорефлексы.
 */
 
+use crate::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use std::sync::RwLock;
 
 type ReflexAction = Box<dyn Fn() + Send + Sync>;
@@ -50,7 +51,21 @@ impl TriggerDetector {
         });
     }
 
-    pub fn detect(&self, text: &str) -> Vec<String> {
+    /* neira:meta
+    id: NEI-20260530-trigger-digest
+    intent: refactor
+    summary: Использует DigestivePipeline для предварительной обработки входа.
+    */
+    pub fn detect(&self, raw: &str) -> Vec<String> {
+        let text = match DigestivePipeline::ingest(raw) {
+            Ok(ParsedInput::Json(v)) => v.to_string(),
+            Ok(ParsedInput::Text(t)) => t,
+            Err(_) => raw.to_string(),
+        };
+        self.detect_text(&text)
+    }
+
+    fn detect_text(&self, text: &str) -> Vec<String> {
         let kws = self.keywords.read().unwrap();
         let found: Vec<String> = kws
             .iter()

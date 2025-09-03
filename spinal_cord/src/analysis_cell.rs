@@ -5,6 +5,7 @@ summary: |
   Общие структуры и интерфейсы для аналитических клеток.
 */
 
+use crate::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
@@ -116,6 +117,21 @@ pub trait AnalysisCell {
     fn status(&self) -> CellStatus;
     fn links(&self) -> &[String];
     fn confidence_threshold(&self) -> f32;
-    fn analyze(&self, input: &str, cancel_token: &CancellationToken) -> AnalysisResult;
+    /* neira:meta
+    id: NEI-20260530-analysis-digest
+    intent: refactor
+    summary: Анализ клеток теперь получает ParsedInput через DigestivePipeline.
+    */
+    fn analyze_parsed(
+        &self,
+        input: &ParsedInput,
+        cancel_token: &CancellationToken,
+    ) -> AnalysisResult;
+
+    fn analyze(&self, raw_input: &str, cancel_token: &CancellationToken) -> AnalysisResult {
+        let parsed = DigestivePipeline::ingest(raw_input)
+            .unwrap_or(ParsedInput::Text(raw_input.to_string()));
+        self.analyze_parsed(&parsed, cancel_token)
+    }
     fn explain(&self) -> String;
 }
