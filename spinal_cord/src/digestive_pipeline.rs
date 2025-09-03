@@ -30,6 +30,11 @@ id: NEI-20261005-digestive-metrics
 intent: feature
 summary: Замерен время парсинга и проверки схемы с отправкой в time_metrics.
 */
+/* neira:meta
+id: NEI-20261015-digestive-cache
+intent: refactor
+summary: Добавлен глобальный кэш JSON Schema.
+*/
 use crate::cell_template::load_schema_from;
 use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
 use jsonschema_valid::Config;
@@ -38,7 +43,14 @@ use quick_xml::de::from_str as from_xml;
 use serde::Deserialize;
 use serde_json::Value;
 use serde_yaml;
-use std::{env, fs, path::PathBuf, time::Instant};
+use std::{
+    collections::HashMap,
+    env,
+    fs,
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex},
+    time::Instant,
+};
 use thiserror::Error;
 use tracing::{debug, info, warn};
 
@@ -65,25 +77,12 @@ struct DigestiveSettings {
     schema_path: String,
 }
 
-static DEFAULT_SCHEMA: Lazy<Result<Config<'static>, String>> = Lazy::new(|| {
-    let cfg_path = env::var("DIGESTIVE_CONFIG")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("config/digestive.toml")
-        });
-    let raw = fs::read_to_string(&cfg_path).map_err(|e| e.to_string())?;
-    let settings: DigestiveSettings = toml::from_str(&raw).map_err(|e| e.to_string())?;
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(settings.schema_path);
-    load_schema_from(&path)
-});
+static SCHEMA_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Config<'static>>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 impl DigestivePipeline {
     pub fn init() -> Result<(), PipelineError> {
-        Lazy::force(&DEFAULT_SCHEMA);
-        DEFAULT_SCHEMA
-            .as_ref()
-            .map(|_| ())
-            .map_err(|e| PipelineError::Schema(e.clone()))
+        default_schema().map(|_| ()).map_err(PipelineError::Schema)
     }
 
     pub fn ingest(raw_input: &str) -> Result<ParsedInput, PipelineError> {
@@ -110,12 +109,15 @@ impl DigestivePipeline {
             Ok(ParsedInput::Text(raw_input.to_string()))
         }
     }
+
+    /// Сбрасывает внутренний кэш схем.
+    pub fn reset_cache() {
+        SCHEMA_CACHE.lock().unwrap().clear();
+    }
 }
 
 fn validate(value: &Value) -> Result<(), PipelineError> {
-    let cfg = DEFAULT_SCHEMA
-        .as_ref()
-        .map_err(|e| PipelineError::Schema(e.clone()))?;
+    let cfg = default_schema().map_err(PipelineError::Schema)?;
     let start = Instant::now();
     let res = cfg.validate(value);
     record_validation_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
@@ -127,4 +129,27 @@ fn validate(value: &Value) -> Result<(), PipelineError> {
         debug!("validation passed");
         Ok(())
     }
+}
+
+fn default_schema() -> Result<Arc<Config<'static>>, String> {
+    let cfg_path = env::var("DIGESTIVE_CONFIG")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("config/digestive.toml")
+        });
+    let raw = fs::read_to_string(&cfg_path).map_err(|e| e.to_string())?;
+    let settings: DigestiveSettings = toml::from_str(&raw).map_err(|e| e.to_string())?;
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(settings.schema_path);
+    load_schema_cached(&path)
+}
+
+fn load_schema_cached(path: &Path) -> Result<Arc<Config<'static>>, String> {
+    let mut cache = SCHEMA_CACHE.lock().unwrap();
+    if let Some(cfg) = cache.get(path) {
+        return Ok(cfg.clone());
+    }
+    let cfg = load_schema_from(path)?;
+    let arc = Arc::new(cfg);
+    cache.insert(path.to_path_buf(), arc.clone());
+    Ok(arc)
 }

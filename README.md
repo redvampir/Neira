@@ -550,6 +550,15 @@ pre-commit install
 
 JSON‑схемы расположены в каталоге [schemas](schemas). При несовместимых изменениях повышайте версию: `1.0.0` → `1.1.0`.
 
+<!-- neira:meta
+id: NEI-20261015-digestive-cache-doc
+intent: docs
+summary: Описан кэш JSON Schema DigestivePipeline и способ сброса.
+-->
+### Кэш DigestivePipeline
+
+DigestivePipeline хранит загруженные JSON Schema в глобальном кэше в памяти процесса. Схема считывается с диска только один раз. Чтобы сбросить кэш, перезапустите приложение или вызовите `DigestivePipeline::reset_cache()`.
+
 ## Тесты
 
 Запуск тестов:
