@@ -9,6 +9,11 @@ id: NEI-20250226-task-flow
 intent: feature
 summary: Планировщик отправляет задачи через DataFlowController.
 */
+/* neira:meta
+id: NEI-20270310-local-enqueue
+intent: feature
+summary: Добавлен локальный enqueue без отправки в DataFlowController.
+*/
 
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
@@ -143,6 +148,34 @@ impl TaskScheduler {
                 payload: input_send,
             });
         }
+    }
+
+    /// Постановка задачи без отправки в DataFlowController
+    #[allow(clippy::too_many_arguments)]
+    pub fn enqueue_local(
+        &mut self,
+        queue: Queue,
+        id: String,
+        input: String,
+        priority: Priority,
+        timeout_ms: Option<u64>,
+        cells: Vec<String>,
+    ) -> Option<(String, String)> {
+        let task = ScheduledTask {
+            priority,
+            id,
+            input,
+            timeout_ms,
+            retry_count: 0,
+            cells,
+            created_at: Instant::now(),
+        };
+        match queue {
+            Queue::Fast => self.fast.push(task),
+            Queue::Standard => self.standard.push(task),
+            Queue::Long => self.long.push(task),
+        };
+        self.next()
     }
 
     /// Добавление задачи с вычислением приоритета на основе метрик
