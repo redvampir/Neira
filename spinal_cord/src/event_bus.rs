@@ -14,12 +14,18 @@ id: NEI-20240728-event-bus-local-publish
 intent: feature
 summary: Добавлен метод локальной публикации без пересылки события в DataFlowController.
 */
+/* neira:meta
+id: NEI-20241026-event-bus-name-str
+intent: refactor
+summary: |-
+  Метод Event::name возвращает &str, позволяя событиям иметь динамические имена.
+*/
 use crate::circulatory_system::{DataFlowController, FlowMessage};
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
 pub trait Event: Send + Sync {
-    fn name(&self) -> &'static str;
+    fn name(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
 }
 
@@ -71,7 +77,7 @@ pub struct CellCreated {
 }
 
 impl Event for CellCreated {
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "CellCreated"
     }
     fn as_any(&self) -> &dyn Any {
@@ -84,7 +90,7 @@ pub struct OrganBuilt {
 }
 
 impl Event for OrganBuilt {
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "OrganBuilt"
     }
     fn as_any(&self) -> &dyn Any {
