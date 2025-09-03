@@ -74,6 +74,7 @@ use std::convert::Infallible;
 use std::fs;
 use std::io::{Cursor, Write};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing::error;
@@ -1518,6 +1519,13 @@ id: NEI-20270210-schema-sync
 intent: feat
 summary: Автоматическая проверка даты архива схем и их синхронизация при старте.
 */
+/* neira:meta
+id: NEI-20270305-schema-sync-timeout
+intent: chore
+summary: Синхронизация схем выполняется асинхронно и использует reqwest с таймаутом.
+env:
+  - SCHEMAS_SYNC_TIMEOUT_SECS
+*/
 async fn sync_schemas() -> Result<(), Box<dyn std::error::Error>> {
     let url = match std::env::var("SCHEMAS_ARCHIVE_URL") {
         Ok(v) => v,
@@ -1525,7 +1533,13 @@ async fn sync_schemas() -> Result<(), Box<dyn std::error::Error>> {
     };
     let dir = std::env::var("SCHEMAS_DIR").unwrap_or_else(|_| "schemas".into());
     let meta = std::path::Path::new(&dir).join(".last_schema_sync");
-    let client = Client::new();
+    let timeout = std::env::var("SCHEMAS_SYNC_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(10);
+    let client = Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .build()?;
     let head = client.head(&url).send().await?;
     let remote_ts = head
         .headers()
@@ -1568,9 +1582,11 @@ async fn sync_schemas() -> Result<(), Box<dyn std::error::Error>> {
 #[tokio::main]
 async fn main() {
     let _ = dotenv();
-    if let Err(e) = sync_schemas().await {
-        hearing::warn(&format!("schema sync failed: {e}"));
-    }
+    tokio::spawn(async {
+        if let Err(e) = sync_schemas().await {
+            hearing::warn(&format!("schema sync failed: {e}"));
+        }
+    });
     DigestivePipeline::init().expect("digestive config");
     let cfg = Config::from_env();
     let logs_dir = "logs";
