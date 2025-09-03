@@ -22,6 +22,12 @@ pub mod event_bus;
 pub mod immune_system;
 pub mod memory_cell;
 pub mod nervous_system;
+/* neira:meta
+id: NEI-20250226-circulatory-export
+intent: code
+summary: Экспортирован модуль circulatory_system.
+*/
+pub mod circulatory_system;
 pub mod queue_config;
 pub mod security;
 pub mod synapse_hub;
