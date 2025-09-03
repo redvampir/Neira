@@ -1,4 +1,4 @@
-use crate::digestive_pipeline::ParsedInput;
+use backend::digestive_pipeline::ParsedInput;
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
@@ -30,6 +30,11 @@ summary: Обновлены пути к statics после переименов�
 id: NEI-20250215-immune-import-main
 intent: refactor
 summary: Добавлен импорт immune_system.
+*/
+/* neira:meta
+id: NEI-20260528-import-backend-parsed-input
+intent: refactor
+summary: Явное обращение к ParsedInput через crate backend.
 */
 use async_stream::stream;
 use axum::{
