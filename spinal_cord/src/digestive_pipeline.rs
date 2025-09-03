@@ -10,11 +10,16 @@ intent: feature
 summary: |
   DigestivePipeline распознаёт YAML и XML, конвертируя их в ParsedInput::Json.
 */
+/* neira:meta
+id: NEI-20260710-quick-xml
+intent: chore
+summary: Использован quick-xml вместо serde_xml_rs для разбора XML.
+*/
 use crate::cell_template::load_schema_from;
 use jsonschema_valid::Config;
 use once_cell::sync::Lazy;
+use quick_xml::de::from_str as from_xml;
 use serde_json::Value;
-use serde_xml_rs::from_str as from_xml;
 use serde_yaml;
 use std::{env, path::PathBuf};
 use thiserror::Error;
