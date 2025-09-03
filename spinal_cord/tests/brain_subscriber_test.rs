@@ -13,7 +13,7 @@ use backend::event_bus::{Event, EventBus};
 struct DummyEvent;
 
 impl Event for DummyEvent {
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "DummyEvent"
     }
     fn as_any(&self) -> &dyn Any {

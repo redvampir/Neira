@@ -33,6 +33,25 @@ use crate::event_bus::{Event, EventBus, Subscriber};
 use crate::task_scheduler::{Priority, Queue, TaskScheduler};
 
 /* neira:meta
+id: NEI-20241026-brain-flow-event
+intent: refactor
+summary: |-
+  FlowEvent хранит имя события из кровотока и передаёт его подписчикам.
+*/
+struct FlowEvent {
+    name: String,
+}
+
+impl Event for FlowEvent {
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+/* neira:meta
 id: NEI-20240606-brain-struct
 intent: refactor
 summary: Оформлен Brain как структура с методами spawn/run и поддержкой регистрации нейронов.
@@ -82,17 +101,7 @@ impl Brain {
             match msg {
                 FlowMessage::Event(ev) => {
                     info!(event = %ev, "получено событие");
-                    #[allow(dead_code)]
-                    struct BusEvent(String);
-                    impl Event for BusEvent {
-                        fn name(&self) -> &'static str {
-                            "FlowEvent"
-                        }
-                        fn as_any(&self) -> &dyn Any {
-                            self
-                        }
-                    }
-                    let event = BusEvent(ev);
+                    let event = FlowEvent { name: ev };
                     self.event_bus.publish_local(&event);
                     metrics::counter!("brain_events_processed_total").increment(1);
                     self.metrics.record(MetricsRecord {
@@ -145,7 +154,8 @@ impl Brain {
 /* neira:meta
 id: NEI-20240930-brain-subscriber
 intent: feat
-summary: Подписчик BrainSubscriber отправляет события в DataFlowController.
+summary: |-
+  Подписчик BrainSubscriber отправляет события в DataFlowController, игнорируя FlowEvent из кровотока.
 */
 pub struct BrainSubscriber {
     flow: Arc<DataFlowController>,
@@ -159,7 +169,7 @@ impl BrainSubscriber {
 
 impl Subscriber for BrainSubscriber {
     fn on_event(&self, event: &dyn Event) {
-        if event.name() != "FlowEvent" {
+        if !event.as_any().is::<FlowEvent>() {
             self.flow.send(FlowMessage::Event(event.name().to_string()));
         }
     }

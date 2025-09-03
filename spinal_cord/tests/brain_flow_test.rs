@@ -89,5 +89,5 @@ async fn brain_flow_test_receives_messages() {
         .await
         .expect("event processed")
         .expect("event name");
-    assert_eq!(ev, "FlowEvent");
+    assert_eq!(ev, "test");
 }
