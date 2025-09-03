@@ -15,6 +15,11 @@ name: CI
 # intent: ci
 # summary: Обновлены пути на spinal_cord и sensory_organs.
 
+# neira:meta
+# id: NEI-20260610-ci-github-output
+# intent: ci
+# summary: Обновлены actions для вывода через $GITHUB_OUTPUT.
+
 on:
   push:
     branches: [ main ]
@@ -27,14 +32,11 @@ jobs:
     env:
       CELL_TEMPLATES_DIR: ./templates
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - name: Validate Cargo files
         run: cargo metadata --locked
       - name: Install dependencies
