@@ -21,63 +21,99 @@ summary: События из DataFlowController публикуются лока�
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::{mpsc::UnboundedReceiver, Mutex};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
+use crate::analysis_cell::AnalysisCell;
 use crate::cell_registry::CellRegistry;
 use crate::circulatory_system::FlowMessage;
 use crate::event_bus::{Event, EventBus};
 use crate::task_scheduler::{Priority, Queue, TaskScheduler};
 
-/// Главный цикл мозга: потребляет сообщения из общего канала и реагирует на них
-pub async fn brain_loop(
-    mut df_rx: UnboundedReceiver<FlowMessage>,
+/* neira:meta
+id: NEI-20240606-brain-struct
+intent: refactor
+summary: Оформлен Brain как структура с методами spawn/run и поддержкой регистрации нейронов.
+*/
+
+/// Мозг: получает сообщения из кровотока и активирует специализированные клетки
+pub struct Brain {
+    df_rx: Mutex<UnboundedReceiver<FlowMessage>>,
     registry: Arc<CellRegistry>,
     scheduler: Arc<RwLock<TaskScheduler>>,
     event_bus: Arc<EventBus>,
-) {
-    while let Some(msg) = df_rx.recv().await {
-        match msg {
-            FlowMessage::Event(ev) => {
-                info!(event = %ev, "получено событие");
-                #[allow(dead_code)]
-                struct BusEvent(String);
-                impl Event for BusEvent {
-                    fn name(&self) -> &'static str {
-                        "FlowEvent"
-                    }
-                    fn as_any(&self) -> &dyn Any {
-                        self
-                    }
-                }
-                let event = BusEvent(ev);
-                event_bus.publish_local(&event);
-            }
-            FlowMessage::Task { id, payload } => {
-                info!(task_id = %id, "получена задача");
-                if registry.get_analysis_cell(&id).is_some() {
-                    if let Some((task_id, input)) = scheduler
-                        .write()
-                        .unwrap()
-                        .enqueue_local(
-                            Queue::Standard,
-                            id.clone(),
-                            payload,
-                            Priority::Low,
-                            None,
-                            vec![id.clone()],
-                        )
-                    {
-                        if let Some(cell) = registry.get_analysis_cell(&task_id) {
-                            let token = CancellationToken::new();
-                            cell.analyze(&input, &token);
-                        } else {
-                            warn!(task_id = %task_id, "клетка не найдена");
+}
+
+impl Brain {
+    /// Создаёт новый экземпляр `Brain`
+    pub fn new(
+        df_rx: UnboundedReceiver<FlowMessage>,
+        registry: Arc<CellRegistry>,
+        scheduler: Arc<RwLock<TaskScheduler>>,
+        event_bus: Arc<EventBus>,
+    ) -> Self {
+        Self {
+            df_rx: Mutex::new(df_rx),
+            registry,
+            scheduler,
+            event_bus,
+        }
+    }
+
+    /// Запускает цикл обработки сообщений в отдельной задаче
+    pub fn spawn(self: Arc<Self>) {
+        tokio::spawn(self.run());
+    }
+
+    /// Регистрация специализированной клетки мозга («нейрона»)
+    pub fn register_neuron(&self, cell: Arc<dyn AnalysisCell + Send + Sync>) {
+        self.registry.register_analysis_cell(cell);
+    }
+
+    /// Основной цикл: распределяет события и задачи
+    async fn run(self: Arc<Self>) {
+        let mut df_rx = self.df_rx.lock().await;
+        while let Some(msg) = df_rx.recv().await {
+            match msg {
+                FlowMessage::Event(ev) => {
+                    info!(event = %ev, "получено событие");
+                    #[allow(dead_code)]
+                    struct BusEvent(String);
+                    impl Event for BusEvent {
+                        fn name(&self) -> &'static str {
+                            "FlowEvent"
+                        }
+                        fn as_any(&self) -> &dyn Any {
+                            self
                         }
                     }
-                } else {
-                    warn!(task_id = %id, "клетка не найдена");
+                    let event = BusEvent(ev);
+                    self.event_bus.publish_local(&event);
+                }
+                FlowMessage::Task { id, payload } => {
+                    info!(task_id = %id, "получена задача");
+                    if self.registry.get_analysis_cell(&id).is_some() {
+                        if let Some((task_id, input)) =
+                            self.scheduler.write().unwrap().enqueue_local(
+                                Queue::Standard,
+                                id.clone(),
+                                payload,
+                                Priority::Low,
+                                None,
+                                vec![id.clone()],
+                            )
+                        {
+                            if let Some(cell) = self.registry.get_analysis_cell(&task_id) {
+                                let token = CancellationToken::new();
+                                cell.analyze(&input, &token);
+                            } else {
+                                warn!(task_id = %task_id, "клетка не найдена");
+                            }
+                        }
+                    } else {
+                        warn!(task_id = %id, "клетка не найдена");
+                    }
                 }
             }
         }
