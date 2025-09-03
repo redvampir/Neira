@@ -25,10 +25,11 @@ use tokio::sync::{mpsc::UnboundedReceiver, Mutex};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
-use crate::analysis_cell::AnalysisCell;
+use crate::analysis_cell::{AnalysisCell, QualityMetrics};
 use crate::cell_registry::CellRegistry;
 use crate::circulatory_system::FlowMessage;
 use crate::event_bus::{Event, EventBus};
+use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::task_scheduler::{Priority, Queue, TaskScheduler};
 
 /* neira:meta
@@ -43,6 +44,7 @@ pub struct Brain {
     registry: Arc<CellRegistry>,
     scheduler: Arc<RwLock<TaskScheduler>>,
     event_bus: Arc<EventBus>,
+    metrics: Arc<MetricsCollectorCell>,
 }
 
 impl Brain {
@@ -52,12 +54,14 @@ impl Brain {
         registry: Arc<CellRegistry>,
         scheduler: Arc<RwLock<TaskScheduler>>,
         event_bus: Arc<EventBus>,
+        metrics: Arc<MetricsCollectorCell>,
     ) -> Self {
         Self {
             df_rx: Mutex::new(df_rx),
             registry,
             scheduler,
             event_bus,
+            metrics,
         }
     }
 
@@ -90,6 +94,15 @@ impl Brain {
                     }
                     let event = BusEvent(ev);
                     self.event_bus.publish_local(&event);
+                    metrics::counter!("brain_events_processed_total").increment(1);
+                    self.metrics.record(MetricsRecord {
+                        id: "brain.event".to_string(),
+                        metrics: QualityMetrics {
+                            credibility: None,
+                            recency_days: None,
+                            demand: Some(1),
+                        },
+                    });
                 }
                 FlowMessage::Task { id, payload } => {
                     info!(task_id = %id, "получена задача");
@@ -107,6 +120,15 @@ impl Brain {
                             if let Some(cell) = self.registry.get_analysis_cell(&task_id) {
                                 let token = CancellationToken::new();
                                 cell.analyze(&input, &token);
+                                metrics::counter!("brain_tasks_processed_total").increment(1);
+                                self.metrics.record(MetricsRecord {
+                                    id: "brain.task".to_string(),
+                                    metrics: QualityMetrics {
+                                        credibility: None,
+                                        recency_days: None,
+                                        demand: Some(1),
+                                    },
+                                });
                             } else {
                                 warn!(task_id = %task_id, "клетка не найдена");
                             }
@@ -119,3 +141,9 @@ impl Brain {
         }
     }
 }
+
+/* neira:meta
+id: NEI-20240821-brain-metrics
+intent: feat
+summary: Учёт обработанных задач и событий через MetricsCollectorCell и счётчики.
+*/

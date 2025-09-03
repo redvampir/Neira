@@ -222,11 +222,17 @@ impl SynapseHub {
             .unwrap()
             .set_flow_controller(data_flow.clone());
 
+        /* neira:meta
+        id: NEI-20240821-brain-metrics-call
+        intent: refactor
+        summary: Передаёт MetricsCollectorCell в Brain для публикации метрик.
+        */
         let brain = Arc::new(Brain::new(
             df_rx,
             registry.clone(),
             scheduler.clone(),
             event_bus.clone(),
+            metrics.clone(),
         ));
 
         let hub = Self {

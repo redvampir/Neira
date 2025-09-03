@@ -13,6 +13,7 @@ id: NEI-20240728-brain-loop-event-test
 intent: test
 summary: Подключённый планировщик и шина не образуют циклов при обработке событий.
 */
+use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::brain::Brain;
 use backend::cell_registry::CellRegistry;
@@ -77,11 +78,13 @@ async fn brain_loop_schedules_tasks() {
         }
     });
 
+    let (metrics, _rx_metrics) = MetricsCollectorCell::channel();
     let brain = Arc::new(Brain::new(
         rx_forward,
         registry.clone(),
         scheduler.clone(),
         event_bus,
+        metrics,
     ));
     brain.clone().spawn();
 
@@ -166,11 +169,13 @@ async fn brain_loop_publishes_events() {
         }
     });
 
+    let (metrics, _rx_metrics) = MetricsCollectorCell::channel();
     let brain = Arc::new(Brain::new(
         rx_forward,
         registry,
         scheduler.clone(),
         event_bus.clone(),
+        metrics,
     ));
     brain.clone().spawn();
 
@@ -186,4 +191,52 @@ async fn brain_loop_publishes_events() {
     assert!(timeout(Duration::from_millis(50), monitor_rx.recv())
         .await
         .is_err());
+}
+
+/* neira:meta
+id: NEI-20240821-brain-metrics-test
+intent: test
+summary: Brain отправляет запись в MetricsCollectorCell при обработке события.
+*/
+#[tokio::test]
+async fn brain_loop_records_metrics() {
+    let dir = tempfile::tempdir().unwrap();
+    let registry = Arc::new(CellRegistry::new(dir.path()).unwrap());
+    let (flow, rx) = DataFlowController::new();
+    let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
+    scheduler.write().unwrap().set_flow_controller(flow.clone());
+    let event_bus = EventBus::new();
+    event_bus.attach_flow_controller(flow.clone());
+    let (metrics, mut metrics_rx) = MetricsCollectorCell::channel();
+
+    let (tx_forward, rx_forward) = unbounded_channel();
+    tokio::spawn(async move {
+        let mut rx = rx;
+        while let Some(msg) = rx.recv().await {
+            let _ = tx_forward.send(msg);
+        }
+    });
+
+    let brain = Arc::new(Brain::new(
+        rx_forward,
+        registry,
+        scheduler.clone(),
+        event_bus,
+        metrics,
+    ));
+    brain.clone().spawn();
+
+    flow.send(FlowMessage::Event("ping".into()));
+    flow.send(FlowMessage::Event("pong".into()));
+
+    let first = timeout(Duration::from_millis(100), metrics_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    let second = timeout(Duration::from_millis(100), metrics_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(first.id, "brain.event");
+    assert_eq!(second.id, "brain.event");
 }
