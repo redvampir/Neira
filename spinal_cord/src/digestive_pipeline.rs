@@ -40,10 +40,16 @@ id: NEI-20261020-digestive-settings-cache
 intent: refactor
 summary: Кэшируются настройки DigestivePipeline с очисткой через reset_cache.
 */
+/* neira:meta
+id: NEI-20261124-digestive-memory-store
+intent: feature
+summary: После парсинга вход сохраняется в MemoryCell.
+*/
 use crate::cell_template::load_schema_from;
+use crate::memory_cell::MemoryCell;
 use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
 use jsonschema_valid::Config;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use quick_xml::de::from_str as from_xml;
 use serde::Deserialize;
 use serde_json::Value;
@@ -58,7 +64,7 @@ use std::{
 use thiserror::Error;
 use tracing::{debug, info, warn};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ParsedInput {
     Json(Value),
     Text(String),
@@ -86,6 +92,8 @@ static SCHEMA_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Config<'static>>>>> =
 
 static SETTINGS_CACHE: Lazy<Mutex<Option<DigestiveSettings>>> = Lazy::new(|| Mutex::new(None));
 
+static MEMORY: OnceCell<Arc<MemoryCell>> = OnceCell::new();
+
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -108,29 +116,37 @@ impl DigestivePipeline {
         default_schema().map(|_| ()).map_err(PipelineError::Schema)
     }
 
+    pub fn set_memory(memory: Arc<MemoryCell>) {
+        let _ = MEMORY.set(memory);
+    }
+
     pub fn ingest(raw_input: &str) -> Result<ParsedInput, PipelineError> {
         debug!("ingest input: {raw_input}");
         let start = Instant::now();
-        if let Ok(json) = serde_json::from_str::<Value>(raw_input) {
+        let parsed = if let Ok(json) = serde_json::from_str::<Value>(raw_input) {
             info!("detected json input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             validate(&json)?;
-            Ok(ParsedInput::Json(json))
+            ParsedInput::Json(json)
         } else if let Ok(yaml) = serde_yaml::from_str::<Value>(raw_input) {
             info!("detected yaml input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             validate(&yaml)?;
-            Ok(ParsedInput::Json(yaml))
+            ParsedInput::Json(yaml)
         } else if let Ok(xml) = from_xml::<Value>(raw_input) {
             info!("detected xml input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             validate(&xml)?;
-            Ok(ParsedInput::Json(xml))
+            ParsedInput::Json(xml)
         } else {
             warn!("unknown input format, treating as text");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
-            Ok(ParsedInput::Text(raw_input.to_string()))
+            ParsedInput::Text(raw_input.to_string())
+        };
+        if let Some(mem) = MEMORY.get() {
+            mem.store_parsed_input(parsed.clone());
         }
+        Ok(parsed)
     }
 
     /// Сбрасывает внутренние кэши схем и настроек.

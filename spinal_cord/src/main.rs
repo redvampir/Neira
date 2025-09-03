@@ -41,6 +41,11 @@ id: NEI-20260725-digestive-init-main
 intent: chore
 summary: Конфигурация DigestivePipeline загружается при старте.
 */
+/* neira:meta
+id: NEI-20261124-digestive-memory-hook
+intent: chore
+summary: DigestivePipeline получает ссылку на MemoryCell для сохранения входов.
+*/
 use async_stream::stream;
 use axum::{
     extract::{
@@ -1539,6 +1544,7 @@ async fn main() {
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(CellRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryCell::new());
+    DigestivePipeline::set_memory(memory.clone());
     registry.register_init_cell(Arc::new(InitConfigCell::new()), &memory);
     let (metrics, metrics_rx) = MetricsCollectorCell::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(metrics_rx, 5, metrics.clone());
