@@ -2,10 +2,10 @@
 id: NEI-20260427-101500-spinal-api-rename
 intent: docs
 summary: |
-  Переименовали справочник Backend API в "Spinal cord API" и перенесли файл в `docs/api/`. Старый путь оставлен как редирект.
+  Переименовали справочник Backend API в "Spinal Cord API" и перенесли файл в `docs/api/`. Старый путь оставлен как редирект.
 -->
 
-# Spinal cord API Quick Reference
+# Spinal Cord API Quick Reference
 
 ## Auth and Scopes
 

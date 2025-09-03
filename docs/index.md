@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250902-212549-doc-map
+id: NEI-20250903-012100-doc-map
 intent: docs
 summary: |
   Автогенерированный список файлов документации.
@@ -61,7 +61,6 @@ summary: |
   - [chat](api/chat.md)
   - [factory](api/factory.md)
   - [spinal_cord](api/spinal_cord.md)
-- [spinal_cord-api](api/spinal_cord.md)
 - [pathways](pathways.md)
 - meta/
   - [biology-glossary](meta/biology-glossary.md)
