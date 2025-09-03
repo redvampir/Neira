@@ -26,6 +26,12 @@ summary: переменная переименована в ORGANS_BUILDER_STAGE
 -->
 
 <!-- neira:meta
+id: NEI-20261020-digestive-config-cache-env
+intent: docs
+summary: Описано кэширование конфигурации DigestivePipeline и способ сброса.
+-->
+
+<!-- neira:meta
 id: NEI-20250221-env-reference-link
 intent: docs
 summary: Исправлена ссылка на основной справочник переменных окружения.
@@ -93,6 +99,8 @@ Masking presets
 - ORGANS_BUILDER_TEMPLATES_DIR: directory to store organ templates; existing \*.json are loaded as stable (default: organ_templates)
 - ORGANS_BUILDER_TTL_SECS: seconds to keep organ templates after stabilization (default: 3600)
 - ORGANS_BUILDER_STAGE_DELAYS: comma-separated delays in ms for Draft→Canary→Experimental→Stable transitions (default: 50,50,50; deprecated alias: ORGANS_BUILDER_STAGE_DELAYS_MS)
+- DIGESTIVE_CONFIG: путь к `digestive.toml`. Конфигурация и JSON Schema кэшируются в
+  памяти; сброс — через `DigestivePipeline::reset_cache` или перезапуск процесса.
 
 ## Автоматическое определение `INTEGRITY_ROOT`
 

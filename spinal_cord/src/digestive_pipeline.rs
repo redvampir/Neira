@@ -35,6 +35,11 @@ id: NEI-20261015-digestive-cache
 intent: refactor
 summary: Добавлен глобальный кэш JSON Schema.
 */
+/* neira:meta
+id: NEI-20261020-digestive-settings-cache
+intent: refactor
+summary: Кэшируются настройки DigestivePipeline с очисткой через reset_cache.
+*/
 use crate::cell_template::load_schema_from;
 use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
 use jsonschema_valid::Config;
@@ -45,8 +50,7 @@ use serde_json::Value;
 use serde_yaml;
 use std::{
     collections::HashMap,
-    env,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
     time::Instant,
@@ -72,13 +76,32 @@ pub enum PipelineError {
 
 pub struct DigestivePipeline;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct DigestiveSettings {
     schema_path: String,
 }
 
 static SCHEMA_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Config<'static>>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
+
+static SETTINGS_CACHE: Lazy<Mutex<Option<DigestiveSettings>>> = Lazy::new(|| Mutex::new(None));
+
+#[cfg(test)]
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+#[cfg(test)]
+pub(super) static CONFIG_READS: AtomicUsize = AtomicUsize::new(0);
+
+#[cfg(not(test))]
+fn read_config(path: &Path) -> std::io::Result<String> {
+    fs::read_to_string(path)
+}
+
+#[cfg(test)]
+fn read_config(path: &Path) -> std::io::Result<String> {
+    CONFIG_READS.fetch_add(1, Ordering::Relaxed);
+    fs::read_to_string(path)
+}
 
 impl DigestivePipeline {
     pub fn init() -> Result<(), PipelineError> {
@@ -110,9 +133,10 @@ impl DigestivePipeline {
         }
     }
 
-    /// Сбрасывает внутренний кэш схем.
+    /// Сбрасывает внутренние кэши схем и настроек.
     pub fn reset_cache() {
         SCHEMA_CACHE.lock().unwrap().clear();
+        SETTINGS_CACHE.lock().unwrap().take();
     }
 }
 
@@ -132,13 +156,22 @@ fn validate(value: &Value) -> Result<(), PipelineError> {
 }
 
 fn default_schema() -> Result<Arc<Config<'static>>, String> {
-    let cfg_path = env::var("DIGESTIVE_CONFIG")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("config/digestive.toml")
-        });
-    let raw = fs::read_to_string(&cfg_path).map_err(|e| e.to_string())?;
-    let settings: DigestiveSettings = toml::from_str(&raw).map_err(|e| e.to_string())?;
+    let settings = {
+        let mut cache = SETTINGS_CACHE.lock().unwrap();
+        if let Some(s) = cache.clone() {
+            s
+        } else {
+            let cfg_path = env::var("DIGESTIVE_CONFIG")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| {
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("config/digestive.toml")
+                });
+            let raw = read_config(&cfg_path).map_err(|e| e.to_string())?;
+            let parsed: DigestiveSettings = toml::from_str(&raw).map_err(|e| e.to_string())?;
+            *cache = Some(parsed.clone());
+            parsed
+        }
+    };
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(settings.schema_path);
     load_schema_cached(&path)
 }
@@ -152,4 +185,39 @@ fn load_schema_cached(path: &Path) -> Result<Arc<Config<'static>>, String> {
     let arc = Arc::new(cfg);
     cache.insert(path.to_path_buf(), arc.clone());
     Ok(arc)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serial_test::serial;
+    use std::fs;
+    use std::sync::atomic::Ordering;
+    use tempfile::tempdir;
+
+    #[test]
+    #[serial]
+    fn reads_config_once() {
+        DigestivePipeline::reset_cache();
+        CONFIG_READS.store(0, Ordering::Relaxed);
+
+        let dir = tempdir().unwrap();
+        let schema_path = dir.path().join("schema.json");
+        fs::write(&schema_path, "{\"type\":\"object\"}").unwrap();
+
+        let cfg_path = dir.path().join("digestive.toml");
+        fs::write(
+            &cfg_path,
+            format!("schema_path = \"{}\"", schema_path.display()),
+        )
+        .unwrap();
+
+        std::env::set_var("DIGESTIVE_CONFIG", cfg_path.to_str().unwrap());
+        super::default_schema().unwrap();
+        super::default_schema().unwrap();
+        assert_eq!(CONFIG_READS.load(Ordering::Relaxed), 1);
+
+        std::env::remove_var("DIGESTIVE_CONFIG");
+        DigestivePipeline::reset_cache();
+    }
 }
