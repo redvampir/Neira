@@ -6,12 +6,12 @@ use std::sync::{
 /* neira:meta
 id: NEI-20240725-brain-loop-test
 intent: test
-summary: Проверяет локальную обработку задач и пустоту канала DataFlowController.
+summary: Имитация боевой схемы: планировщик и шина используют общий DataFlowController; проверяет отсутствие циклов.
 */
 /* neira:meta
 id: NEI-20240728-brain-loop-event-test
 intent: test
-summary: Убеждается, что события не возвращаются в DataFlowController при локальной публикации.
+summary: Подключённый планировщик и шина не образуют циклов при обработке событий.
 */
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::brain::brain_loop;
@@ -63,7 +63,9 @@ async fn brain_loop_schedules_tasks() {
 
     let (flow, rx) = DataFlowController::new();
     let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
+    scheduler.write().unwrap().set_flow_controller(flow.clone());
     let event_bus = EventBus::new();
+    event_bus.attach_flow_controller(flow.clone());
 
     let (tx_forward, rx_forward) = unbounded_channel();
     let (monitor_tx, mut monitor_rx) = unbounded_channel();
@@ -145,6 +147,7 @@ async fn brain_loop_publishes_events() {
     let registry = Arc::new(CellRegistry::new(dir.path()).unwrap());
     let (flow, rx) = DataFlowController::new();
     let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
+    scheduler.write().unwrap().set_flow_controller(flow.clone());
     let event_bus = EventBus::new();
     event_bus.attach_flow_controller(flow.clone());
     let counter = Arc::new(AtomicUsize::new(0));
@@ -165,7 +168,7 @@ async fn brain_loop_publishes_events() {
     tokio::spawn(brain_loop(
         rx_forward,
         registry,
-        scheduler,
+        scheduler.clone(),
         event_bus.clone(),
     ));
 
@@ -177,6 +180,7 @@ async fn brain_loop_publishes_events() {
         .unwrap();
 
     assert_eq!(counter.load(Ordering::SeqCst), 1);
+    assert!(scheduler.write().unwrap().next().is_none());
     assert!(timeout(Duration::from_millis(50), monitor_rx.recv())
         .await
         .is_err());
