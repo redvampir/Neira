@@ -85,8 +85,8 @@ use tokio::task::JoinHandle;
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
-use crate::analysis_cell::{AnalysisResult, CellStatus};
-use crate::brain::brain_loop;
+use crate::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
+use crate::brain::Brain;
 use crate::cell_registry::CellRegistry;
 use crate::memory_cell::MemoryCell;
 use crate::queue_config::QueueConfig;
@@ -140,6 +140,7 @@ pub struct SynapseHub {
     factory: Arc<StemCellFactory>,
     organ_builder: Arc<OrganBuilder>,
     event_bus: Arc<EventBus>,
+    brain: Arc<Brain>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -221,6 +222,13 @@ impl SynapseHub {
             .unwrap()
             .set_flow_controller(data_flow.clone());
 
+        let brain = Arc::new(Brain::new(
+            df_rx,
+            registry.clone(),
+            scheduler.clone(),
+            event_bus.clone(),
+        ));
+
         let hub = Self {
             registry,
             memory,
@@ -253,14 +261,10 @@ impl SynapseHub {
             factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
             event_bus: event_bus.clone(),
+            brain: brain.clone(),
         };
 
-        tokio::spawn(brain_loop(
-            df_rx,
-            hub.registry.clone(),
-            scheduler.clone(),
-            event_bus.clone(),
-        ));
+        brain.clone().spawn();
 
         // Spawn host metrics polling loop
         if host_metrics_enabled {
@@ -1027,6 +1031,11 @@ impl SynapseHub {
         let limit = self.rate_limit_per_min;
         let remaining = limit.saturating_sub(used);
         (limit, remaining, used, key)
+    }
+
+    /// Регистрация нейрона в мозге
+    pub fn register_neuron(&self, cell: Arc<dyn AnalysisCell + Send + Sync>) {
+        self.brain.register_neuron(cell);
     }
 
     // SSE cancellation registry

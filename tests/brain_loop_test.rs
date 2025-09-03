@@ -14,7 +14,7 @@ intent: test
 summary: Подключённый планировщик и шина не образуют циклов при обработке событий.
 */
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
-use backend::brain::brain_loop;
+use backend::brain::Brain;
 use backend::cell_registry::CellRegistry;
 use backend::circulatory_system::{DataFlowController, FlowMessage};
 use backend::event_bus::{Event, EventBus, Subscriber};
@@ -77,12 +77,13 @@ async fn brain_loop_schedules_tasks() {
         }
     });
 
-    tokio::spawn(brain_loop(
+    let brain = Arc::new(Brain::new(
         rx_forward,
         registry.clone(),
         scheduler.clone(),
         event_bus,
     ));
+    brain.clone().spawn();
 
     flow.send(FlowMessage::Task {
         id: "dummy".into(),
@@ -165,12 +166,13 @@ async fn brain_loop_publishes_events() {
         }
     });
 
-    tokio::spawn(brain_loop(
+    let brain = Arc::new(Brain::new(
         rx_forward,
         registry,
         scheduler.clone(),
         event_bus.clone(),
     ));
+    brain.clone().spawn();
 
     flow.send(FlowMessage::Event("ping".into()));
 
