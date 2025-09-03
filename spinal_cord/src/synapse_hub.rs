@@ -60,6 +60,7 @@ use std::time::{Duration, Instant};
 
 use crate::action::diagnostics_cell::DiagnosticsCell;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
+use crate::analysis_cell::QualityMetrics;
 use crate::circulatory_system::DataFlowController;
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
@@ -140,6 +141,7 @@ pub struct SynapseHub {
     factory: Arc<StemCellFactory>,
     organ_builder: Arc<OrganBuilder>,
     event_bus: Arc<EventBus>,
+    flow: Arc<DataFlowController>,
     brain: Arc<Brain>,
 }
 
@@ -235,6 +237,7 @@ impl SynapseHub {
         */
         let brain = Arc::new(Brain::new(
             df_rx,
+            data_flow.clone(),
             registry.clone(),
             scheduler.clone(),
             event_bus.clone(),
@@ -273,10 +276,40 @@ impl SynapseHub {
             factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
             event_bus: event_bus.clone(),
+            flow: data_flow.clone(),
             brain: brain.clone(),
         };
 
         brain.clone().spawn();
+
+        let flow_metrics = hub.flow.clone();
+        let metrics_cell = hub.metrics.clone();
+        tokio::spawn(async move {
+            loop {
+                let ms = metrics_cell.get_interval_ms();
+                sleep(Duration::from_millis(ms)).await;
+                let sent = flow_metrics.sent_count();
+                let received = flow_metrics.received_count();
+                metrics::gauge!("flow_messages_sent_total").set(sent as f64);
+                metrics::gauge!("flow_messages_received_total").set(received as f64);
+                metrics_cell.record(MetricsRecord {
+                    id: "hub.flow.sent".to_string(),
+                    metrics: QualityMetrics {
+                        credibility: None,
+                        recency_days: None,
+                        demand: Some(sent as u32),
+                    },
+                });
+                metrics_cell.record(MetricsRecord {
+                    id: "hub.flow.received".to_string(),
+                    metrics: QualityMetrics {
+                        credibility: None,
+                        recency_days: None,
+                        demand: Some(received as u32),
+                    },
+                });
+            }
+        });
 
         // Spawn host metrics polling loop
         if host_metrics_enabled {
@@ -1096,6 +1129,12 @@ impl SynapseHub {
         false
     }
 }
+
+/* neira:meta
+id: NEI-20241003-hub-flow-metrics
+intent: feat
+summary: SynapseHub периодически публикует счётчики кровотока в MetricsCollectorCell и gauge метрики.
+*/
 
 impl Drop for SynapseHub {
     fn drop(&mut self) {
