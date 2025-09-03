@@ -20,6 +20,11 @@ id: NEI-20260725-digestive-config-path
 intent: refactor
 summary: Путь к JSON Schema берётся из файла конфигурации.
 */
+/* neira:meta
+id: NEI-20260920-digestive-tracing
+intent: chore
+summary: Добавлены tracing-логи входа, формата и результата валидации.
+*/
 use crate::cell_template::load_schema_from;
 use jsonschema_valid::Config;
 use once_cell::sync::Lazy;
@@ -29,6 +34,7 @@ use serde_json::Value;
 use serde_yaml;
 use std::{env, fs, path::PathBuf};
 use thiserror::Error;
+use tracing::{debug, info, warn};
 
 #[derive(Debug, Clone)]
 pub enum ParsedInput {
@@ -75,16 +81,21 @@ impl DigestivePipeline {
     }
 
     pub fn ingest(raw_input: &str) -> Result<ParsedInput, PipelineError> {
+        debug!("ingest input: {raw_input}");
         if let Ok(json) = serde_json::from_str::<Value>(raw_input) {
+            info!("detected json input");
             validate(&json)?;
             Ok(ParsedInput::Json(json))
         } else if let Ok(yaml) = serde_yaml::from_str::<Value>(raw_input) {
+            info!("detected yaml input");
             validate(&yaml)?;
             Ok(ParsedInput::Json(yaml))
         } else if let Ok(xml) = from_xml::<Value>(raw_input) {
+            info!("detected xml input");
             validate(&xml)?;
             Ok(ParsedInput::Json(xml))
         } else {
+            warn!("unknown input format, treating as text");
             Ok(ParsedInput::Text(raw_input.to_string()))
         }
     }
@@ -96,8 +107,10 @@ fn validate(value: &Value) -> Result<(), PipelineError> {
         .map_err(|e| PipelineError::Schema(e.clone()))?;
     if let Err(errors) = cfg.validate(value) {
         let msg = errors.map(|e| e.to_string()).collect::<Vec<_>>().join("; ");
+        warn!("validation failed: {msg}");
         Err(PipelineError::Validation(msg))
     } else {
+        debug!("validation passed");
         Ok(())
     }
 }
