@@ -4,10 +4,18 @@ intent: feature
 summary: |
   Добавлен DigestivePipeline: преобразует сырой ввод в ParsedInput с проверкой JSON-схемы.
 */
+/* neira:meta
+id: NEI-20260601-digestive-xml-yaml
+intent: feature
+summary: |
+  DigestivePipeline распознаёт YAML и XML, конвертируя их в ParsedInput::Json.
+*/
 use crate::cell_template::load_schema_from;
 use jsonschema_valid::Config;
 use once_cell::sync::Lazy;
 use serde_json::Value;
+use serde_xml_rs::from_str as from_xml;
+use serde_yaml;
 use std::{env, path::PathBuf};
 use thiserror::Error;
 
@@ -43,6 +51,12 @@ impl DigestivePipeline {
         if let Ok(json) = serde_json::from_str::<Value>(raw_input) {
             validate(&json)?;
             Ok(ParsedInput::Json(json))
+        } else if let Ok(yaml) = serde_yaml::from_str::<Value>(raw_input) {
+            validate(&yaml)?;
+            Ok(ParsedInput::Json(yaml))
+        } else if let Ok(xml) = from_xml::<Value>(raw_input) {
+            validate(&xml)?;
+            Ok(ParsedInput::Json(xml))
         } else {
             Ok(ParsedInput::Text(raw_input.to_string()))
         }
