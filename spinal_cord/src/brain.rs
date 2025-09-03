@@ -28,19 +28,15 @@ use tracing::{info, warn};
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::analysis_cell::{AnalysisCell, QualityMetrics};
 use crate::cell_registry::CellRegistry;
-use crate::circulatory_system::{DataFlowController, FlowMessage};
+use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
 use crate::event_bus::{Event, EventBus, Subscriber};
 use crate::task_scheduler::{Priority, Queue, TaskScheduler};
 
 /* neira:meta
-id: NEI-20241026-brain-flow-event
+id: NEI-20240514-brain-flowevent-import
 intent: refactor
-summary: |-
-  FlowEvent хранит имя события из кровотока и передаёт его подписчикам.
+summary: Реализует Event для FlowEvent из кровотока.
 */
-struct FlowEvent {
-    name: String,
-}
 
 impl Event for FlowEvent {
     fn name(&self) -> &str {
@@ -99,9 +95,8 @@ impl Brain {
         let mut df_rx = self.df_rx.lock().await;
         while let Some(msg) = df_rx.recv().await {
             match msg {
-                FlowMessage::Event(ev) => {
-                    info!(event = %ev, "получено событие");
-                    let event = FlowEvent { name: ev };
+                FlowMessage::Event(event) => {
+                    info!(event = %event.name, "получено событие");
                     self.event_bus.publish_local(&event);
                     metrics::counter!("brain_events_processed_total").increment(1);
                     self.metrics.record(MetricsRecord {
@@ -116,6 +111,7 @@ impl Brain {
                 FlowMessage::Task { id, payload } => {
                     info!(task_id = %id, "получена задача");
                     if self.registry.get_analysis_cell(&id).is_some() {
+                        let TaskPayload::Text(payload) = payload;
                         if let Some((task_id, input)) =
                             self.scheduler.write().unwrap().enqueue_local(
                                 Queue::Standard,
@@ -141,6 +137,8 @@ impl Brain {
                             } else {
                                 warn!(task_id = %task_id, "клетка не найдена");
                             }
+                        } else {
+                            warn!(task_id = %id, "клетка не найдена");
                         }
                     } else {
                         warn!(task_id = %id, "клетка не найдена");
@@ -170,7 +168,9 @@ impl BrainSubscriber {
 impl Subscriber for BrainSubscriber {
     fn on_event(&self, event: &dyn Event) {
         if !event.as_any().is::<FlowEvent>() {
-            self.flow.send(FlowMessage::Event(event.name().to_string()));
+            self.flow.send(FlowMessage::Event(FlowEvent {
+                name: event.name().to_string(),
+            }));
         }
     }
 }

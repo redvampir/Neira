@@ -13,11 +13,16 @@ id: NEI-20240728-brain-loop-event-test
 intent: test
 summary: Подключённый планировщик и шина не образуют циклов при обработке событий.
 */
+/* neira:meta
+id: NEI-20240514-brain-loop-test-typed
+intent: test
+summary: Использует FlowEvent и TaskPayload в сообщениях.
+*/
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::brain::Brain;
 use backend::cell_registry::CellRegistry;
-use backend::circulatory_system::{DataFlowController, FlowMessage};
+use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
 use backend::event_bus::{Event, EventBus, Subscriber};
 use backend::task_scheduler::{Priority, Queue, TaskScheduler};
 use tokio::sync::mpsc::unbounded_channel;
@@ -90,7 +95,7 @@ async fn brain_loop_schedules_tasks() {
 
     flow.send(FlowMessage::Task {
         id: "dummy".into(),
-        payload: "".into(),
+        payload: TaskPayload::Text("".into()),
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
@@ -179,7 +184,9 @@ async fn brain_loop_publishes_events() {
     ));
     brain.clone().spawn();
 
-    flow.send(FlowMessage::Event("ping".into()));
+    flow.send(FlowMessage::Event(FlowEvent {
+        name: "ping".into(),
+    }));
 
     timeout(Duration::from_millis(100), monitor_rx.recv())
         .await
@@ -226,8 +233,12 @@ async fn brain_loop_records_metrics() {
     ));
     brain.clone().spawn();
 
-    flow.send(FlowMessage::Event("ping".into()));
-    flow.send(FlowMessage::Event("pong".into()));
+    flow.send(FlowMessage::Event(FlowEvent {
+        name: "ping".into(),
+    }));
+    flow.send(FlowMessage::Event(FlowEvent {
+        name: "pong".into(),
+    }));
 
     let first = timeout(Duration::from_millis(100), metrics_rx.recv())
         .await

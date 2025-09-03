@@ -3,16 +3,32 @@ id: NEI-20250226-dataflow-controller
 intent: code
 summary: Простая шина передачи данных между органами через mpsc.
 */
+/* neira:meta
+id: NEI-20240514-flowmessage-serde
+intent: refactor
+summary: FlowMessage использует типизированные события и payload задач, сериализуемые через serde.
+*/
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FlowEvent {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TaskPayload {
+    Text(String),
+}
+
 /// Сообщения, циркулирующие между органами
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FlowMessage {
     /// Событие из глобальной шины
-    Event(String),
+    Event(FlowEvent),
     /// Задача для конкретного органа
-    Task { id: String, payload: String },
+    Task { id: String, payload: TaskPayload },
 }
 
 /// Контроллер потоков данных между органами

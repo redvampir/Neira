@@ -20,7 +20,12 @@ intent: refactor
 summary: |-
   Метод Event::name возвращает &str, позволяя событиям иметь динамические имена.
 */
-use crate::circulatory_system::{DataFlowController, FlowMessage};
+/* neira:meta
+id: NEI-20240514-event-bus-flowevent
+intent: refactor
+summary: publish отправляет типизированное FlowEvent вместо строки.
+*/
+use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
@@ -65,7 +70,9 @@ impl EventBus {
     pub fn publish(&self, event: &dyn Event) {
         self.publish_local(event);
         if let Some(flow) = &*self.flow.read().unwrap() {
-            flow.send(FlowMessage::Event(event.name().to_string()));
+            flow.send(FlowMessage::Event(FlowEvent {
+                name: event.name().to_string(),
+            }));
         }
     }
 }
