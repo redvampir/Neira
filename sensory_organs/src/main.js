@@ -1,5 +1,5 @@
 /* neira:meta
-id: NEI-20250829-180333-frontend-main
+id: NEI-20250829-180333-sensory_organs-main
 intent: docs
 summary: |
   Пример простого PWA с формой и обработкой сообщений. Добавлена поддержка VITE_API_URL.
