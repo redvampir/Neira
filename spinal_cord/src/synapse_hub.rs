@@ -50,6 +50,11 @@ id: NEI-20270310-local-analysis
 intent: refactor
 summary: Анализ выполняется локально без уведомления brain_loop.
 */
+/* neira:meta
+id: NEI-20250224-blocking-analyze
+intent: fix
+summary: Анализ выполняется в отдельном блокирующем пуле tokio::task.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -827,7 +832,7 @@ impl SynapseHub {
         let cell = self.registry.get_analysis_cell(&task_id)?;
         let cancel = cancel_token.clone();
 
-        let mut handle = tokio::spawn(async move { cell.analyze(&task_input, &cancel) });
+        let mut handle = tokio::task::spawn_blocking(move || cell.analyze(&task_input, &cancel));
 
         let start = Instant::now();
         let checkpoint_mem = self.memory.clone();
