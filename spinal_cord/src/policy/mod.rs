@@ -59,3 +59,15 @@ impl PolicyEngine {
         }
     }
 }
+
+impl Default for PolicyEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/* neira:meta
+id: NEI-20240513-policy-default
+intent: chore
+summary: Добавлен Default для PolicyEngine для удовлетворения lint new_without_default.
+*/

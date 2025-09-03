@@ -93,6 +93,7 @@ impl StemCellFactory {
     intent: code
     summary: Добавлен вызов immune_system::preflight_check при создании записи.
     */
+    #[allow(clippy::result_large_err)]
     pub fn create_record(
         &self,
         backend: &str,
@@ -241,7 +242,7 @@ impl StemCellFactory {
     pub fn auto_heal(&self, id: &str) -> Option<StemCellState> {
         let start = Instant::now();
         let res = self.disable(id);
-        if let Some(_) = res {
+        if res.is_some() {
             metrics::counter!("factory_auto_heals_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -263,7 +264,7 @@ impl StemCellFactory {
     pub fn auto_rollback(&self, id: &str) -> Option<StemCellState> {
         let start = Instant::now();
         let res = self.rollback(id);
-        if let Some(_) = res {
+        if res.is_some() {
             metrics::counter!("factory_auto_rollbacks_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -308,7 +309,7 @@ impl StemCellFactory {
             .create(true)
             .append(true)
             .open(path)?;
-        writeln!(f, "{}", value.to_string())
+        writeln!(f, "{}", value)
     }
 }
 
@@ -461,3 +462,9 @@ impl<'a> AdapterBackend for CellTemplateAdapter<'a> {
         Ok(())
     }
 }
+
+/* neira:meta
+id: NEI-20240513-factory-lints
+intent: chore
+summary: Устранены предупреждения Clippy: заменены `if let Some(_)` на `is_some`, убрана лишняя `to_string` и подавлен result_large_err.
+*/

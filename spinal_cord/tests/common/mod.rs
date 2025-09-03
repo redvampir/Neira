@@ -3,6 +3,7 @@ id: NEI-20250317-test-recorder-counters
 intent: test
 summary: shared recorder now captures counters in addition to histograms.
 */
+#![allow(clippy::type_complexity)]
 use metrics::{Counter, Gauge, Histogram, Key, KeyName, Metadata, Recorder, SharedString, Unit};
 use std::sync::{Arc, Mutex, OnceLock};
 

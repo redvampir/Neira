@@ -47,6 +47,7 @@ id: NEI-20260514-preflight-check
 intent: code
 summary: Добавлена заглушка preflight_check для валидации записей.
 */
+#[allow(clippy::result_large_err)]
 pub fn preflight_check(record: &StemCellRecord) -> Result<(), ValidationError> {
     metrics::counter!("immune_preflight_checks_total").increment(1);
     let cfg = STEM_CELL_SCHEMA
@@ -73,3 +74,9 @@ static STEM_CELL_SCHEMA: Lazy<Result<Config<'static>, String>> = Lazy::new(|| {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../schemas/stem_cell_record.json");
     load_schema_from(&path)
 });
+
+/* neira:meta
+id: NEI-20240513-immune-lint
+intent: chore
+summary: Подавлено предупреждение result_large_err для preflight_check.
+*/

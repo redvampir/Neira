@@ -21,10 +21,11 @@ pub enum Queue {
 }
 
 /// Приоритет задачи. Более высокие значения обрабатываются раньше
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub enum Priority {
     High,
     Medium,
+    #[default]
     Low,
 }
 
@@ -93,22 +94,12 @@ impl PartialOrd for ScheduledTask {
 }
 
 /// Планировщик задач с разделением по длительности и приоритетам
+#[derive(Default)]
 pub struct TaskScheduler {
     fast: BinaryHeap<ScheduledTask>,
     standard: BinaryHeap<ScheduledTask>,
     long: BinaryHeap<ScheduledTask>,
     pub config: SchedulerConfig,
-}
-
-impl Default for TaskScheduler {
-    fn default() -> Self {
-        Self {
-            fast: BinaryHeap::new(),
-            standard: BinaryHeap::new(),
-            long: BinaryHeap::new(),
-            config: SchedulerConfig::default(),
-        }
-    }
 }
 
 impl TaskScheduler {
@@ -139,6 +130,7 @@ impl TaskScheduler {
     }
 
     /// Добавление задачи с вычислением приоритета на основе метрик
+    #[allow(clippy::too_many_arguments)]
     pub fn enqueue_with_metrics(
         &mut self,
         queue: Queue,
@@ -153,8 +145,17 @@ impl TaskScheduler {
         self.enqueue(queue, id, input, priority, timeout_ms, cells);
     }
 
+    /// Возвращает длины очередей (fast, standard, long) для оценки backpressure
+    pub(crate) fn queue_lengths(&self) -> (usize, usize, usize) {
+        (self.fast.len(), self.standard.len(), self.long.len())
+    }
+}
+
+impl Iterator for TaskScheduler {
+    type Item = (String, String);
+
     /// Получение следующей задачи, учитывая порядок очередей fast > standard > long
-    pub fn next(&mut self) -> Option<(String, String)> {
+    fn next(&mut self) -> Option<Self::Item> {
         if let Some(t) = self.fast.pop() {
             return Some((t.id, t.input));
         }
@@ -162,11 +163,6 @@ impl TaskScheduler {
             return Some((t.id, t.input));
         }
         self.long.pop().map(|t| (t.id, t.input))
-    }
-
-    /// Возвращает длины очередей (fast, standard, long) для оценки backpressure
-    pub(crate) fn queue_lengths(&self) -> (usize, usize, usize) {
-        (self.fast.len(), self.standard.len(), self.long.len())
     }
 }
 
@@ -193,8 +189,8 @@ pub fn compute_priority(metrics: &QualityMetrics, stats: &UsageStats) -> Priorit
     }
 }
 
-impl Default for Priority {
-    fn default() -> Self {
-        Priority::Low
-    }
-}
+/* neira:meta
+id: NEI-20240513-scheduler-lints
+intent: chore
+summary: Derive для Default и Priority, реализация Iterator вместо метода next, добавлен allow для too_many_arguments.
+*/

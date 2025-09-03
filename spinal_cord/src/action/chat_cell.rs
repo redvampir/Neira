@@ -20,7 +20,10 @@ pub trait ChatCell: Send + Sync {
 }
 
 /// Простейшая реализация узла чата, возвращающая входной текст.
-pub struct EchoChatCell;
+#[derive(Default)]
+pub struct EchoChatCell {
+    _inner: (),
+}
 
 #[async_trait]
 impl ChatCell for EchoChatCell {
@@ -89,11 +92,6 @@ impl ChatCell for EchoChatCell {
     }
 }
 
-impl Default for EchoChatCell {
-    fn default() -> Self {
-        Self
-    }
-}
 /* neira:meta
 id: NEI-20250829-setup-meta-chatcell
 intent: docs
@@ -114,4 +112,9 @@ safe_mode:
 i18n:
   reviewer_note: |
     Держи этот узел минимальным; он хорош как дефолт и для проверок SSE/поиска.
+*/
+/* neira:meta
+id: NEI-20240513-echochatcell-lint
+intent: chore
+summary: EchoChatCell перестал быть unit-struct, чтобы убрать предупреждение clippy о default_constructed_unit_structs.
 */

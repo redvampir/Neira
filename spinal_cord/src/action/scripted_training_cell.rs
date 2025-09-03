@@ -21,6 +21,8 @@ use tokio::time::{timeout, Duration};
 use tracing::{error, info};
 // metrics integration can be wired via `metrics` crate if desired
 
+type TrainingResult = (usize, String, String, bool, u128, Option<String>);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ScriptStep {
     #[serde(default = "default_method")]
@@ -526,10 +528,7 @@ impl ScriptedTrainingCell {
         Ok(())
     }
 
-    fn write_reports(
-        name: &str,
-        results: &[(usize, String, String, bool, u128, Option<String>)],
-    ) -> Result<(), String> {
+    fn write_reports(name: &str, results: &[TrainingResult]) -> Result<(), String> {
         let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
         let dir = std::path::Path::new(&base).join("training");
         let _ = std::fs::create_dir_all(&dir);
@@ -652,3 +651,9 @@ impl Default for ScriptedTrainingCell {
         Self::from_env()
     }
 }
+
+/* neira:meta
+id: NEI-20240513-training-result-alias
+intent: chore
+summary: Добавлен type alias TrainingResult для уменьшения сложности типа в отчётах.
+*/
