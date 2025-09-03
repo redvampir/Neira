@@ -8,6 +8,11 @@ id: NEI-20260413-metrics-rename
 intent: docs
 summary: Заменены упоминания backend на spinal_cord.
 -->
+<!-- neira:meta
+id: NEI-20261005-digestive-metrics-doc
+intent: docs
+summary: Документированы метрики digestive_parse_duration_ms и digestive_validation_duration_ms.
+-->
 # Реестр Метрик (Истина)
 
 | Имя | Тип | Единицы | Где инкрементируется | Назначение |
@@ -18,6 +23,8 @@ summary: Заменены упоминания backend на spinal_cord.
 | analysis_requests_total | counter | req | SynapseHub | Входящие анализ‑запросы |
 | analysis_errors_total | counter | err | SynapseHub | Ошибки анализа/тайм‑ауты/отмена |
 | analysis_cell_request_duration_ms | histogram | ms | SynapseHub | Длительность анализа (сред/квантили) |
+| digestive_parse_duration_ms | histogram | ms | DigestivePipeline | Время разбора входа |
+| digestive_validation_duration_ms | histogram | ms | DigestivePipeline | Время проверки JSON Schema |
 | chat_cell_requests_total | counter | req | EchoChatCell | Вызовы чат‑клетки |
 | chat_cell_errors_total | counter | err | EchoChatCell | Ошибки чат‑клетки |
 | chat_cell_request_duration_ms | histogram | ms | EchoChatCell | Длительность обработки клеткой |

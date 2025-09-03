@@ -25,14 +25,20 @@ id: NEI-20260920-digestive-tracing
 intent: chore
 summary: Добавлены tracing-логи входа, формата и результата валидации.
 */
+/* neira:meta
+id: NEI-20261005-digestive-metrics
+intent: feature
+summary: Замерен время парсинга и проверки схемы с отправкой в time_metrics.
+*/
 use crate::cell_template::load_schema_from;
+use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
 use jsonschema_valid::Config;
 use once_cell::sync::Lazy;
 use quick_xml::de::from_str as from_xml;
 use serde::Deserialize;
 use serde_json::Value;
 use serde_yaml;
-use std::{env, fs, path::PathBuf};
+use std::{env, fs, path::PathBuf, time::Instant};
 use thiserror::Error;
 use tracing::{debug, info, warn};
 
@@ -82,20 +88,25 @@ impl DigestivePipeline {
 
     pub fn ingest(raw_input: &str) -> Result<ParsedInput, PipelineError> {
         debug!("ingest input: {raw_input}");
+        let start = Instant::now();
         if let Ok(json) = serde_json::from_str::<Value>(raw_input) {
             info!("detected json input");
+            record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             validate(&json)?;
             Ok(ParsedInput::Json(json))
         } else if let Ok(yaml) = serde_yaml::from_str::<Value>(raw_input) {
             info!("detected yaml input");
+            record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             validate(&yaml)?;
             Ok(ParsedInput::Json(yaml))
         } else if let Ok(xml) = from_xml::<Value>(raw_input) {
             info!("detected xml input");
+            record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             validate(&xml)?;
             Ok(ParsedInput::Json(xml))
         } else {
             warn!("unknown input format, treating as text");
+            record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             Ok(ParsedInput::Text(raw_input.to_string()))
         }
     }
@@ -105,7 +116,10 @@ fn validate(value: &Value) -> Result<(), PipelineError> {
     let cfg = DEFAULT_SCHEMA
         .as_ref()
         .map_err(|e| PipelineError::Schema(e.clone()))?;
-    if let Err(errors) = cfg.validate(value) {
+    let start = Instant::now();
+    let res = cfg.validate(value);
+    record_validation_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
+    if let Err(errors) = res {
         let msg = errors.map(|e| e.to_string()).collect::<Vec<_>>().join("; ");
         warn!("validation failed: {msg}");
         Err(PipelineError::Validation(msg))
