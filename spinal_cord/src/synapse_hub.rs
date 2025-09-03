@@ -167,11 +167,8 @@ impl SynapseHub {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(100);
-        let host_metrics_enabled = config
-            .probes
-            .get("host_metrics")
-            .map_or(true, |p| p.enabled);
-        let io_watcher_enabled = config.probes.get("io_watcher").map_or(false, |p| p.enabled);
+        let host_metrics_enabled = config.probes.get("host_metrics").is_none_or(|p| p.enabled);
+        let io_watcher_enabled = config.probes.get("io_watcher").is_some_and(|p| p.enabled);
 
         registry.register_action_cell(metrics.clone());
         registry.register_action_cell(diagnostics.clone());
@@ -252,8 +249,7 @@ impl SynapseHub {
         }
 
         // Register factory helper cells (Adapter + Selector)
-        hub.registry
-            .register_action_cell(Arc::new(FabricatorCell::default()));
+        hub.registry.register_action_cell(Arc::new(FabricatorCell));
         hub.registry
             .register_analysis_cell(Arc::new(SelectorCell::new(hub.registry.clone())));
 
@@ -306,6 +302,7 @@ impl SynapseHub {
     intent: code
     summary: Возвращает Result с ошибкой валидации при создании записи.
     */
+    #[allow(clippy::result_large_err)]
     pub fn factory_create(
         &self,
         backend: &str,
@@ -442,7 +439,7 @@ impl SynapseHub {
             "data": data,
         });
         let mut store = self.traces.write().unwrap();
-        let list = store.entry(id).or_insert_with(Vec::new);
+        let list = store.entry(id).or_default();
         if list.len() >= self.trace_max_events {
             list.remove(0);
         }
@@ -483,6 +480,7 @@ impl SynapseHub {
         self.trigger_detector.add_keyword(keyword.into());
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn chat(
         &self,
         cell_id: &str,
@@ -565,7 +563,7 @@ impl SynapseHub {
                         }
                         key.push(ch);
                         // read until '='
-                        while let Some(c2) = it.next() {
+                        for c2 in it.by_ref() {
                             if c2 == '=' {
                                 in_key = false;
                                 in_val = true;
@@ -587,7 +585,7 @@ impl SynapseHub {
                                 it.next();
                             }
                         }
-                        while let Some(c2) = it.next() {
+                        for c2 in it.by_ref() {
                             if let Some(q) = quote {
                                 if c2 == q {
                                     break;
@@ -985,7 +983,7 @@ impl SynapseHub {
             }
         } else {
             0
-        } as u32;
+        };
         let limit = self.rate_limit_per_min;
         let remaining = limit.saturating_sub(used);
         (limit, remaining, used, key)
@@ -1079,6 +1077,11 @@ safe_mode:
   affects_write: true
   requires_admin: true
 i18n:
-  reviewer_note: |
+    reviewer_note: |
     Центр координации политик и лимитов. Следить за скоупами и idempotency.
+*/
+/* neira:meta
+id: NEI-20240513-synapse-lints
+intent: chore
+summary: Убраны предупреждения Clippy: is_none_or/is_some_and, устранены while-let на итераторах, добавлены allow для больших ошибок и количества аргументов.
 */

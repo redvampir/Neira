@@ -953,13 +953,8 @@ async fn rename_session(
             if let Some(name) = p.file_name().and_then(|s| s.to_str()) {
                 if name == format!("{}.ndjson", session_id) {
                     let _ = std::fs::rename(&p, dir.join(format!("{}.ndjson", req.new_session_id)));
-                } else if name.starts_with(&format!("{}-", session_id)) && name.ends_with(".ndjson")
-                {
-                    let suffix = &name[(session_id.len() + 1)..];
-                    let _ =
-                        std::fs::rename(&p, dir.join(format!("{}-{}", req.new_session_id, suffix)));
                 } else if name.starts_with(&format!("{}-", session_id))
-                    && name.ends_with(".ndjson.gz")
+                    && (name.ends_with(".ndjson") || name.ends_with(".ndjson.gz"))
                 {
                     let suffix = &name[(session_id.len() + 1)..];
                     let _ =
@@ -1076,7 +1071,7 @@ async fn chat_stream(
         for w in out.response.split_whitespace() {
             if cancel.is_cancelled() { break; }
             anti_idle::mark_activity();
-            yield Ok(Event::default().event("message").data(w.to_string()));
+            yield Ok(Event::default().event("message").data(w));
             sent += 1;
             chars += w.len();
             if dev_delay_ms > 0 { tokio::time::sleep(std::time::Duration::from_millis(dev_delay_ms)).await; }
@@ -1552,7 +1547,7 @@ async fn main() {
     }
     hub.add_auth_token("secret");
     hub.add_trigger_keyword("echo");
-    registry.register_action_cell(Arc::new(PreloadAction::default()));
+    registry.register_action_cell(Arc::new(PreloadAction));
     registry.register_scripted_training_cell();
     // Register a default chat cell
     registry.register_chat_cell(Arc::new(EchoChatCell::default()));
@@ -1701,7 +1696,7 @@ async fn main() {
                     if accum_idle_secs >= 60 {
                         let mins = accum_idle_secs / 60;
                         accum_idle_secs %= 60;
-                        metrics::counter!("idle_minutes_today").increment(mins as u64);
+                        metrics::counter!("idle_minutes_today").increment(mins);
                     }
                 } else {
                     accum_idle_secs = 0;
@@ -2137,19 +2132,19 @@ async fn main() {
             let opts = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
             // add JSON
             let json_str = std::fs::read_to_string(&path).unwrap_or("{}".into());
-            let _ = zip.start_file("snapshot.json", opts.clone());
+            let _ = zip.start_file("snapshot.json", opts);
             let _ = zip.write_all(json_str.as_bytes());
             // add logs tail
             if let Some(lf) = logs_file_out.as_ref() {
-                if let Ok(data) = std::fs::read(&lf) {
-                    let _ = zip.start_file("logs-tail.log", opts.clone());
+                if let Ok(data) = std::fs::read(lf) {
+                    let _ = zip.start_file("logs-tail.log", opts);
                     let _ = zip.write_all(&data);
                 }
             }
             // add trace
             if let Some(tfv) = obj.get("trace_file").and_then(|v| v.as_str()) {
                 if let Ok(data) = std::fs::read(tfv) {
-                    let _ = zip.start_file("trace.json", opts.clone());
+                    let _ = zip.start_file("trace.json", opts);
                     let _ = zip.write_all(&data);
                 }
             }
@@ -2657,7 +2652,7 @@ async fn main() {
             }
             let ms: u64 = q.get("ms").and_then(|v| v.parse().ok()).unwrap_or(5000);
             let token = tokio_util::sync::CancellationToken::new();
-            let id = format!("dev.slow");
+            let id = "dev.slow".to_string();
             match state
                 .hub
                 .analyze(&id, &format!("{}", ms), &auth, &token)
@@ -2689,7 +2684,7 @@ async fn main() {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(90);
-            let ttl_ms = ttl_days.max(0) as i64 * 86_400_000;
+            let ttl_ms = ttl_days.max(0) * 86_400_000;
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(compact_every_ms)).await;
                 let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
@@ -2816,4 +2811,9 @@ safe_mode:
 i18n:
   reviewer_note: |
     Основной API и политики. При изменениях обновляй референсы и список метрик/флагов.
+*/
+/* neira:meta
+id: NEI-20240513-main-lints
+intent: chore
+summary: Исправлены предупреждения Clippy в main.rs: объединены ветки if, убраны ненужные to_string и cast, и т.д.
 */

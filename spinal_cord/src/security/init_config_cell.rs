@@ -47,3 +47,15 @@ impl ActionCell for InitConfigCell {
         self.ensure_integrity_root(memory);
     }
 }
+
+impl Default for InitConfigCell {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/* neira:meta
+id: NEI-20240513-initconfig-default
+intent: chore
+summary: Добавлен Default для InitConfigCell во избежание lint new_without_default.
+*/

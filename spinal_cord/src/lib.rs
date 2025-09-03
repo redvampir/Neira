@@ -3,6 +3,7 @@ id: NEI-20250215-immune-export
 intent: code
 summary: Экспортирован модуль immune_system.
 */
+#![cfg_attr(test, allow(clippy::type_complexity))]
 pub mod action;
 pub mod action_cell;
 pub mod analysis_cell;
@@ -37,3 +38,9 @@ pub static GLOBAL_HUB: OnceLock<RwLock<Option<Arc<SynapseHub>>>> = OnceLock::new
 pub mod factory;
 pub mod organ_builder;
 pub mod policy;
+
+/* neira:meta
+id: NEI-20240513-lib-test-allow
+intent: chore
+summary: Разрешён clippy::type_complexity для тестов через cfg_attr.
+*/

@@ -209,8 +209,8 @@ fn load_or_init_metrics(root: &Path) -> StorageMetrics {
     fs::create_dir_all(root).ok();
     let total = total_space(root).unwrap_or(0);
     let free = available_space(root).unwrap_or(0);
-    let avg_msg_bytes = 1024; // initial guess, updated later
-    let max_bytes = (free / 100).max(avg_msg_bytes as u64);
+    let avg_msg_bytes: u64 = 1024; // initial guess, updated later
+    let max_bytes = (free / 100).max(avg_msg_bytes);
     let max_lines = (max_bytes / avg_msg_bytes.max(1)) as usize;
     let metrics = StorageMetrics {
         disk_total: total,
@@ -370,14 +370,12 @@ impl ContextStorage for FileContextStorage {
             } else if p.extension().and_then(|s| s.to_str()) == Some("ndjson") {
                 let file = fs::File::open(&p).map_err(|e| e.to_string())?;
                 let reader = std::io::BufReader::new(file);
-                for line in reader.lines() {
-                    if let Ok(l) = line {
-                        if l.trim().is_empty() {
-                            continue;
-                        }
-                        if let Ok(msg) = serde_json::from_str::<ChatMessage>(&l) {
-                            out.push(msg);
-                        }
+                for l in reader.lines().map_while(Result::ok) {
+                    if l.trim().is_empty() {
+                        continue;
+                    }
+                    if let Ok(msg) = serde_json::from_str::<ChatMessage>(&l) {
+                        out.push(msg);
                     }
                 }
             }
@@ -462,7 +460,7 @@ impl Config {
         let mask_regex = std::env::var("MASK_REGEX")
             .ok()
             .map(|s| s.split(';').filter_map(|p| Regex::new(p).ok()).collect())
-            .unwrap_or_else(Vec::new);
+            .unwrap_or_default();
         let mask_roles = std::env::var("MASK_ROLES")
             .ok()
             .map(|s| {
@@ -587,7 +585,7 @@ fn append_messages_and_update_index(
         .append(true)
         .open(path)
         .map_err(|e| e.to_string())?;
-    let _lock = f.lock_exclusive().map_err(|e| e.to_string())?;
+    f.lock_exclusive().map_err(|e| e.to_string())?;
     let mut approx_bytes = entry
         .get("approx_bytes")
         .and_then(|v| v.as_u64())
@@ -625,7 +623,7 @@ fn append_messages_and_update_index(
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(90);
-    let ttl_ms = ttl_days.max(0) as i64 * 86_400_000;
+    let ttl_ms = ttl_days.max(0) * 86_400_000;
     if let Some(kw_ts) = entry.get("kw_updated_ms").and_then(|v| v.as_i64()) {
         if ttl_ms > 0 && now_ms.saturating_sub(kw_ts) > ttl_ms {
             entry.insert("keywords".into(), serde_json::Value::Array(Vec::new()));
@@ -637,7 +635,7 @@ fn append_messages_and_update_index(
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
-    let new_kws = super_keywords(&msgs.last().map(|m| m.content.as_str()).unwrap_or(""));
+    let new_kws = super_keywords(msgs.last().map(|m| m.content.as_str()).unwrap_or(""));
     for k in new_kws {
         if !kws.contains(&serde_json::json!(k)) && kws.len() < 32 {
             kws.push(serde_json::json!(k));
@@ -656,7 +654,7 @@ fn append_messages_and_update_index(
             if meta.len() > cfg.max_bytes {
                 let file = fs::File::open(path).map_err(|e| e.to_string())?;
                 let reader = std::io::BufReader::new(file);
-                let mut lines: Vec<String> = reader.lines().flatten().collect();
+                let mut lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
                 if lines.len() > cfg.max_lines {
                     lines = lines.split_off(lines.len().saturating_sub(cfg.max_lines));
                 }
@@ -760,4 +758,9 @@ safe_mode:
 i18n:
   reviewer_note: |
     Важные файлы и индекс. Не забывай обновлять ENV‑референс при добавлении флагов.
+*/
+/* neira:meta
+id: NEI-20240513-storage-lints
+intent: chore
+summary: Убраны предупреждения Clippy в файловом хранилище контекста: лишние приведения, manual_flatten и др.
 */
