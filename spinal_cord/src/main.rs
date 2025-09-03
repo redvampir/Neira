@@ -1,3 +1,4 @@
+use crate::digestive_pipeline::ParsedInput;
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
@@ -1592,17 +1593,26 @@ async fn main() {
         fn confidence_threshold(&self) -> f32 {
             0.0
         }
-        fn analyze(
+        /* neira:meta
+        id: NEI-20260530-echo-digest
+        intent: refactor
+        summary: EchoCell анализирует ParsedInput вместо строки.
+        */
+        fn analyze_parsed(
             &self,
-            input: &str,
+            input: &ParsedInput,
             cancel_token: &tokio_util::sync::CancellationToken,
         ) -> AnalysisResult {
+            let content = match input {
+                ParsedInput::Json(v) => v.to_string(),
+                ParsedInput::Text(t) => t.clone(),
+            };
             if cancel_token.is_cancelled() {
-                let mut r = AnalysisResult::new(self.id(), input, vec![]);
+                let mut r = AnalysisResult::new(self.id(), &content, vec![]);
                 r.status = CellStatus::Error;
                 return r;
             }
-            AnalysisResult::new(self.id(), input, vec!["echo".into()])
+            AnalysisResult::new(self.id(), &content, vec!["echo".into()])
         }
         fn explain(&self) -> String {
             "Echoes input".into()
@@ -2582,12 +2592,21 @@ async fn main() {
             fn confidence_threshold(&self) -> f32 {
                 0.0
             }
-            fn analyze(
+            /* neira:meta
+            id: NEI-20260530-devslow-digest
+            intent: refactor
+            summary: DevSlowCell принимает ParsedInput для обработки задержки.
+            */
+            fn analyze_parsed(
                 &self,
-                input: &str,
+                input: &ParsedInput,
                 cancel_token: &tokio_util::sync::CancellationToken,
             ) -> AnalysisResult {
-                let ms: u64 = input.trim().parse().ok().unwrap_or(5_000);
+                let content = match input {
+                    ParsedInput::Json(v) => v.to_string(),
+                    ParsedInput::Text(t) => t.clone(),
+                };
+                let ms: u64 = content.trim().parse().ok().unwrap_or(5_000);
                 let start = std::time::Instant::now();
                 while start.elapsed().as_millis() < ms as u128 {
                     if cancel_token.is_cancelled() {

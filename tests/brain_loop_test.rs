@@ -23,10 +23,16 @@ use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::brain::Brain;
 use backend::cell_registry::CellRegistry;
 use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
+use backend::digestive_pipeline::ParsedInput;
 use backend::event_bus::{Event, EventBus, Subscriber};
 use backend::task_scheduler::{Priority, Queue, TaskScheduler};
 use tokio_util::sync::CancellationToken;
 
+/* neira:meta
+id: NEI-20260530-brainloop-digest
+intent: test
+summary: DummyCell обновлён для ParsedInput.
+*/
 struct DummyCell {
     hits: Arc<AtomicUsize>,
 }
@@ -47,7 +53,7 @@ impl AnalysisCell for DummyCell {
     fn confidence_threshold(&self) -> f32 {
         0.0
     }
-    fn analyze(&self, _input: &str, _cancel: &CancellationToken) -> AnalysisResult {
+    fn analyze_parsed(&self, _input: &ParsedInput, _cancel: &CancellationToken) -> AnalysisResult {
         self.hits.fetch_add(1, Ordering::SeqCst);
         AnalysisResult::new(self.id(), "ok", vec![])
     }

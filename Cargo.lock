@@ -191,6 +191,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "sysinfo",
+ "thiserror",
  "tokio",
  "tokio-stream",
  "tokio-tungstenite",

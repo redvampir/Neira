@@ -18,6 +18,11 @@ serde_json = "1"
 dotenvy = "0.15"
 jsonschema-valid = "0.5.2"
 once_cell = "1"
+# neira:meta
+# id: NEI-20260530-digestive-deps
+# intent: chore
+# summary: Добавлена зависимость thiserror для DigestivePipeline.
+thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] } # direct file logging without tracing-appender
 

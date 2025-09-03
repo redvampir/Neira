@@ -27,6 +27,12 @@ summary: Экспортирован модуль brain.
 pub mod brain;
 pub mod immune_system;
 pub mod memory_cell;
+/* neira:meta
+id: NEI-20260530-digestive-export
+intent: code
+summary: Экспортирован модуль digestive_pipeline.
+*/
+pub mod digestive_pipeline;
 pub mod nervous_system;
 /* neira:meta
 id: NEI-20250226-circulatory-export
