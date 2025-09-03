@@ -12,12 +12,14 @@ summary: Добавлен пример отправки FlowEvent и TaskPayload
 -->
 
 ## Обзор
+
 Модуль `brain` объединяет ключевые органы Нейры и управляет их работой. Он
 получает сообщения из `DataFlow`, превращая их либо в события, либо в задачи для
 обработки. Сам `brain` не хранит состояние диалогов, а служит маршрутизатором
 между подсистемами.
 
 ## Структура
+
 - **DataFlow Receiver** — входной канал, через который приходят сообщения
   `FlowMessage`.
 - **CellRegistry** — реестр «нейронов», то есть специализированных клеток
@@ -26,6 +28,7 @@ summary: Добавлен пример отправки FlowEvent и TaskPayload
 - **TaskScheduler** — очередь задач с приоритетами.
 
 ## Взаимодействие
+
 1. `brain` принимает `FlowMessage` из `DataFlow`.
 2. Если это событие, оно публикуется в `EventBus` без обратной пересылки.
 3. Если это задача, она ставится в `TaskScheduler`; затем нужная клетка
@@ -37,7 +40,9 @@ summary: Добавлен пример отправки FlowEvent и TaskPayload
 ## Пример
 
 ```rust
-use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
+use backend::circulatory_system::{
+    DataFlowController, FlowEvent, FlowMessage, TaskPayload,
+};
 
 let (flow, mut rx) = DataFlowController::new();
 flow.send(FlowMessage::Event(FlowEvent { name: "ping".into() }));
@@ -46,7 +51,13 @@ flow.send(FlowMessage::Task {
     payload: TaskPayload::Text("data".into()),
 });
 
-if let Some(message) = rx.blocking_recv() {
+if let Ok(message) = rx.try_recv() {
     println!("{message:?}");
 }
+
+<!-- neira:meta
+id: NEI-20241003-brain-doc-flowreceiver
+intent: docs
+summary: Пример обновлён для FlowReceiver и try_recv.
+-->
 ```

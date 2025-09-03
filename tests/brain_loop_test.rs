@@ -25,8 +25,6 @@ use backend::cell_registry::CellRegistry;
 use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
 use backend::event_bus::{Event, EventBus, Subscriber};
 use backend::task_scheduler::{Priority, Queue, TaskScheduler};
-use tokio::sync::mpsc::unbounded_channel;
-use tokio::time::{timeout, Duration};
 use tokio_util::sync::CancellationToken;
 
 struct DummyCell {
@@ -73,19 +71,10 @@ async fn brain_loop_schedules_tasks() {
     let event_bus = EventBus::new();
     event_bus.attach_flow_controller(flow.clone());
 
-    let (tx_forward, rx_forward) = unbounded_channel();
-    let (monitor_tx, mut monitor_rx) = unbounded_channel();
-    tokio::spawn(async move {
-        let mut rx = rx;
-        while let Some(msg) = rx.recv().await {
-            let _ = monitor_tx.send(msg.clone());
-            let _ = tx_forward.send(msg);
-        }
-    });
-
     let (metrics, _rx_metrics) = MetricsCollectorCell::channel();
     let brain = Arc::new(Brain::new(
-        rx_forward,
+        rx,
+        flow.clone(),
         registry.clone(),
         scheduler.clone(),
         event_bus,
@@ -98,13 +87,11 @@ async fn brain_loop_schedules_tasks() {
         payload: TaskPayload::Text("".into()),
     });
 
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-    monitor_rx.try_recv().unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     assert_eq!(counter.load(Ordering::SeqCst), 1);
     assert!(scheduler.write().unwrap().next().is_none());
-    assert!(monitor_rx.try_recv().is_err());
+    assert_eq!(flow.sent_count(), flow.received_count());
 }
 
 /* neira:meta
@@ -164,19 +151,10 @@ async fn brain_loop_publishes_events() {
         hits: counter.clone(),
     }));
 
-    let (tx_forward, rx_forward) = unbounded_channel();
-    let (monitor_tx, mut monitor_rx) = unbounded_channel();
-    tokio::spawn(async move {
-        let mut rx = rx;
-        while let Some(msg) = rx.recv().await {
-            let _ = monitor_tx.send(msg.clone());
-            let _ = tx_forward.send(msg);
-        }
-    });
-
     let (metrics, _rx_metrics) = MetricsCollectorCell::channel();
     let brain = Arc::new(Brain::new(
-        rx_forward,
+        rx,
+        flow.clone(),
         registry,
         scheduler.clone(),
         event_bus.clone(),
@@ -188,16 +166,11 @@ async fn brain_loop_publishes_events() {
         name: "ping".into(),
     }));
 
-    timeout(Duration::from_millis(100), monitor_rx.recv())
-        .await
-        .unwrap()
-        .unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     assert_eq!(counter.load(Ordering::SeqCst), 1);
     assert!(scheduler.write().unwrap().next().is_none());
-    assert!(timeout(Duration::from_millis(50), monitor_rx.recv())
-        .await
-        .is_err());
+    assert_eq!(flow.sent_count(), flow.received_count());
 }
 
 /* neira:meta
@@ -216,16 +189,9 @@ async fn brain_loop_records_metrics() {
     event_bus.attach_flow_controller(flow.clone());
     let (metrics, mut metrics_rx) = MetricsCollectorCell::channel();
 
-    let (tx_forward, rx_forward) = unbounded_channel();
-    tokio::spawn(async move {
-        let mut rx = rx;
-        while let Some(msg) = rx.recv().await {
-            let _ = tx_forward.send(msg);
-        }
-    });
-
     let brain = Arc::new(Brain::new(
-        rx_forward,
+        rx,
+        flow.clone(),
         registry,
         scheduler.clone(),
         event_bus,
@@ -240,14 +206,15 @@ async fn brain_loop_records_metrics() {
         name: "pong".into(),
     }));
 
-    let first = timeout(Duration::from_millis(100), metrics_rx.recv())
-        .await
-        .unwrap()
-        .unwrap();
-    let second = timeout(Duration::from_millis(100), metrics_rx.recv())
-        .await
-        .unwrap()
-        .unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let first = metrics_rx.try_recv().unwrap();
+    let second = metrics_rx.try_recv().unwrap();
     assert_eq!(first.id, "brain.event");
     assert_eq!(second.id, "brain.event");
 }
+
+/* neira:meta
+id: NEI-20241003-brain-loop-test-update
+intent: chore
+summary: Тесты обновлены под счётчики кровотока и FlowReceiver без промежуточных каналов.
+*/

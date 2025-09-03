@@ -21,14 +21,18 @@ summary: События из DataFlowController публикуются лока�
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
-use tokio::sync::{mpsc::UnboundedReceiver, Mutex};
+use std::time::Duration;
+use tokio::sync::Mutex;
+use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::analysis_cell::{AnalysisCell, QualityMetrics};
 use crate::cell_registry::CellRegistry;
-use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
+use crate::circulatory_system::{
+    DataFlowController, FlowEvent, FlowMessage, FlowReceiver, TaskPayload,
+};
 use crate::event_bus::{Event, EventBus, Subscriber};
 use crate::task_scheduler::{Priority, Queue, TaskScheduler};
 
@@ -55,7 +59,8 @@ summary: Оформлен Brain как структура с методами sp
 
 /// Мозг: получает сообщения из кровотока и активирует специализированные клетки
 pub struct Brain {
-    df_rx: Mutex<UnboundedReceiver<FlowMessage>>,
+    df_rx: Mutex<FlowReceiver>,
+    flow: Arc<DataFlowController>,
     registry: Arc<CellRegistry>,
     scheduler: Arc<RwLock<TaskScheduler>>,
     event_bus: Arc<EventBus>,
@@ -65,7 +70,8 @@ pub struct Brain {
 impl Brain {
     /// Создаёт новый экземпляр `Brain`
     pub fn new(
-        df_rx: UnboundedReceiver<FlowMessage>,
+        df_rx: FlowReceiver,
+        flow: Arc<DataFlowController>,
         registry: Arc<CellRegistry>,
         scheduler: Arc<RwLock<TaskScheduler>>,
         event_bus: Arc<EventBus>,
@@ -73,6 +79,7 @@ impl Brain {
     ) -> Self {
         Self {
             df_rx: Mutex::new(df_rx),
+            flow,
             registry,
             scheduler,
             event_bus,
@@ -82,7 +89,8 @@ impl Brain {
 
     /// Запускает цикл обработки сообщений в отдельной задаче
     pub fn spawn(self: Arc<Self>) {
-        tokio::spawn(self.run());
+        tokio::spawn(self.clone().run());
+        tokio::spawn(self.publish_flow_metrics());
     }
 
     /// Регистрация специализированной клетки мозга («нейрона»)
@@ -148,6 +156,41 @@ impl Brain {
         }
     }
 }
+
+impl Brain {
+    async fn publish_flow_metrics(self: Arc<Self>) {
+        loop {
+            let ms = self.metrics.get_interval_ms();
+            sleep(Duration::from_millis(ms)).await;
+            let sent = self.flow.sent_count();
+            let received = self.flow.received_count();
+            metrics::gauge!("flow_messages_sent_total").set(sent as f64);
+            metrics::gauge!("flow_messages_received_total").set(received as f64);
+            self.metrics.record(MetricsRecord {
+                id: "brain.flow.sent".to_string(),
+                metrics: QualityMetrics {
+                    credibility: None,
+                    recency_days: None,
+                    demand: Some(sent as u32),
+                },
+            });
+            self.metrics.record(MetricsRecord {
+                id: "brain.flow.received".to_string(),
+                metrics: QualityMetrics {
+                    credibility: None,
+                    recency_days: None,
+                    demand: Some(received as u32),
+                },
+            });
+        }
+    }
+}
+
+/* neira:meta
+id: NEI-20241003-brain-flow-metrics
+intent: feat
+summary: Brain публикует счётчики кровотока через MetricsCollectorCell и gauge метрики.
+*/
 
 /* neira:meta
 id: NEI-20240930-brain-subscriber

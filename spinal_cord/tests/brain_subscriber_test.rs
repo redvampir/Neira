@@ -37,3 +37,9 @@ async fn brain_subscriber_forwards_events() {
     let msg = rx.try_recv().expect("message forwarded");
     assert!(matches!(msg, FlowMessage::Event(ev) if ev.name == "DummyEvent"));
 }
+
+/* neira:meta
+id: NEI-20241003-brain-subscriber-test-update
+intent: chore
+summary: Тест адаптирован к FlowReceiver с учётом новых счётчиков.
+*/

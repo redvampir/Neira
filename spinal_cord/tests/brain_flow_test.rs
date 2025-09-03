@@ -76,7 +76,14 @@ async fn brain_flow_test_receives_messages() {
 
     let (metrics, _rx_metrics) = MetricsCollectorCell::channel();
 
-    let brain = Arc::new(Brain::new(rx, registry, scheduler, event_bus, metrics));
+    let brain = Arc::new(Brain::new(
+        rx,
+        flow.clone(),
+        registry,
+        scheduler,
+        event_bus,
+        metrics,
+    ));
     brain.clone().spawn();
 
     flow.send(FlowMessage::Task {
@@ -89,10 +96,18 @@ async fn brain_flow_test_receives_messages() {
         .expect("task payload");
     assert_eq!(payload, "payload");
 
-    flow.send(FlowMessage::Event(FlowEvent { name: "test".into() }));
+    flow.send(FlowMessage::Event(FlowEvent {
+        name: "test".into(),
+    }));
     let ev = timeout(Duration::from_secs(1), event_rx.recv())
         .await
         .expect("event processed")
         .expect("event name");
     assert_eq!(ev, "test");
 }
+
+/* neira:meta
+id: NEI-20241003-brain-flow-test-update
+intent: chore
+summary: Обновлён тест под новый FlowReceiver и публикацию метрик кровотока.
+*/
