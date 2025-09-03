@@ -18,8 +18,9 @@ use backend::brain::brain_loop;
 use backend::cell_registry::CellRegistry;
 use backend::circulatory_system::{DataFlowController, FlowMessage};
 use backend::event_bus::{Event, EventBus, Subscriber};
-use backend::task_scheduler::TaskScheduler;
+use backend::task_scheduler::{Priority, Queue, TaskScheduler};
 use tokio::sync::mpsc::unbounded_channel;
+use tokio::time::{timeout, Duration};
 use tokio_util::sync::CancellationToken;
 
 struct DummyCell {
@@ -95,6 +96,39 @@ async fn brain_loop_schedules_tasks() {
     assert!(monitor_rx.try_recv().is_err());
 }
 
+/* neira:meta
+id: NEI-20240810-manual-analysis-test
+intent: test
+summary: Извлекает задачу из планировщика и вручную запускает анализ.
+*/
+#[tokio::test]
+async fn brain_loop_manual_analysis_runs_cell() {
+    let dir = tempfile::tempdir().unwrap();
+    let registry = Arc::new(CellRegistry::new(dir.path()).unwrap());
+    let counter = Arc::new(AtomicUsize::new(0));
+    registry.register_analysis_cell(Arc::new(DummyCell {
+        hits: counter.clone(),
+    }));
+
+    let mut scheduler = TaskScheduler::default();
+    scheduler.enqueue(
+        Queue::Fast,
+        "dummy".into(),
+        "".into(),
+        Priority::Low,
+        None,
+        vec![],
+    );
+
+    let (id, input) = scheduler.next().expect("task scheduled");
+    let cell = registry.get_analysis_cell(&id).unwrap();
+    let token = CancellationToken::new();
+    cell.analyze(&input, &token);
+
+    assert_eq!(counter.load(Ordering::SeqCst), 1);
+    assert!(scheduler.next().is_none());
+}
+
 struct DummySubscriber {
     hits: Arc<AtomicUsize>,
 }
@@ -137,10 +171,13 @@ async fn brain_loop_publishes_events() {
 
     flow.send(FlowMessage::Event("ping".into()));
 
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-    monitor_rx.try_recv().unwrap();
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    timeout(Duration::from_millis(100), monitor_rx.recv())
+        .await
+        .unwrap()
+        .unwrap();
 
     assert_eq!(counter.load(Ordering::SeqCst), 1);
-    assert!(monitor_rx.try_recv().is_err());
+    assert!(timeout(Duration::from_millis(50), monitor_rx.recv())
+        .await
+        .is_err());
 }
