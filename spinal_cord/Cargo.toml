@@ -67,6 +67,11 @@ tower-http = { version = "0.6", features = ["cors"] }
 [dev-dependencies]
 tempfile = "3"
 serial_test = "3"
+# neira:meta
+# id: NEI-20270420-trybuild-dep
+# intent: test
+# summary: Добавлена dev-зависимость trybuild для компиляционных проверок DigestivePipeline.
+trybuild = "1"
 
 [patch.crates-io]
 kqueue-sys = { path = "../patches/kqueue-sys" }

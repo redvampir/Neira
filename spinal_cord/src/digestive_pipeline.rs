@@ -55,6 +55,11 @@ id: NEI-20270405-digestive-toxicity-filter
 intent: feature
 summary: Добавлены базовые фильтры токсичных слов перед TriggerDetector.
 */
+/* neira:meta
+id: NEI-20270420-digestive-strict-typing
+intent: refactor
+summary: Добавлены serde-атрибуты и PathBuf для строгой типизации DigestiveSettings.
+*/
 use crate::cell_template::load_schema_from;
 use crate::memory_cell::MemoryCell;
 use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
@@ -62,7 +67,7 @@ use jsonschema_valid::Config;
 use once_cell::sync::{Lazy, OnceCell};
 use quick_xml::de::from_str as from_xml;
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use serde_yaml;
 use std::{
@@ -94,8 +99,18 @@ pub enum PipelineError {
 pub struct DigestivePipeline;
 
 #[derive(Deserialize, Clone)]
-struct DigestiveSettings {
-    schema_path: String,
+#[serde(deny_unknown_fields)]
+pub struct DigestiveSettings {
+    #[serde(deserialize_with = "deserialize_schema_path")]
+    pub schema_path: PathBuf,
+}
+
+fn deserialize_schema_path<'de, D>(deserializer: D) -> Result<PathBuf, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(PathBuf::from(s))
 }
 
 static SCHEMA_CACHE: Lazy<Mutex<HashMap<PathBuf, Arc<Config<'static>>>>> =
