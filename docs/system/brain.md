@@ -5,6 +5,11 @@ id: NEI-20240918-brain-doc
 intent: docs
 summary: Описана структура мозга и взаимодействие с DataFlow, EventBus и TaskScheduler.
 -->
+<!-- neira:meta
+id: NEI-20240514-brain-doc-example
+intent: docs
+summary: Добавлен пример отправки FlowEvent и TaskPayload через DataFlowController.
+-->
 
 ## Обзор
 Модуль `brain` объединяет ключевые органы Нейры и управляет их работой. Он
@@ -28,3 +33,20 @@ summary: Описана структура мозга и взаимодейст�
 
 Такой цикл позволяет мозгу распределять работу между клетками и удерживать
 общую координацию системы без тесной связности между модулями.
+
+## Пример
+
+```rust
+use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
+
+let (flow, mut rx) = DataFlowController::new();
+flow.send(FlowMessage::Event(FlowEvent { name: "ping".into() }));
+flow.send(FlowMessage::Task {
+    id: "dummy".into(),
+    payload: TaskPayload::Text("data".into()),
+});
+
+if let Some(message) = rx.blocking_recv() {
+    println!("{message:?}");
+}
+```

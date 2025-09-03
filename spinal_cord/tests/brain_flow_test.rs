@@ -3,13 +3,18 @@ id: NEI-20241002-brain-flow-test
 intent: test
 summary: Проверяет, что Brain обрабатывает FlowMessage::Task и FlowMessage::Event.
 */
+/* neira:meta
+id: NEI-20240514-brain-flow-test-typed
+intent: test
+summary: Использует FlowEvent и TaskPayload.
+*/
 use std::sync::{Arc, RwLock};
 
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::brain::Brain;
 use backend::cell_registry::CellRegistry;
-use backend::circulatory_system::{DataFlowController, FlowMessage};
+use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage, TaskPayload};
 use backend::event_bus::{Event, EventBus, Subscriber};
 use backend::task_scheduler::TaskScheduler;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
@@ -76,7 +81,7 @@ async fn brain_flow_test_receives_messages() {
 
     flow.send(FlowMessage::Task {
         id: "dummy".into(),
-        payload: "payload".into(),
+        payload: TaskPayload::Text("payload".into()),
     });
     let payload = timeout(Duration::from_secs(1), task_rx.recv())
         .await
@@ -84,7 +89,7 @@ async fn brain_flow_test_receives_messages() {
         .expect("task payload");
     assert_eq!(payload, "payload");
 
-    flow.send(FlowMessage::Event("test".into()));
+    flow.send(FlowMessage::Event(FlowEvent { name: "test".into() }));
     let ev = timeout(Duration::from_secs(1), event_rx.recv())
         .await
         .expect("event processed")

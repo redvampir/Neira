@@ -14,13 +14,18 @@ id: NEI-20270310-local-enqueue
 intent: feature
 summary: Добавлен локальный enqueue без отправки в DataFlowController.
 */
+/* neira:meta
+id: NEI-20240514-task-scheduler-payload
+intent: refactor
+summary: enqueue отправляет TaskPayload вместо строки.
+*/
 
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::time::Instant;
 
 use crate::analysis_cell::QualityMetrics;
-use crate::circulatory_system::{DataFlowController, FlowMessage};
+use crate::circulatory_system::{DataFlowController, FlowMessage, TaskPayload};
 use crate::memory_cell::UsageStats;
 use std::sync::Arc;
 
@@ -145,7 +150,7 @@ impl TaskScheduler {
         if let Some(flow) = &self.flow {
             flow.send(FlowMessage::Task {
                 id: id_send,
-                payload: input_send,
+                payload: TaskPayload::Text(input_send),
             });
         }
     }

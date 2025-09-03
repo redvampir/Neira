@@ -3,11 +3,16 @@ id: NEI-20240930-brain-subscriber-test
 intent: test
 summary: Проверяет, что BrainSubscriber пересылает события в DataFlowController.
 */
+/* neira:meta
+id: NEI-20240514-brain-subscriber-test-flowevent
+intent: test
+summary: Проверяет имя в типизированном FlowEvent.
+*/
 use std::any::Any;
 use std::sync::Arc;
 
 use backend::brain::BrainSubscriber;
-use backend::circulatory_system::{DataFlowController, FlowMessage};
+use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
 use backend::event_bus::{Event, EventBus};
 
 struct DummyEvent;
@@ -30,5 +35,5 @@ async fn brain_subscriber_forwards_events() {
     bus.publish_local(&DummyEvent);
 
     let msg = rx.try_recv().expect("message forwarded");
-    assert!(matches!(msg, FlowMessage::Event(name) if name == "DummyEvent"));
+    assert!(matches!(msg, FlowMessage::Event(ev) if ev.name == "DummyEvent"));
 }
