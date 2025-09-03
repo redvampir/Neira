@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250915-adaptive-storage-backend-env
+id: NEI-20250915-adaptive-storage-backend-spinal_cord-env
 intent: docs
 summary: Контекстное хранилище теперь подбирает лимиты по диску; переменные можно переопределить.
 -->
