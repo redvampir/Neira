@@ -8,6 +8,11 @@ id: NEI-20240725-brain-loop-test
 intent: test
 summary: Проверяет локальную обработку задач и пустоту канала DataFlowController.
 */
+/* neira:meta
+id: NEI-20240728-brain-loop-event-test
+intent: test
+summary: Убеждается, что события не возвращаются в DataFlowController при локальной публикации.
+*/
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::brain::brain_loop;
 use backend::cell_registry::CellRegistry;
@@ -107,16 +112,35 @@ async fn brain_loop_publishes_events() {
     let (flow, rx) = DataFlowController::new();
     let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
     let event_bus = EventBus::new();
+    event_bus.attach_flow_controller(flow.clone());
     let counter = Arc::new(AtomicUsize::new(0));
     event_bus.subscribe(Arc::new(DummySubscriber {
         hits: counter.clone(),
     }));
 
-    tokio::spawn(brain_loop(rx, registry, scheduler, event_bus.clone()));
+    let (tx_forward, rx_forward) = unbounded_channel();
+    let (monitor_tx, mut monitor_rx) = unbounded_channel();
+    tokio::spawn(async move {
+        let mut rx = rx;
+        while let Some(msg) = rx.recv().await {
+            let _ = monitor_tx.send(msg.clone());
+            let _ = tx_forward.send(msg);
+        }
+    });
+
+    tokio::spawn(brain_loop(
+        rx_forward,
+        registry,
+        scheduler,
+        event_bus.clone(),
+    ));
 
     flow.send(FlowMessage::Event("ping".into()));
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    monitor_rx.try_recv().unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
     assert_eq!(counter.load(Ordering::SeqCst), 1);
+    assert!(monitor_rx.try_recv().is_err());
 }
