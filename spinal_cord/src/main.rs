@@ -1,4 +1,4 @@
-use backend::digestive_pipeline::ParsedInput;
+use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
@@ -35,6 +35,11 @@ summary: Добавлен импорт immune_system.
 id: NEI-20260528-import-backend-parsed-input
 intent: refactor
 summary: Явное обращение к ParsedInput через crate backend.
+*/
+/* neira:meta
+id: NEI-20260725-digestive-init-main
+intent: chore
+summary: Конфигурация DigestivePipeline загружается при старте.
 */
 use async_stream::stream;
 use axum::{
@@ -1502,6 +1507,7 @@ async fn toggle_probe(
 #[tokio::main]
 async fn main() {
     let _ = dotenv();
+    DigestivePipeline::init().expect("digestive config");
     let cfg = Config::from_env();
     let logs_dir = "logs";
     let _ = std::fs::create_dir_all(logs_dir);
