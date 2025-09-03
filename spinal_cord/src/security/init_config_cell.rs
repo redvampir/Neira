@@ -1,7 +1,7 @@
 /* neira:meta
 id: NEI-20250829-175425-init-config
 intent: docs
-scope: backend/security
+scope: spinal_cord/security
 summary: |
   Инициализирует переменные конфигурации, устанавливая INTEGRITY_ROOT.
 env:

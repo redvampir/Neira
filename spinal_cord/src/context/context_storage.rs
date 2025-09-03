@@ -725,7 +725,7 @@ fn super_keywords(content: &str) -> Vec<String> {
 /* neira:meta
 id: NEI-20250829-setup-meta-storage
 intent: docs
-scope: backend/storage
+scope: spinal_cord/storage
 summary: |
   Файловое хранилище контекста (ndjson + дневная ротация + gzip), индекс index.json,
   TTL ключевых слов, адаптивные лимиты по диску (storage_metrics.json), маскирование
