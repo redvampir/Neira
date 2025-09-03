@@ -95,7 +95,7 @@ impl ChatCell for EchoChatCell {
 /* neira:meta
 id: NEI-20250829-setup-meta-chatcell
 intent: docs
-scope: backend/chat-cell
+scope: spinal_cord/chat-cell
 summary: |
   EchoChatCell: простая отражающая клетка. Входящее user‑сообщение сохраняется в SynapseHub,
   чтобы избежать дублей; здесь сохраняется ответ ассистента.

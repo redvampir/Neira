@@ -1050,7 +1050,7 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 /* neira:meta
 id: NEI-20250829-setup-meta-hub
 intent: docs
-scope: backend/hub
+scope: spinal_cord/hub
 summary: |
   Политики чата: скоупы read/write/admin, idempotency (LRU+file TTL), rate-limit с ключом,
   safe-mode (write=admin), сохранение входящего user-сообщения с метаданными (source/thread_id).

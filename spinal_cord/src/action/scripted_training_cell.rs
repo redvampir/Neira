@@ -1,7 +1,7 @@
 /* neira:meta
 id: NEI-20250829-175425-scripted-training
 intent: docs
-scope: backend/action
+scope: spinal_cord/action
 summary: |
   Выполняет сценарии обучения; пути и режим задаются через переменные окружения.
 env:

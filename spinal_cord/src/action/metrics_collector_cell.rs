@@ -1,7 +1,7 @@
 /* neira:meta
 id: NEI-20250829-175425-metrics-collector
 intent: docs
-scope: backend/action
+scope: spinal_cord/action
 summary: |
   Сборщик метрик с динамическим интервалом опроса.
 env:

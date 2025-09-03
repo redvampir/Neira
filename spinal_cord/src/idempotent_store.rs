@@ -84,7 +84,7 @@ fn now_secs() -> u64 {
 /* neira:meta
 id: NEI-20250829-setup-meta-idem
 intent: docs
-scope: backend/idempotency
+scope: spinal_cord/idempotency
 summary: |
   Персистентное хранилище идемпотентных ответов (JSONL + TTL). Используется SynapseHub
   для выдачи повторных ответов по request_id, переживает рестарт.
