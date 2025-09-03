@@ -71,11 +71,15 @@ use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use regex::Regex;
 use std::convert::Infallible;
-use std::io::Write;
+use std::fs;
+use std::io::{Cursor, Write};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing::error;
+use reqwest::header::LAST_MODIFIED;
+use reqwest::Client;
+use zip::ZipArchive;
 
 use backend::action::chat_cell::EchoChatCell;
 use backend::action::diagnostics_cell::DiagnosticsCell;
@@ -1509,9 +1513,64 @@ async fn toggle_probe(
     Ok(Json(serde_json::json!({ "enabled": enabled })))
 }
 
+/* neira:meta
+id: NEI-20270210-schema-sync
+intent: feat
+summary: Автоматическая проверка даты архива схем и их синхронизация при старте.
+*/
+async fn sync_schemas() -> Result<(), Box<dyn std::error::Error>> {
+    let url = match std::env::var("SCHEMAS_ARCHIVE_URL") {
+        Ok(v) => v,
+        Err(_) => return Ok(()),
+    };
+    let dir = std::env::var("SCHEMAS_DIR").unwrap_or_else(|_| "schemas".into());
+    let meta = std::path::Path::new(&dir).join(".last_schema_sync");
+    let client = Client::new();
+    let head = client.head(&url).send().await?;
+    let remote_ts = head
+        .headers()
+        .get(LAST_MODIFIED)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| chrono::DateTime::parse_from_rfc2822(s).ok())
+        .map(|dt| dt.timestamp());
+    let local_ts = fs::read_to_string(&meta).ok().and_then(|s| s.trim().parse::<i64>().ok());
+    let need = match (remote_ts, local_ts) {
+        (Some(r), Some(l)) => r > l,
+        _ => true,
+    };
+    if need {
+        let bytes = client.get(&url).send().await?.bytes().await?;
+        let reader = Cursor::new(bytes);
+        let mut zip = ZipArchive::new(reader)?;
+        fs::create_dir_all(&dir)?;
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i)?;
+            if let Some(path) = file.enclosed_name() {
+                let outpath = std::path::Path::new(&dir).join(path);
+                if file.name().ends_with('/') {
+                    fs::create_dir_all(&outpath)?;
+                } else {
+                    if let Some(p) = outpath.parent() {
+                        fs::create_dir_all(p)?;
+                    }
+                    let mut out = fs::File::create(&outpath)?;
+                    std::io::copy(&mut file, &mut out)?;
+                }
+            }
+        }
+        if let Some(r) = remote_ts {
+            fs::write(meta, r.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let _ = dotenv();
+    if let Err(e) = sync_schemas().await {
+        hearing::warn(&format!("schema sync failed: {e}"));
+    }
     DigestivePipeline::init().expect("digestive config");
     let cfg = Config::from_env();
     let logs_dir = "logs";
