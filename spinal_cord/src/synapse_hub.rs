@@ -45,12 +45,17 @@ id: NEI-20260614-brain-loop-init
 intent: feature
 summary: Запуск brain_loop обрабатывает FlowMessage и активирует клетки.
 */
+/* neira:meta
+id: NEI-20270310-local-analysis
+intent: refactor
+summary: Анализ выполняется локально без уведомления brain_loop.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use crate::action::diagnostics_cell::DiagnosticsCell;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
-use crate::circulatory_system::{DataFlowController, FlowMessage};
+use crate::circulatory_system::DataFlowController;
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::event_bus::{CellCreated, EventBus, OrganBuilt};
@@ -71,7 +76,7 @@ use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::sync::broadcast;
-use tokio::task::{spawn_blocking, JoinHandle};
+use tokio::task::JoinHandle;
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
@@ -130,7 +135,6 @@ pub struct SynapseHub {
     factory: Arc<StemCellFactory>,
     organ_builder: Arc<OrganBuilder>,
     event_bus: Arc<EventBus>,
-    data_flow: Arc<DataFlowController>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -244,7 +248,6 @@ impl SynapseHub {
             factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
             event_bus: event_bus.clone(),
-            data_flow: data_flow.clone(),
         };
 
         tokio::spawn(brain_loop(
@@ -813,24 +816,18 @@ impl SynapseHub {
             .write()
             .unwrap()
             .classify(avg_time, &self.memory);
-        self.scheduler.write().unwrap().enqueue(
+        let (task_id, task_input) = self.scheduler.write().unwrap().enqueue_local(
             queue,
             id.to_string(),
             input.to_string(),
             priority,
             None,
             vec![id.to_string()],
-        );
-
-        let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
-        self.data_flow.send(FlowMessage::Task {
-            id: task_id.clone(),
-            payload: task_input.clone(),
-        });
+        )?;
         let cell = self.registry.get_analysis_cell(&task_id)?;
         let cancel = cancel_token.clone();
 
-        let mut handle = spawn_blocking(move || cell.analyze(&task_input, &cancel));
+        let mut handle = tokio::spawn(async move { cell.analyze(&task_input, &cancel) });
 
         let start = Instant::now();
         let checkpoint_mem = self.memory.clone();
