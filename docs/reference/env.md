@@ -3,6 +3,11 @@ id: NEI-20250915-adaptive-storage-env-docs
 intent: docs
 summary: Обновлено описание CONTEXT_MAX_LINES/CONTEXT_MAX_BYTES: адаптивные лимиты со storage_metrics.json.
 -->
+<!-- neira:meta
+id: NEI-20270210-schema-sync-env
+intent: docs
+summary: Добавлены SCHEMAS_ARCHIVE_URL и SCHEMAS_DIR для автообновления схем.
+-->
 
 <!-- neira:meta
 id: NEI-20250922-analysis-queue-env-docs
@@ -82,6 +87,8 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 | MASK_REGEX                   | string list (;) | —                     | storage masking         | Кастомные regex для маскирования                                                                        |
 | MASK_ROLES                   | string list (,) | user                  | storage masking         | Роли для маскирования                                                                                   |
 | CELL_TEMPLATES_DIR           | string          | ./templates           | spinal_cord init            | Каталог шаблонов клеток (подкаталоги; fallback `NODE_TEMPLATES_DIR`)                                                      |
+| SCHEMAS_ARCHIVE_URL          | string          | —                     | spinal_cord init        | URL архива JSON Schema для синхронизации |
+| SCHEMAS_DIR                  | string          | schemas               | spinal_cord init        | Каталог локальных схем и файла `.last_schema_sync` |
 | CHAT_RATE_LIMIT_PER_MIN      | int             | 120                   | hub rate limit          | Лимит запросов в минуту                                                                                 |
 | CHAT_RATE_KEY                | enum            | auth                  | hub rate limit          | Ключ лимита: auth/chat/session                                                                          |
 | IO_WATCHER_THRESHOLD_MS      | int             | 100                   | nervous probes          | Порог латентности для проб                                                                              |
