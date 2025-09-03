@@ -25,11 +25,11 @@ use tokio::sync::{mpsc::UnboundedReceiver, Mutex};
 use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
+use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::analysis_cell::{AnalysisCell, QualityMetrics};
 use crate::cell_registry::CellRegistry;
-use crate::circulatory_system::FlowMessage;
-use crate::event_bus::{Event, EventBus};
-use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
+use crate::circulatory_system::{DataFlowController, FlowMessage};
+use crate::event_bus::{Event, EventBus, Subscriber};
 use crate::task_scheduler::{Priority, Queue, TaskScheduler};
 
 /* neira:meta
@@ -138,6 +138,29 @@ impl Brain {
                     }
                 }
             }
+        }
+    }
+}
+
+/* neira:meta
+id: NEI-20240930-brain-subscriber
+intent: feat
+summary: Подписчик BrainSubscriber отправляет события в DataFlowController.
+*/
+pub struct BrainSubscriber {
+    flow: Arc<DataFlowController>,
+}
+
+impl BrainSubscriber {
+    pub fn new(flow: Arc<DataFlowController>) -> Self {
+        Self { flow }
+    }
+}
+
+impl Subscriber for BrainSubscriber {
+    fn on_event(&self, event: &dyn Event) {
+        if event.name() != "FlowEvent" {
+            self.flow.send(FlowMessage::Event(event.name().to_string()));
         }
     }
 }

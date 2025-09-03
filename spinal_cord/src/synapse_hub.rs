@@ -86,7 +86,7 @@ use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
 use crate::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
-use crate::brain::Brain;
+use crate::brain::{Brain, BrainSubscriber};
 use crate::cell_registry::CellRegistry;
 use crate::memory_cell::MemoryCell;
 use crate::queue_config::QueueConfig;
@@ -213,6 +213,12 @@ impl SynapseHub {
         let (data_flow, df_rx) = DataFlowController::new();
         let event_bus = EventBus::new();
         event_bus.attach_flow_controller(data_flow.clone());
+        /* neira:meta
+        id: NEI-20240930-brain-subscriber-hook
+        intent: feat
+        summary: Подписывает BrainSubscriber на события EventBus.
+        */
+        event_bus.subscribe(Arc::new(BrainSubscriber::new(data_flow.clone())));
         event_bus.subscribe(Arc::new(NervousSystemSubscriber));
         event_bus.subscribe(Arc::new(ImmuneSystemSubscriber));
 
