@@ -8,10 +8,16 @@ id: NEI-20240709-brain-scheduler-eventbus
 intent: refactor
 summary: Задачи проходят через TaskScheduler, события публикуются в EventBus.
 */
+/* neira:meta
+id: NEI-20240725-brain-local-dispatch
+intent: bugfix
+summary: Задачи ставятся локально и сразу отправляются в клетку анализа без повторной переотправки.
+*/
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 
 use crate::cell_registry::CellRegistry;
@@ -46,14 +52,25 @@ pub async fn brain_loop(
             FlowMessage::Task { id, payload } => {
                 info!(task_id = %id, "получена задача");
                 if registry.get_analysis_cell(&id).is_some() {
-                    scheduler.write().unwrap().enqueue(
-                        Queue::Standard,
-                        id.clone(),
-                        payload,
-                        Priority::Low,
-                        None,
-                        vec![id],
-                    );
+                    if let Some((task_id, input)) = scheduler
+                        .write()
+                        .unwrap()
+                        .enqueue_local(
+                            Queue::Standard,
+                            id.clone(),
+                            payload,
+                            Priority::Low,
+                            None,
+                            vec![id.clone()],
+                        )
+                    {
+                        if let Some(cell) = registry.get_analysis_cell(&task_id) {
+                            let token = CancellationToken::new();
+                            cell.analyze(&input, &token);
+                        } else {
+                            warn!(task_id = %task_id, "клетка не найдена");
+                        }
+                    }
                 } else {
                     warn!(task_id = %id, "клетка не найдена");
                 }
