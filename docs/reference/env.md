@@ -8,6 +8,11 @@ id: NEI-20270210-schema-sync-env
 intent: docs
 summary: Добавлены SCHEMAS_ARCHIVE_URL и SCHEMAS_DIR для автообновления схем.
 -->
+<!-- neira:meta
+id: NEI-20270305-schema-sync-timeout-env
+intent: docs
+summary: Добавлен SCHEMAS_SYNC_TIMEOUT_SECS для таймаута запросов синхронизации схем.
+-->
 
 <!-- neira:meta
 id: NEI-20250922-analysis-queue-env-docs
@@ -89,6 +94,7 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 | CELL_TEMPLATES_DIR           | string          | ./templates           | spinal_cord init            | Каталог шаблонов клеток (подкаталоги; fallback `NODE_TEMPLATES_DIR`)                                                      |
 | SCHEMAS_ARCHIVE_URL          | string          | —                     | spinal_cord init        | URL архива JSON Schema для синхронизации |
 | SCHEMAS_DIR                  | string          | schemas               | spinal_cord init        | Каталог локальных схем и файла `.last_schema_sync` |
+| SCHEMAS_SYNC_TIMEOUT_SECS    | int             | 10                    | spinal_cord init        | Таймаут запросов синхронизации схем (сек) |
 | CHAT_RATE_LIMIT_PER_MIN      | int             | 120                   | hub rate limit          | Лимит запросов в минуту                                                                                 |
 | CHAT_RATE_KEY                | enum            | auth                  | hub rate limit          | Ключ лимита: auth/chat/session                                                                          |
 | IO_WATCHER_THRESHOLD_MS      | int             | 100                   | nervous probes          | Порог латентности для проб                                                                              |
