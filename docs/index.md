@@ -4,6 +4,11 @@ intent: docs
 summary: |
   Автогенерированный список файлов документации.
 -->
+<!-- neira:meta
+id: NEI-20240918-doc-index-brain
+intent: docs
+summary: Добавлена ссылка на описание модуля brain.
+-->
 
 # Документация — оглавление
 
@@ -22,6 +27,7 @@ summary: |
   - [system-lifecycle](design/system-lifecycle.md)
 - system/
   - [analysis-architecture](system/analysis-architecture.md)
+  - [brain](system/brain.md)
   - [governance-structure](system/governance-structure.md)
   - [low-level-toolchain](system/low-level-toolchain.md)
   - [mvp-modules](system/mvp-modules.md)
