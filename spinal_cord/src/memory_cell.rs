@@ -4,6 +4,11 @@ intent: docs
 summary: |
   Хранит результаты анализа и метаданные, поддерживает предзагрузку и приоритизацию.
 */
+/* neira:meta
+id: NEI-20261124-parsed-input-store
+intent: feature
+summary: Добавлен приём распарсенного входа через store_parsed_input.
+*/
 
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
@@ -16,6 +21,7 @@ use tokio::spawn;
 use std::time::Instant;
 
 use crate::analysis_cell::{AnalysisResult, QualityMetrics, ReasoningStep};
+use crate::digestive_pipeline::ParsedInput;
 use crate::task_scheduler::{compute_priority, Priority};
 
 #[derive(Debug, Clone, Default)]
@@ -50,6 +56,7 @@ pub struct MemoryCell {
     records: RwLock<Vec<MemoryRecord>>,
     checkpoints: RwLock<HashMap<String, AnalysisResult>>,
     preload_cache: RwLock<LruCache<String, Vec<MemoryRecord>>>,
+    parsed_inputs: RwLock<Vec<ParsedInput>>,
 }
 
 impl MemoryCell {
@@ -58,6 +65,7 @@ impl MemoryCell {
             records: RwLock::new(Vec::new()),
             checkpoints: RwLock::new(HashMap::new()),
             preload_cache: RwLock::new(LruCache::new(NonZeroUsize::new(128).unwrap())),
+            parsed_inputs: RwLock::new(Vec::new()),
         }
     }
 
@@ -91,6 +99,14 @@ impl MemoryCell {
 
     pub fn records(&self) -> Vec<MemoryRecord> {
         self.records.read().unwrap().clone()
+    }
+
+    pub fn store_parsed_input(&self, input: ParsedInput) {
+        self.parsed_inputs.write().unwrap().push(input);
+    }
+
+    pub fn parsed_inputs(&self) -> Vec<ParsedInput> {
+        self.parsed_inputs.read().unwrap().clone()
     }
 
     pub fn save_checkpoint(&self, id: &str, result: &AnalysisResult) {

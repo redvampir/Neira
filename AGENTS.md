@@ -19,6 +19,11 @@ id: NEI-20260725-digestive-config-doc
 intent: docs
 summary: Описан конфиг DigestivePipeline и переменная DIGESTIVE_CONFIG.
 -->
+<!-- neira:meta
+id: NEI-20261124-memory-storage-doc
+intent: docs
+summary: Указано сохранение распарсенного входа в MemoryCell.
+-->
 
 # Neira Assistant Operating Guide — START HERE
 
@@ -75,6 +80,7 @@ Default Behaviors
 - DigestivePipeline принимает вход в форматах JSON, YAML и XML.
 - Путь к JSON Schema для DigestivePipeline задаётся в `spinal_cord/config/digestive.toml` (ключ `schema_path`),
   можно переопределить переменной `DIGESTIVE_CONFIG`.
+- После успешного парсинга вход сохраняется в MemoryCell через `store_parsed_input`.
 
 Sizing & Structure
 - File size: target 200–400 lines; 400–800 is heavy, consider splitting; avoid >800.
