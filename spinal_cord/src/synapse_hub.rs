@@ -51,6 +51,11 @@ intent: refactor
 summary: Анализ выполняется локально без уведомления brain_loop.
 */
 /* neira:meta
+id: NEI-20240731-brain-loop-deps
+intent: fix
+summary: brain_loop получает ссылки на MemoryCell и MetricsCollector.
+*/
+/* neira:meta
 id: NEI-20250224-blocking-analyze
 intent: fix
 summary: Анализ выполняется в отдельном блокирующем пуле tokio::task.
@@ -260,6 +265,8 @@ impl SynapseHub {
             hub.registry.clone(),
             scheduler.clone(),
             event_bus.clone(),
+            hub.memory.clone(),
+            hub.metrics.clone(),
         ));
 
         // Spawn host metrics polling loop

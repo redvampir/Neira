@@ -3,12 +3,20 @@ use std::sync::{
     Arc, RwLock,
 };
 
+/* neira:meta
+id: NEI-20240725-brain-loop-test
+intent: test
+summary: Проверяет локальную обработку задач и пустоту канала DataFlowController.
+*/
+use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::brain::brain_loop;
 use backend::cell_registry::CellRegistry;
 use backend::circulatory_system::{DataFlowController, FlowMessage};
 use backend::event_bus::{Event, EventBus, Subscriber};
-use backend::task_scheduler::TaskScheduler;
+use backend::memory_cell::MemoryCell;
+use backend::task_scheduler::{Priority, Queue, TaskScheduler};
+use tokio::sync::mpsc::unbounded_channel;
 use tokio_util::sync::CancellationToken;
 
 struct DummyCell {
@@ -53,12 +61,36 @@ async fn brain_loop_schedules_tasks() {
     let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
     let event_bus = EventBus::new();
 
+    let (tx_forward, rx_forward) = unbounded_channel();
+    let (monitor_tx, mut monitor_rx) = unbounded_channel();
+    tokio::spawn(async move {
+        let mut rx = rx;
+        while let Some(msg) = rx.recv().await {
+            let _ = monitor_tx.send(msg.clone());
+            let _ = tx_forward.send(msg);
+        }
+    });
+
+    let memory = Arc::new(MemoryCell::new());
+    let (metrics, _rx_metrics) = MetricsCollectorCell::channel();
+
     tokio::spawn(brain_loop(
-        rx,
+        rx_forward,
         registry.clone(),
         scheduler.clone(),
         event_bus,
+        memory,
+        metrics,
     ));
+
+    scheduler.write().unwrap().enqueue(
+        Queue::Standard,
+        "dummy".into(),
+        "".into(),
+        Priority::Low,
+        None,
+        vec!["dummy".into()],
+    );
 
     flow.send(FlowMessage::Task {
         id: "dummy".into(),
@@ -66,10 +98,12 @@ async fn brain_loop_schedules_tasks() {
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    monitor_rx.try_recv().unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    assert_eq!(counter.load(Ordering::SeqCst), 0);
-    let next = scheduler.write().unwrap().next();
-    assert_eq!(next, Some(("dummy".into(), "".into())));
+    assert_eq!(counter.load(Ordering::SeqCst), 1);
+    assert!(scheduler.write().unwrap().next().is_none());
+    assert!(monitor_rx.try_recv().is_err());
 }
 
 struct DummySubscriber {
@@ -94,7 +128,16 @@ async fn brain_loop_publishes_events() {
         hits: counter.clone(),
     }));
 
-    tokio::spawn(brain_loop(rx, registry, scheduler, event_bus.clone()));
+    let memory = Arc::new(MemoryCell::new());
+    let (metrics, _rx_metrics) = MetricsCollectorCell::channel();
+    tokio::spawn(brain_loop(
+        rx,
+        registry,
+        scheduler,
+        event_bus.clone(),
+        memory,
+        metrics,
+    ));
 
     flow.send(FlowMessage::Event("ping".into()));
 
