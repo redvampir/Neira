@@ -30,11 +30,15 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] } # di
 tracing-appender = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d", package = "tracing-appender" }
 
 serde_yaml = "0.9"
- # neira:meta
- # id: NEI-20260601-digestive-xml-dep
- # intent: chore
- # summary: Добавлена зависимость serde-xml-rs для разбора XML.
-serde-xml-rs = "0.6"
+# neira:meta
+# id: NEI-20260601-digestive-xml-dep
+# intent: chore
+# summary: Добавлена зависимость serde-xml-rs для разбора XML.
+# neira:meta
+# id: NEI-20260710-quick-xml-dep
+# intent: chore
+# summary: Заменена зависимость serde-xml-rs на quick-xml для разбора XML.
+quick-xml = { version = "0.31", features = ["serialize"] }
 notify = { version = "8.2", default-features = false }
 semver = "1"
 metrics-exporter-prometheus = { version = "0.17", default-features = false, features = ["http-listener"] }
