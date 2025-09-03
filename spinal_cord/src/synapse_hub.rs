@@ -35,6 +35,11 @@ id: NEI-20250226-synapse-flow
 intent: feature
 summary: SynapseHub использует DataFlowController для маршрутизации задач и событий.
 */
+/* neira:meta
+id: NEI-20260522-flow-consumer
+intent: fix
+summary: Подписчик DataFlowController сохраняет приёмник и выводит FlowMessage через tracing.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -189,7 +194,12 @@ impl SynapseHub {
 
         let queue_cfg = QueueConfig::new(&memory);
 
-        let (data_flow, _df_rx) = DataFlowController::new();
+        let (data_flow, mut df_rx) = DataFlowController::new();
+        tokio::spawn(async move {
+            while let Some(msg) = df_rx.recv().await {
+                tracing::debug!(?msg, "flow message");
+            }
+        });
         let event_bus = EventBus::new();
         event_bus.attach_flow_controller(data_flow.clone());
         event_bus.subscribe(Arc::new(NervousSystemSubscriber));
