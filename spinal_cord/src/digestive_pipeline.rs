@@ -50,12 +50,18 @@ id: NEI-20270307-digestive-fallback-schema
 intent: feature
 summary: Использован запасной JSON Schema при отсутствии основной.
 */
+/* neira:meta
+id: NEI-20270405-digestive-toxicity-filter
+intent: feature
+summary: Добавлены базовые фильтры токсичных слов перед TriggerDetector.
+*/
 use crate::cell_template::load_schema_from;
 use crate::memory_cell::MemoryCell;
 use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
 use jsonschema_valid::Config;
 use once_cell::sync::{Lazy, OnceCell};
 use quick_xml::de::from_str as from_xml;
+use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
 use serde_yaml;
@@ -99,6 +105,13 @@ static SETTINGS_CACHE: Lazy<Mutex<Option<DigestiveSettings>>> = Lazy::new(|| Mut
 
 static MEMORY: OnceCell<Arc<MemoryCell>> = OnceCell::new();
 
+static TOXIC_PATTERNS: Lazy<Vec<Regex>> = Lazy::new(|| {
+    vec![
+        Regex::new("(?i)идиот").unwrap(),
+        Regex::new("(?i)дурак").unwrap(),
+    ]
+});
+
 #[cfg(test)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -128,25 +141,28 @@ impl DigestivePipeline {
     pub fn ingest(raw_input: &str) -> Result<ParsedInput, PipelineError> {
         debug!("ingest input: {raw_input}");
         let start = Instant::now();
-        let parsed = if let Ok(json) = serde_json::from_str::<Value>(raw_input) {
+        let parsed = if let Ok(mut json) = serde_json::from_str::<Value>(raw_input) {
             info!("detected json input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
+            sanitize_value(&mut json);
             validate(&json)?;
             ParsedInput::Json(json)
-        } else if let Ok(yaml) = serde_yaml::from_str::<Value>(raw_input) {
+        } else if let Ok(mut yaml) = serde_yaml::from_str::<Value>(raw_input) {
             info!("detected yaml input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
+            sanitize_value(&mut yaml);
             validate(&yaml)?;
             ParsedInput::Json(yaml)
-        } else if let Ok(xml) = from_xml::<Value>(raw_input) {
+        } else if let Ok(mut xml) = from_xml::<Value>(raw_input) {
             info!("detected xml input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
+            sanitize_value(&mut xml);
             validate(&xml)?;
             ParsedInput::Json(xml)
         } else {
             warn!("unknown input format, treating as text");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
-            ParsedInput::Text(raw_input.to_string())
+            ParsedInput::Text(sanitize_text(raw_input))
         };
         if let Some(mem) = MEMORY.get() {
             mem.store_parsed_input(parsed.clone());
@@ -154,10 +170,41 @@ impl DigestivePipeline {
         Ok(parsed)
     }
 
+    pub fn sanitize(raw: &str) -> String {
+        sanitize_text(raw)
+    }
+
     /// Сбрасывает внутренние кэши схем и настроек.
     pub fn reset_cache() {
         SCHEMA_CACHE.lock().unwrap().clear();
         SETTINGS_CACHE.lock().unwrap().take();
+    }
+}
+
+fn sanitize_text(text: &str) -> String {
+    let mut result = text.to_string();
+    for re in TOXIC_PATTERNS.iter() {
+        result = re.replace_all(&result, "[censored]").into_owned();
+    }
+    result
+}
+
+fn sanitize_value(value: &mut Value) {
+    match value {
+        Value::String(s) => {
+            *s = sanitize_text(s);
+        }
+        Value::Array(arr) => {
+            for v in arr {
+                sanitize_value(v);
+            }
+        }
+        Value::Object(map) => {
+            for v in map.values_mut() {
+                sanitize_value(v);
+            }
+        }
+        _ => {}
     }
 }
 
