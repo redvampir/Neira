@@ -22,7 +22,6 @@ async function walk(dir, depth = 0) {
   const lines = [];
   for (const entry of entries) {
     if (entry.name === "index.md") continue;
-    if (entry.name === "backend.md") continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       lines.push(`${"  ".repeat(depth)}- ${entry.name}/`);
@@ -75,9 +74,8 @@ const groups = [
   {
     title: "Reference",
     entries: [
-      "api",
-      { title: "spinal_cord-api", path: "api/spinal_cord.md" },
-      "pathways.md",
+        "api",
+        "pathways.md",
       "meta",
       "reference",
     ],
