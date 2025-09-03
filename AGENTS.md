@@ -14,6 +14,11 @@ id: NEI-20260601-digestive-formats-doc
 intent: docs
 summary: Уточнены поддерживаемые форматы входа: JSON, YAML и XML.
 -->
+<!-- neira:meta
+id: NEI-20260725-digestive-config-doc
+intent: docs
+summary: Описан конфиг DigestivePipeline и переменная DIGESTIVE_CONFIG.
+-->
 
 # Neira Assistant Operating Guide — START HERE
 
@@ -68,6 +73,8 @@ Default Behaviors
 - Validate with cargo/test/lint where available.
 - Never delete data or secrets; never hard-code secrets.
 - DigestivePipeline принимает вход в форматах JSON, YAML и XML.
+- Путь к JSON Schema для DigestivePipeline задаётся в `spinal_cord/config/digestive.toml` (ключ `schema_path`),
+  можно переопределить переменной `DIGESTIVE_CONFIG`.
 
 Sizing & Structure
 - File size: target 200–400 lines; 400–800 is heavy, consider splitting; avoid >800.
