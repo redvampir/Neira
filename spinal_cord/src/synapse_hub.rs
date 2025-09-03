@@ -30,11 +30,17 @@ id: NEI-20240607-probe-stop
 intent: feature
 summary: SynapseHub хранит токены проб и останавливает их при завершении работы.
 */
+/* neira:meta
+id: NEI-20250226-synapse-flow
+intent: feature
+summary: SynapseHub использует DataFlowController для маршрутизации задач и событий.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use crate::action::diagnostics_cell::DiagnosticsCell;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
+use crate::circulatory_system::{DataFlowController, FlowMessage};
 use crate::config::Config;
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::event_bus::{CellCreated, EventBus, OrganBuilt};
@@ -113,6 +119,7 @@ pub struct SynapseHub {
     factory: Arc<StemCellFactory>,
     organ_builder: Arc<OrganBuilder>,
     event_bus: Arc<EventBus>,
+    data_flow: Arc<DataFlowController>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -182,16 +189,21 @@ impl SynapseHub {
 
         let queue_cfg = QueueConfig::new(&memory);
 
+        let (data_flow, _df_rx) = DataFlowController::new();
         let event_bus = EventBus::new();
+        event_bus.attach_flow_controller(data_flow.clone());
         event_bus.subscribe(Arc::new(NervousSystemSubscriber));
         event_bus.subscribe(Arc::new(ImmuneSystemSubscriber));
+
+        let mut scheduler = TaskScheduler::default();
+        scheduler.set_flow_controller(data_flow.clone());
 
         let hub = Self {
             registry,
             memory,
             metrics: metrics.clone(),
             trigger_detector: Arc::new(TriggerDetector::default()),
-            scheduler: RwLock::new(TaskScheduler::default()),
+            scheduler: RwLock::new(scheduler),
             queue_cfg: RwLock::new(queue_cfg),
             allowed_tokens: RwLock::new(std::collections::HashMap::new()),
             rate: RwLock::new(std::collections::HashMap::new()),
@@ -218,6 +230,7 @@ impl SynapseHub {
             factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
             event_bus,
+            data_flow,
         };
 
         // Spawn host metrics polling loop
@@ -789,6 +802,10 @@ impl SynapseHub {
         );
 
         let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
+        self.data_flow.send(FlowMessage::Task {
+            id: task_id.clone(),
+            payload: task_input.clone(),
+        });
         let cell = self.registry.get_analysis_cell(&task_id)?;
         let cancel = cancel_token.clone();
 

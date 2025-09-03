@@ -4,13 +4,20 @@ intent: docs
 summary: |
   Планировщик задач с очередями по длительности и приоритетам.
 */
+/* neira:meta
+id: NEI-20250226-task-flow
+intent: feature
+summary: Планировщик отправляет задачи через DataFlowController.
+*/
 
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::time::Instant;
 
 use crate::analysis_cell::QualityMetrics;
+use crate::circulatory_system::{DataFlowController, FlowMessage};
 use crate::memory_cell::UsageStats;
+use std::sync::Arc;
 
 /// Очередь выполнения в зависимости от ожидаемой длительности задачи
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -100,6 +107,7 @@ pub struct TaskScheduler {
     standard: BinaryHeap<ScheduledTask>,
     long: BinaryHeap<ScheduledTask>,
     pub config: SchedulerConfig,
+    flow: Option<Arc<DataFlowController>>,
 }
 
 impl TaskScheduler {
@@ -113,6 +121,8 @@ impl TaskScheduler {
         timeout_ms: Option<u64>,
         cells: Vec<String>,
     ) {
+        let id_send = id.clone();
+        let input_send = input.clone();
         let task = ScheduledTask {
             priority,
             id,
@@ -126,6 +136,12 @@ impl TaskScheduler {
             Queue::Fast => self.fast.push(task),
             Queue::Standard => self.standard.push(task),
             Queue::Long => self.long.push(task),
+        }
+        if let Some(flow) = &self.flow {
+            flow.send(FlowMessage::Task {
+                id: id_send,
+                payload: input_send,
+            });
         }
     }
 
@@ -143,6 +159,11 @@ impl TaskScheduler {
     ) {
         let priority = compute_priority(&metrics, &stats);
         self.enqueue(queue, id, input, priority, timeout_ms, cells);
+    }
+
+    /// Назначение контроллера потоков данных
+    pub fn set_flow_controller(&mut self, flow: Arc<DataFlowController>) {
+        self.flow = Some(flow);
     }
 
     /// Возвращает длины очередей (fast, standard, long) для оценки backpressure
