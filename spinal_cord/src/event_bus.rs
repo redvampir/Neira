@@ -9,6 +9,11 @@ id: NEI-20250226-event-bus-flow
 intent: feature
 summary: Публикация событий транслируется через DataFlowController.
 */
+/* neira:meta
+id: NEI-20240728-event-bus-local-publish
+intent: feature
+summary: Добавлен метод локальной публикации без пересылки события в DataFlowController.
+*/
 use crate::circulatory_system::{DataFlowController, FlowMessage};
 use std::any::Any;
 use std::sync::{Arc, RwLock};
@@ -45,10 +50,14 @@ impl EventBus {
         self.subscribers.write().unwrap().push(sub);
     }
 
-    pub fn publish(&self, event: &dyn Event) {
+    pub fn publish_local(&self, event: &dyn Event) {
         for sub in self.subscribers.read().unwrap().iter() {
             sub.on_event(event);
         }
+    }
+
+    pub fn publish(&self, event: &dyn Event) {
+        self.publish_local(event);
         if let Some(flow) = &*self.flow.read().unwrap() {
             flow.send(FlowMessage::Event(event.name().to_string()));
         }

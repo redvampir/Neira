@@ -13,6 +13,11 @@ id: NEI-20240725-brain-local-dispatch
 intent: bugfix
 summary: Задачи ставятся локально и сразу отправляются в клетку анализа без повторной переотправки.
 */
+/* neira:meta
+id: NEI-20240728-brain-loop-local-event
+intent: bugfix
+summary: События из DataFlowController публикуются локально без повторной отправки.
+*/
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
@@ -47,7 +52,7 @@ pub async fn brain_loop(
                     }
                 }
                 let event = BusEvent(ev);
-                event_bus.publish(&event);
+                event_bus.publish_local(&event);
             }
             FlowMessage::Task { id, payload } => {
                 info!(task_id = %id, "получена задача");
