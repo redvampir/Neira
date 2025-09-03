@@ -6,6 +6,12 @@ summary: Экспортирован модуль immune_system.
 #![cfg_attr(test, allow(clippy::type_complexity))]
 pub mod action;
 pub mod action_cell;
+/* neira:meta
+id: NEI-20270520-lib-action-engine-export
+intent: code
+summary: Экспортирован модуль action_engine.
+*/
+pub mod action_engine;
 pub mod analysis_cell;
 pub mod cell_registry;
 pub mod cell_template;
@@ -38,8 +44,8 @@ id: NEI-20261005-time-metrics-export
 intent: code
 summary: Экспортирован модуль time_metrics.
 */
-pub mod time_metrics;
 pub mod nervous_system;
+pub mod time_metrics;
 /* neira:meta
 id: NEI-20250226-circulatory-export
 intent: code
