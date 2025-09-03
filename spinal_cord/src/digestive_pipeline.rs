@@ -45,6 +45,11 @@ id: NEI-20261124-digestive-memory-store
 intent: feature
 summary: После парсинга вход сохраняется в MemoryCell.
 */
+/* neira:meta
+id: NEI-20270307-digestive-fallback-schema
+intent: feature
+summary: Использован запасной JSON Schema при отсутствии основной.
+*/
 use crate::cell_template::load_schema_from;
 use crate::memory_cell::MemoryCell;
 use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
@@ -188,8 +193,20 @@ fn default_schema() -> Result<Arc<Config<'static>>, String> {
             parsed
         }
     };
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(settings.schema_path);
-    load_schema_cached(&path)
+    let base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let main_path = base_dir.join(&settings.schema_path);
+    let schema_path = if main_path.exists() {
+        main_path
+    } else {
+        let fallback = base_dir.join("../schemas/default.schema.json");
+        warn!(
+            "schema not found at {}, falling back to {}",
+            main_path.display(),
+            fallback.display()
+        );
+        fallback
+    };
+    load_schema_cached(&schema_path)
 }
 
 fn load_schema_cached(path: &Path) -> Result<Arc<Config<'static>>, String> {
@@ -208,6 +225,7 @@ mod tests {
     use super::*;
     use serial_test::serial;
     use std::fs;
+    use std::path::PathBuf;
     use std::sync::atomic::Ordering;
     use tempfile::tempdir;
 
@@ -232,6 +250,30 @@ mod tests {
         super::default_schema().unwrap();
         super::default_schema().unwrap();
         assert_eq!(CONFIG_READS.load(Ordering::Relaxed), 1);
+
+        std::env::remove_var("DIGESTIVE_CONFIG");
+        DigestivePipeline::reset_cache();
+    }
+
+    #[test]
+    #[serial]
+    fn uses_fallback_schema_when_main_missing() {
+        DigestivePipeline::reset_cache();
+
+        let dir = tempdir().unwrap();
+        let cfg_path = dir.path().join("digestive.toml");
+        fs::write(&cfg_path, "schema_path = \"missing.json\"").unwrap();
+
+        std::env::set_var("DIGESTIVE_CONFIG", cfg_path.to_str().unwrap());
+        super::default_schema().expect("fallback schema loads");
+
+        let cache = SCHEMA_CACHE.lock().unwrap();
+        let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let main = base.join("missing.json");
+        let fallback = base.join("../schemas/default.schema.json");
+        assert!(cache.contains_key(&fallback));
+        assert!(!cache.contains_key(&main));
+        drop(cache);
 
         std::env::remove_var("DIGESTIVE_CONFIG");
         DigestivePipeline::reset_cache();
