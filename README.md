@@ -95,6 +95,26 @@ summary: Добавлен раздел о DataFlowController и связи ор�
 Так обеспечивается единая циркуляция данных: органы сообщают о событиях,
 мозг принимает решения и возвращает команды обратно в систему.
 
+<!-- neira:meta
+id: NEI-20270223-readme-digestive-overview
+intent: docs
+summary: Кратко описан DigestivePipeline и пример использования.
+-->
+
+### DigestivePipeline — нормализация входа
+
+`DigestivePipeline` принимает сырой текст в форматах JSON, YAML или XML,
+проверяет его по JSON Schema из `spinal_cord/config/digestive.toml`
+(переопределяется переменной `DIGESTIVE_CONFIG`) и сохраняет результат в
+`MemoryCell`. Использование:
+
+```rust
+use backend::digestive_pipeline::DigestivePipeline;
+
+DigestivePipeline::init().expect("digestive config");
+let parsed = DigestivePipeline::ingest(raw)?; // ParsedInput
+```
+
 Пример отключения мониторинга в `.env`:
 
 ```
