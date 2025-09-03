@@ -8,7 +8,13 @@ id: NEI-20260920-digestive-log-test
 intent: test
 summary: Проверяет запись лога при ошибке валидации.
 */
+/* neira:meta
+id: NEI-20261005-digestive-log-serial
+intent: test
+summary: Тест логов выполняется последовательно для изоляции метрик.
+*/
 use backend::digestive_pipeline::{DigestivePipeline, ParsedInput, PipelineError};
+use serial_test::serial;
 use std::sync::{Arc, Mutex};
 
 #[test]
@@ -29,6 +35,7 @@ fn parses_xml_input() {
 }
 
 #[test]
+#[serial]
 fn logs_validation_failure() {
     struct BufWriter {
         buf: Arc<Mutex<Vec<u8>>>,
@@ -45,6 +52,7 @@ fn logs_validation_failure() {
 
     let buf = Arc::new(Mutex::new(Vec::new()));
     let subscriber = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::WARN)
         .with_writer({
             let buf = buf.clone();
             move || BufWriter { buf: buf.clone() }

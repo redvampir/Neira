@@ -19,6 +19,10 @@
 # id: NEI-20260920-add-tracing-deps
 # intent: chore
 # summary: Добавлены зависимости tracing и tracing-subscriber для тестового логирования.
+# neira:meta
+# id: NEI-20261005-serial-test-dep
+# intent: chore
+# summary: Добавлена dev-зависимость serial_test для последовательных тестов.
 
 [package]
 name = "neira"
@@ -42,6 +46,7 @@ tokio = { version = "1", features = ["full"] }
 metrics-exporter-prometheus = { version = "0.17", default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+serial_test = "3"
 
 [package.metadata]
 rustflags = ["-Dwarnings"]

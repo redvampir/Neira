@@ -33,6 +33,12 @@ intent: code
 summary: Экспортирован модуль digestive_pipeline.
 */
 pub mod digestive_pipeline;
+/* neira:meta
+id: NEI-20261005-time-metrics-export
+intent: code
+summary: Экспортирован модуль time_metrics.
+*/
+pub mod time_metrics;
 pub mod nervous_system;
 /* neira:meta
 id: NEI-20250226-circulatory-export
