@@ -22,6 +22,7 @@ async function walk(dir, depth = 0) {
   const lines = [];
   for (const entry of entries) {
     if (entry.name === "index.md") continue;
+    if (entry.name === "backend.md") continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       lines.push(`${"  ".repeat(depth)}- ${entry.name}/`);
@@ -38,14 +39,15 @@ async function walk(dir, depth = 0) {
 async function section(entries) {
   const lines = [];
   for (const entry of entries) {
-    const full = path.join(DOCS_DIR, entry);
+    const item = typeof entry === "string" ? { path: entry } : entry;
+    const full = path.join(DOCS_DIR, item.path);
     const stat = await fs.stat(full);
     if (stat.isDirectory()) {
-      lines.push(`- ${entry}/`);
+      lines.push(`- ${item.path}/`);
       lines.push(...(await walk(full, 1)));
-    } else if (stat.isFile() && entry.endsWith(".md")) {
-      const title = entry.replace(/\.md$/, "");
-      lines.push(`- [${title}](${entry})`);
+    } else if (stat.isFile() && item.path.endsWith(".md")) {
+      const title = item.title || path.basename(item.path, ".md");
+      lines.push(`- [${title}](${item.path})`);
     }
   }
   return lines.join("\n");
@@ -72,7 +74,13 @@ const groups = [
   },
   {
     title: "Reference",
-    entries: ["api", "backend-api.md", "pathways.md", "meta", "reference"],
+    entries: [
+      "api",
+      { title: "spinal_cord-api", path: "api/spinal_cord.md" },
+      "pathways.md",
+      "meta",
+      "reference",
+    ],
   },
   {
     title: "Legacy",

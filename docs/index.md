@@ -1,35 +1,18 @@
 <!-- neira:meta
-id: NEI-20250902-101341-doc-map
+id: NEI-20250902-212549-doc-map
 intent: docs
 summary: |
   Автогенерированный список файлов документации.
--->
-<!-- neira:meta
-id: NEI-20250316-stemcell-rename
-intent: docs
-summary: Обновлён заголовок для stem-cell-factory.
--->
-<!-- neira:meta
-id: NEI-20240517-120002-index-integration-selfheal
-intent: docs
-summary: |
-  Добавлены разделы про интеграцию с Nervous/Immune и самовосстановление.
--->
-<!-- neira:meta
-id: NEI-20260413-index-components-rename
-intent: docs
-summary: Заменены backend/frontend на spinal_cord/sensory_organs.
 -->
 
 # Документация — оглавление
 
 ## Системы (органы)
-
 - [README](README.md)
 - [immune_system](immune_system.md)
 - design/
   - [anti-idle-system](design/anti-idle-system.md)
-  - [stem-cell-factory](design/factory-system.md)
+  - [factory-system](design/factory-system.md)
   - [homeostasis](design/homeostasis.md)
   - [nervous_system](design/nervous_system.md)
   - [organ-systems](design/organ-systems.md)
@@ -45,11 +28,9 @@ summary: Заменены backend/frontend на spinal_cord/sensory_organs.
   - [self-updating-system](system/self-updating-system.md)
   - [source-policy](system/source-policy.md)
   - [support-systems](system/support-systems.md)
-  - [SynapseHub](system/support-systems.md#synapsehub)
 - [roadmap](roadmap.md)
 
 ## Клеточные уровни
-
 - [cell-ids](cell-ids.md)
 - [metrics_cells](metrics_cells.md)
 - cells/
@@ -62,7 +43,6 @@ summary: Заменены backend/frontend на spinal_cord/sensory_organs.
   - [memory-cells](cells/memory-cells.md)
 
 ## Guides
-
 - examples/
   - [curl](examples/curl.md)
 - guides/
@@ -77,12 +57,11 @@ summary: Заменены backend/frontend на spinal_cord/sensory_organs.
   - [web-interface](guides/web-interface.md)
 
 ## Reference
-
 - api/
-  - [spinal_cord](api/backend.md)
   - [chat](api/chat.md)
   - [factory](api/factory.md)
-- [spinal_cord API](api/spinal_cord.md)
+  - [spinal_cord](api/spinal_cord.md)
+- [spinal_cord-api](api/spinal_cord.md)
 - [pathways](pathways.md)
 - meta/
   - [biology-glossary](meta/biology-glossary.md)
@@ -103,20 +82,7 @@ summary: Заменены backend/frontend на spinal_cord/sensory_organs.
   - [persona-metrics](reference/persona-metrics.md)
   - [ports](reference/ports.md)
 
-## Интеграция с Нервной и Иммунной системами
-
-- [nervous_system](design/nervous_system.md)
-- [immune_system](immune_system.md)
-- [factory-system: интеграция](design/factory-system.md#интеграция-с-нервной-и-иммунной-системами)
-
-## Самовосстановление
-
-- [state-and-recovery](design/state-and-recovery.md)
-- [factory-system: самовосстановление](design/factory-system.md#самовосстановление)
-- [self-updating-system](system/self-updating-system.md)
-
 ## Legacy
-
 - legacy/
   - [deployment](legacy/deployment.md)
   - [testing](legacy/testing.md)
