@@ -3,6 +3,9 @@ id: NEI-20250904-121200-gen-id
 intent: chore
 summary: Добавлен генератор идентификаторов NEI-YYYYMMDD-HHMMSS-<slug> (UTC).
 */
+/* eslint-env node */
+
+/* global console, process */
 
 import crypto from 'node:crypto';
 
