@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250915-adaptive-storage-env-docs
+id: NEI-20250904-120600-adaptive-storage-env-docs
 intent: docs
 summary: Обновлено описание CONTEXT_MAX_LINES/CONTEXT_MAX_BYTES: адаптивные лимиты со storage_metrics.json.
 -->

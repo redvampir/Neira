@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "rangeStrategy": "auto",
+  "packageRules": [
+    {
+      "description": "Allow only minor/patch for Cargo and NPM",
+      "matchDatasources": ["cargo", "npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "enabled": true
+    },
+    {
+      "description": "Do not propose majors by default",
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
+}

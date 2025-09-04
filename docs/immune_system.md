@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250330-immune-metrics-doc
+id: NEI-20250904-120810-immune-metrics-doc
 intent: docs
 summary: добавлен раздел с метриками иммунной системы.
 -->

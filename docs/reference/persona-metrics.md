@@ -1,5 +1,5 @@
-<!-- neira:meta
-id: NEI-20250830-Persona-Metrics
+﻿<!-- neira:meta
+id: NEI-20250904-120940-persona-metrics
 intent: docs
 summary: |
   Метрики личности: дрейф, соответствие стилю, переключения ролей и артефакты рефлексии. Привязка к Stage 0/1 и CAPABILITIES.
@@ -26,3 +26,4 @@ Stage и связи
 - Дорожная карта: docs/roadmap.md
 - Ядро личности: docs/meta/persona-kernel.md
 - Способности/флаги: CAPABILITIES.md
+

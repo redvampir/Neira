@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250923-taxonomy
+id: NEI-20250904-120650-taxonomy
 intent: docs
 summary: Консистентная таксономия терминов и соглашения по именованию/версиям.
 -->

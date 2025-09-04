@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250830-Homeostasis-Adaptive-Control
+id: NEI-20250904-120850-homeostasis-adaptive-control
 intent: docs
 summary: |
   Контур гомеостаза и адаптивного управления: автоподстройка лимитов под железо/нагрузку/политики, сторожевые таймеры и контроль владельца (pause/resume/kill + snapshot/trace). Гейтинг через capabilities.
@@ -69,4 +69,3 @@ ENV (см. docs/reference/env.md)
 
 
 . : design/anti-idle-system.md, design/nervous_system.md
-

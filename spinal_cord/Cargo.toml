@@ -1,3 +1,8 @@
+# neira:meta
+# id: NEI-20250904-deps-dedupe-adjust
+# intent: chore
+# summary: Зафиксирован tokio 1.47.1; удалены патчи windows-*/wasi для устранения дублей в дереве зависимостей.
+
 [package]
 name = "backend"
 version = "0.1.0"
@@ -12,7 +17,7 @@ edition = "2021"
 # summary: |
 #   Обновлен axum до 0.8 и добавлен tokio-tungstenite 0.27 для WebSocket API.
 axum = { git = "https://github.com/tokio-rs/axum", rev = "ee1519c82f60fc3a14890d34c66581b9737df150", features = ["ws"] }
-tokio = { version = "1.48", features = ["macros", "rt-multi-thread", "sync", "io-util", "net", "time", "fs", "signal", "process"] }
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "sync", "io-util", "net", "time", "fs", "signal", "process"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dotenvy = "0.15"
@@ -91,12 +96,7 @@ tracing = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c1273
 tracing-core = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d" }
 tracing-subscriber = { git = "https://github.com/tokio-rs/tracing", rev = "f71cebe41e4c12735b1d19ca804428d4ff7d905d" }
 jsonschema-valid = { path = "../patches/jsonschema-valid" }
-windows-sys = { git = "https://github.com/microsoft/windows-rs", tag = "0.60.0", package = "windows-sys" }
-windows-core = { git = "https://github.com/microsoft/windows-rs", tag = "0.61.0", package = "windows-core" }
-windows-targets = { git = "https://github.com/microsoft/windows-rs", tag = "0.53.0", package = "windows-targets" }
-wasi = { git = "https://github.com/bytecodealliance/wasi-rs", tag = "0.14.3" }
 
 [[bin]]
 name = "generate_cell"
 path = "src/bin/generate_cell.rs"
-

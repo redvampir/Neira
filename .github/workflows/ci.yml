@@ -38,16 +38,29 @@ jobs:
       CELL_TEMPLATES_DIR: ./templates
     steps:
       - uses: actions/checkout@v5
+      - name: Fetch main for diff
+        run: git fetch --no-tags --depth=50 origin +refs/heads/main:refs/remotes/origin/main
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - uses: dtolnay/rust-toolchain@stable
       - name: Validate Cargo files
         run: cargo metadata --locked --format-version 1
+      # neira:meta
+      # id: NEI-20250904-ci-cargo-deny-bans
+      # intent: ci
+      # summary: Добавлен шаг cargo-deny (bans) для запрета множественных версий с allowlist Windows/WASI.
+      - name: Cargo deny (bans)
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans
       - name: Install dependencies
         run: |
           npm ci
           npm ci --prefix sensory_organs
+      - name: Check neira:meta coverage (strict)
+        run: |
+          node scripts/check-meta.mjs --since origin/main --strict --report github --out meta-report.json
       - name: Check duplicate crates
         run: scripts/check-duplicates.sh
       - name: Lint
@@ -64,3 +77,63 @@ jobs:
         run: npm test --prefix sensory_organs
       - name: Test root
         run: npm test
+      - name: Comment neira:meta coverage on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'meta-report.json';
+            if (!fs.existsSync(path)) {
+              core.info('No meta-report.json found');
+              return;
+            }
+            const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const header = '### neira:meta coverage report';
+            const body = [
+              header,
+              '',
+              `Checked files: ${report.total}`,
+              `Missing: ${report.missing.length} | Invalid: ${report.invalid.length}`,
+              '',
+              report.missing.length ? ('Missing blocks:\n' + report.missing.map(f => `- ${f}`).join('\n')) : '',
+              report.invalid.length ? ('Invalid blocks:\n' + report.invalid.map(it => `- ${it.file}: ${it.errors.join(', ')}`).join('\n')) : '',
+            ].filter(Boolean).join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const existing = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const prev = existing.data.find(c => c.user.type === 'Bot' && c.body && c.body.startsWith(header));
+            if (prev) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  # neira:meta
+  # id: NEI-20250904-ci-dependency-hygiene
+  # intent: ci
+  # summary: Добавлен отдельный job Dependency Hygiene: cargo tree -d, скрипты дублей (Linux/Windows), cargo-deny.
+  dependency-hygiene:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Cargo metadata (locked)
+        run: cargo metadata --locked --format-version 1
+      - name: Cargo tree (duplicates overview)
+        run: cargo tree -d --target all || true
+      - name: Check duplicate crates (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: scripts/check-duplicates.sh
+      - name: Check duplicate crates (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: ./scripts/check-duplicates.ps1
+      - name: Cargo deny (bans)
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans

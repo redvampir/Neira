@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250831-curl-examples
+id: NEI-20250904-120640-curl-examples
 intent: docs
 summary: Добавлено упоминание смены порта через NEIRA_BIND_ADDR.
 -->
@@ -46,4 +46,3 @@ curl -sS -X POST http://127.0.0.1:3000/api/neira/context/masking \
 - «Покажи статус способностей» — список гейтов
 - «Разблокируй {capability}» — включение
 - «Заблокируй {capability}» — выключение
-

@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250830-Roadmap-Cleanup
+id: NEI-20250904-120501-roadmap-cleanup
 intent: docs
 summary: Чистовая дорожная карта Stage 0 → Stage 1: цели, DoD, интерфейсы, homeostasis/control, persona. Актуализированы ссылки и гейты. -->
 

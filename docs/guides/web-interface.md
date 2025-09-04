@@ -1,7 +1,7 @@
 # Веб-интерфейс обучения Neira
 
 <!-- neira:meta
-id: NEI-20250305-web-interface-cell-registry
+id: NEI-20250904-120910-web-interface-cell-registry
 intent: docs
 summary: Добавлен пример регистрации клеток через CellRegistry.
 -->

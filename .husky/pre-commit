@@ -5,6 +5,7 @@
 # summary: Обновлён путь к spinal_cord в cargo test.
 set -e
 
+node scripts/check-meta.mjs --staged
 npm run lint
 npm test
 cargo metadata --locked

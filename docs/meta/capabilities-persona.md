@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250830-Persona-Capabilities
+id: NEI-20250904-120900-persona-capabilities
 intent: docs
 summary: |
   Перечень capability‑флагов личности и творческих студий с описанием, рисками, safeguards и откатами. Дополнение к CAPABILITIES.md.

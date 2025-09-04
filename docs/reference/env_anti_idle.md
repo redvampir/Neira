@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250923-env-anti-idle
+id: NEI-20250904-120920-env-anti-idle
 intent: docs
 summary: Добавлен флаг ANTI_IDLE_ENABLED и его описание (addendum к ENV).
 -->

@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20251010-organ-builder-metrics
+id: NEI-20250904-120610-organ-builder-metrics
 intent: docs
 summary: добавлена метрика organ_build_duration_ms и статусные запросы.
 -->

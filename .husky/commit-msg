@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# neira:meta
+# id: NEI-20250904-120230-husky-commit-msg
+# intent: chore
+# summary: Добавлен хук для проверки Conventional Commits.
+set -e
+
+node scripts/check-commit-msg.mjs "$1"
+

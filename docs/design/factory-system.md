@@ -1,6 +1,6 @@
 <!-- neira:meta
-id: NEI-20250923-factory-system-design
-intent: design
+id: NEI-20250904-120510-factory-system-design
+intent: docs
 summary: |
   Каркас системы Фабрикаторов: FabricatorCell/SelectorCell, жизненный цикл клеток (Draft→Canary→Experimental→Stable), интеграции с Nervous/Immune, HITL‑обучение и органы.
 -->

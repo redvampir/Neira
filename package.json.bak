@@ -13,12 +13,8 @@
                     "check-examples:watch":  "node scripts/validate-examples.mjs --watch",
                     "generate-cell-docs":  "node scripts/generate-cell-docs.mjs",
                     "gen-doc-map":  "node scripts/gen-doc-map.mjs",
-                    "meta:check":  "node scripts/check-meta.mjs --since origin/main",
-                    "meta:check:staged":  "node scripts/check-meta.mjs --staged",
-                    "meta:check:strict":  "node scripts/check-meta.mjs --since origin/main --strict",
-                    "meta:normalize": "node scripts/normalize-meta.mjs --scope docs",
-                    "meta:normalize:write": "node scripts/normalize-meta.mjs --scope docs --write --add-missing",
-                    "meta:id": "node scripts/gen-neira-id.mjs"
+                    "meta:check": "node scripts/check-meta.mjs --since origin/main",
+                    "meta:check:staged": "node scripts/check-meta.mjs --staged"
                 },
     "devDependencies":  {
                             "@types/jest":  "^29.5.11",
@@ -33,8 +29,7 @@
                             "prettier":  "^3.6.2",
                             "ts-jest":  "^29.1.1",
                             "typescript":  "^5.4.0",
-                            "typescript-eslint":  "^8.41.0",
-                            "yaml": "^2.8.0"
+                            "typescript-eslint":  "^8.41.0"
                         },
     "overrides":  {
                       "p-limit":  "^2.3.0",
@@ -71,3 +66,4 @@
                                                ]
                     }
 }
+

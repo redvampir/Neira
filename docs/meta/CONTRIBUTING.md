@@ -1,7 +1,7 @@
 # Руководство по внесению вкладов
 
 <!-- neira:meta
-id: NEI-20250305-contrib-cell-runtime
+id: NEI-20250904-121100-contrib-cell-runtime
 intent: docs
 summary: Уточнено, что используется Cell runtime (Node.js 20 LTS).
 -->
@@ -49,4 +49,3 @@ cargo test
 ```
 
 Файлы в коммите автоматически форматируются с помощью lint-staged.
-

@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250923-factory-api-draft
+id: NEI-20250904-120630-factory-api-draft
 intent: docs
 summary: Черновой API Фабрикаторов (dry‑run/approve/rollback) и сборки органов.
 -->

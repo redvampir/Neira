@@ -1,7 +1,7 @@
 # Развертывание Neira
 
 <!-- neira:meta
-id: NEI-20250305-deploy-runtime-term
+id: NEI-20250904-120620-deploy-runtime-term
 intent: docs
 summary: Замена упоминаний Node.js на Cell.js runtime.
 -->

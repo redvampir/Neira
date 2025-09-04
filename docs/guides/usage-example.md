@@ -1,7 +1,7 @@
 # Пример использования
 
 <!-- neira:meta
-id: NEI-20250305-usage-cell-registry
+id: NEI-20250904-120950-usage-cell-registry
 intent: docs
 summary: Добавлен пример с CellRegistry и уточнён runtime.
 -->

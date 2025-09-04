@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20270223-digestive-diagram
+id: NEI-20250904-120800-digestive-diagram
 intent: docs
 summary: Добавлена диаграмма потока данных DigestivePipeline.
 -->

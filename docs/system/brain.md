@@ -1,7 +1,7 @@
 # Мозг (brain)
 
 <!-- neira:meta
-id: NEI-20240918-brain-doc
+id: NEI-20250904-120720-brain-doc
 intent: docs
 summary: Описана структура мозга и взаимодействие с DataFlow, EventBus и TaskScheduler.
 -->

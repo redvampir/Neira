@@ -1,3 +1,10 @@
+﻿<!-- neira:meta
+id: NEI-20250904-121030-organ-systems-doc
+intent: docs
+summary: |
+  Добавлен первичный neira:meta блок (без изменения содержания документа).
+-->
+
 # Organ Systems (Сенсоры/Эффекторы) для Нейры
 
 Идея: собрать «органы» как связки клеток (sensors → processing → policy → actuators), с жёсткими гейтами, безопасными дефолтами и прозрачным аудитом.
@@ -162,3 +169,4 @@
 - Управление: CAPABILITIES `organs_builder=experimental`, approve/rollback, журнал (JOURNALING).
 
 См. также: design/factory-system.md, CAPABILITIES.md.
+
