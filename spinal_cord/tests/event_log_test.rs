@@ -7,6 +7,7 @@ use backend::event_bus::{EventBus, OrganBuilt};
 use backend::event_log;
 use serial_test::serial;
 use std::env;
+use std::fs;
 use std::thread::sleep;
 use std::time::Duration;
 use tempfile::tempdir;
@@ -42,4 +43,31 @@ fn query_by_time_range() {
     let events = event_log::query(None, None, Some(ts), None);
     assert_eq!(events.len(), 1);
     assert!(events[0].ts_ms >= ts);
+}
+
+/* neira:meta
+id: NEI-20270310-rotate-test
+intent: test
+summary: Проверка ротации и gzip-сжатия EventLog.
+*/
+#[test]
+#[serial]
+fn rotates_and_compresses() {
+    let dir = tempdir().unwrap();
+    let file = dir.path().join("events.ndjson");
+    env::set_var("EVENT_LOG_PATH", &file);
+    env::set_var("EVENT_LOG_ROTATE_SIZE", "200");
+    event_log::reset();
+    let bus = EventBus::new();
+    for i in 0..50 {
+        bus.publish(&OrganBuilt { id: format!("{i}") });
+    }
+    let has_gz = fs::read_dir(dir.path()).unwrap().any(|e| {
+        e.unwrap()
+            .path()
+            .extension()
+            .map(|s| s == "gz")
+            .unwrap_or(false)
+    });
+    assert!(has_gz, "rotated gzip not found");
 }
