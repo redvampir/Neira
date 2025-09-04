@@ -6,8 +6,10 @@ summary: |
 */
 use crate::security::{check_operation, Operation, SecurityError};
 use reqwest;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
-use tokio::{fs, process::Command};
+use tokio::{fs, process::Command, sync::Mutex};
 
 #[derive(Debug, Clone)]
 pub enum ActionCommand {
@@ -16,11 +18,44 @@ pub enum ActionCommand {
     RunCommand { program: String, args: Vec<String> },
 }
 
-pub struct ActionEngine;
+/* neira:meta
+id: NEI-20271203-file-cache
+intent: perf
+summary: |
+  Добавлен FileCache для кэширования чтений файлов.
+*/
+#[derive(Default)]
+pub struct FileCache {
+    inner: Mutex<HashMap<PathBuf, String>>,
+}
+
+impl FileCache {
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(HashMap::new()),
+        }
+    }
+
+    pub async fn get(&self, path: &Path) -> Option<String> {
+        let cache = self.inner.lock().await;
+        cache.get(path).cloned()
+    }
+
+    pub async fn insert(&self, path: PathBuf, contents: String) {
+        let mut cache = self.inner.lock().await;
+        cache.insert(path, contents);
+    }
+}
+
+pub struct ActionEngine {
+    cache: FileCache,
+}
 
 impl ActionEngine {
     pub fn new() -> Self {
-        Self
+        Self {
+            cache: FileCache::new(),
+        }
     }
 
     pub async fn execute(&self, cmd: ActionCommand) -> Result<String, ActionError> {
@@ -31,7 +66,15 @@ impl ActionEngine {
         };
         check_operation(&op)?;
         match cmd {
-            ActionCommand::ReadFile { path } => Ok(fs::read_to_string(path).await?),
+            ActionCommand::ReadFile { path } => {
+                let path_buf = PathBuf::from(&path);
+                if let Some(cached) = self.cache.get(&path_buf).await {
+                    return Ok(cached);
+                }
+                let contents = fs::read_to_string(&path).await?;
+                self.cache.insert(path_buf, contents.clone()).await;
+                Ok(contents)
+            }
             ActionCommand::HttpGet { url } => Ok(reqwest::get(&url).await?.text().await?),
             ActionCommand::RunCommand { program, args } => {
                 let output = Command::new(program).args(args).output().await?;

@@ -45,3 +45,17 @@ async fn system_command_allowed_with_env() {
     let res = engine.execute(cmd).await.unwrap();
     assert_eq!(res, "ok");
 }
+
+#[tokio::test]
+#[serial]
+async fn file_read_uses_cache() {
+    let mut tmp = NamedTempFile::new().unwrap();
+    write!(tmp, "cached").unwrap();
+    let path = tmp.path().to_string_lossy().to_string();
+    let engine = ActionEngine::new();
+    let cmd = ActionCommand::ReadFile { path: path.clone() };
+    let first = engine.execute(cmd.clone()).await.unwrap();
+    tmp.close().unwrap();
+    let second = engine.execute(cmd).await.unwrap();
+    assert_eq!(first, second);
+}
