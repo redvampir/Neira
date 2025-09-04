@@ -26,6 +26,12 @@ intent: refactor
 summary: publish отправляет типизированное FlowEvent вместо строки.
 */
 use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
+/* neira:meta
+id: NEI-20270310-120100-event-bus-log-hook
+intent: feature
+summary: publish пишет событие в EventLog.
+*/
+use crate::event_log;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
@@ -74,6 +80,7 @@ impl EventBus {
                 name: event.name().to_string(),
             }));
         }
+        event_log::append(event);
     }
 }
 
