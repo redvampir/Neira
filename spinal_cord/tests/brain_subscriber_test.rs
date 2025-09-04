@@ -12,7 +12,7 @@ use std::any::Any;
 use std::sync::Arc;
 
 use backend::brain::BrainSubscriber;
-use backend::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
+use backend::circulatory_system::{DataFlowController, FlowMessage};
 use backend::event_bus::{Event, EventBus};
 
 struct DummyEvent;
@@ -42,4 +42,10 @@ async fn brain_subscriber_forwards_events() {
 id: NEI-20241003-brain-subscriber-test-update
 intent: chore
 summary: Тест адаптирован к FlowReceiver с учётом новых счётчиков.
+*/
+
+/* neira:meta
+id: NEI-20270405-brain-subscriber-import-cleanup
+intent: chore
+summary: Удалён неиспользуемый FlowEvent из импорта.
 */
