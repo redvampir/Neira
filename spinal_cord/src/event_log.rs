@@ -2,19 +2,22 @@
 id: NEI-20270310-120000-event-log
 intent: feature
 summary: |-
-  Запись событий EventBus в файл NDJSON с ротацией, метриками и фильтрацией.
+  Запись событий EventBus в файл NDJSON с ротацией, gzip-сжатием,
+  метриками, фильтрацией и пагинацией.
 */
 use crate::event_bus::Event;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs::{self, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
 use metrics::{counter, histogram};
+use flate2::write::GzEncoder;
+use flate2::Compression;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LoggedEvent {
@@ -60,7 +63,15 @@ fn rotate_if_needed(path: &Path) {
         if meta.len() > max {
             let ts = Utc::now().format("%Y%m%d%H%M%S");
             let rotated = path.with_file_name(format!("events-{}.ndjson", ts));
-            let _ = fs::rename(path, rotated);
+            if fs::rename(path, &rotated).is_ok() {
+                let gz = rotated.with_extension("ndjson.gz");
+                if let (Ok(mut src), Ok(dst)) = (fs::File::open(&rotated), fs::File::create(&gz)) {
+                    let mut enc = GzEncoder::new(dst, Compression::default());
+                    let _ = io::copy(&mut src, &mut enc);
+                    let _ = enc.finish();
+                    let _ = fs::remove_file(rotated);
+                }
+            }
         }
     }
 }
@@ -81,12 +92,22 @@ pub fn append(event: &dyn Event) {
         if let Some(parent) = path.parent() {
             let _ = fs::create_dir_all(parent);
         }
-        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {
-            let _ = writeln!(file, "{}", line);
-            let name_label = event.name().to_string();
-            counter!("event_log_appended_total", "name" => name_label).increment(1);
-            histogram!("event_log_append_ms").record(start.elapsed().as_millis() as f64);
+        match OpenOptions::new().create(true).append(true).open(&path) {
+            Ok(mut file) => {
+                if writeln!(file, "{}", line).is_ok() {
+                    let name_label = event.name().to_string();
+                    counter!("event_log_appended_total", "name" => name_label).increment(1);
+                    histogram!("event_log_append_ms").record(start.elapsed().as_millis() as f64);
+                } else {
+                    counter!("event_log_append_errors_total").increment(1);
+                }
+            }
+            Err(_) => {
+                counter!("event_log_append_errors_total").increment(1);
+            }
         }
+    } else {
+        counter!("event_log_append_errors_total").increment(1);
     }
 }
 
@@ -96,12 +117,14 @@ pub fn query(
     start_ts_ms: Option<i64>,
     end_ts_ms: Option<i64>,
     names: Option<&[String]>,
+    offset: Option<usize>,
+    limit: Option<usize>,
 ) -> Vec<LoggedEvent> {
     let path = log_path();
     let Ok(data) = fs::read_to_string(path) else {
         return Vec::new();
     };
-    let events: Vec<LoggedEvent> = data
+    let mut events: Vec<LoggedEvent> = data
         .lines()
         .filter_map(|ln| serde_json::from_str::<LoggedEvent>(ln).ok())
         .filter(|ev| {
@@ -133,6 +156,18 @@ pub fn query(
             true
         })
         .collect();
+    if let Some(skip) = offset {
+        if skip < events.len() {
+            events = events.into_iter().skip(skip).collect();
+        } else {
+            events.clear();
+        }
+    }
+    if let Some(lim) = limit {
+        if events.len() > lim {
+            events.truncate(lim);
+        }
+    }
     counter!("event_log_queries_total").increment(events.len() as u64);
     events
 }

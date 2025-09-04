@@ -21,7 +21,7 @@ fn publish_and_query_by_id() {
     let bus = EventBus::new();
     bus.publish(&OrganBuilt { id: "one".into() });
     bus.publish(&OrganBuilt { id: "two".into() });
-    let events = event_log::query(Some(2), Some(2), None, None, None);
+    let events = event_log::query(Some(2), Some(2), None, None, None, None, None);
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].name, "OrganBuilt");
     assert_eq!(events[0].id, 2);
@@ -39,7 +39,7 @@ fn query_by_time_range() {
     sleep(Duration::from_millis(2));
     let ts = chrono::Utc::now().timestamp_millis();
     bus.publish(&OrganBuilt { id: "b".into() });
-    let events = event_log::query(None, None, Some(ts), None, None);
+    let events = event_log::query(None, None, Some(ts), None, None, None, None);
     assert_eq!(events.len(), 1);
     assert!(events[0].ts_ms >= ts);
 }
@@ -76,7 +76,15 @@ fn filter_by_name_and_persist_ids() {
         name: "TestEvent",
         value: 42,
     });
-    let filtered = event_log::query(None, None, None, None, Some(&vec!["TestEvent".into()]));
+    let filtered = event_log::query(
+        None,
+        None,
+        None,
+        None,
+        Some(&vec!["TestEvent".into()]),
+        None,
+        None,
+    );
     assert_eq!(filtered.len(), 1);
     assert_eq!(filtered[0].name, "TestEvent");
     assert!(filtered[0].data.is_some());
@@ -84,6 +92,22 @@ fn filter_by_name_and_persist_ids() {
     // имитируем перезапуск: сбрасываем счётчик, но оставляем файл
     event_log::reset_counter_only();
     bus.publish(&OrganBuilt { id: "y".into() });
-    let events = event_log::query(None, None, None, None, None);
+    let events = event_log::query(None, None, None, None, None, None, None);
     assert_eq!(events.last().unwrap().id, 3);
+}
+
+#[test]
+#[serial]
+fn pagination() {
+    let dir = tempdir().unwrap();
+    let file = dir.path().join("events.ndjson");
+    env::set_var("EVENT_LOG_FILE", &file);
+    event_log::reset();
+    let bus = EventBus::new();
+    bus.publish(&OrganBuilt { id: "a".into() });
+    bus.publish(&OrganBuilt { id: "b".into() });
+    bus.publish(&OrganBuilt { id: "c".into() });
+    let page = event_log::query(None, None, None, None, None, Some(1), Some(1));
+    assert_eq!(page.len(), 1);
+    assert_eq!(page[0].id, 2);
 }

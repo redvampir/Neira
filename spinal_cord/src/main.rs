@@ -2324,20 +2324,52 @@ async fn main() {
     /* neira:meta
     id: NEI-20270310-120300-events-endpoint
     intent: feature
-    summary: REST-ручка для чтения EventLog с фильтрацией.
+    summary: REST-ручка для чтения EventLog с фильтрацией, пагинацией и аутентификацией.
     */
+    #[derive(serde::Deserialize)]
+    struct EventsQuery {
+        auth: String,
+        start_id: Option<u64>,
+        end_id: Option<u64>,
+        start_ts_ms: Option<i64>,
+        end_ts_ms: Option<i64>,
+        name: Option<String>,
+        names: Option<String>,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    }
     async fn events_get(
-        axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+        State(state): State<AppState>,
+        headers: HeaderMap,
+        axum::extract::Query(mut q): axum::extract::Query<EventsQuery>,
     ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
-        let start_id = q.get("start_id").and_then(|v| v.parse::<u64>().ok());
-        let end_id = q.get("end_id").and_then(|v| v.parse::<u64>().ok());
-        let start_ts_ms = q.get("start_ts_ms").and_then(|v| v.parse::<i64>().ok());
-        let end_ts_ms = q.get("end_ts_ms").and_then(|v| v.parse::<i64>().ok());
+        if q.auth.trim().is_empty() {
+            if let Some(h) = auth_from_headers(&headers) {
+                q.auth = h;
+            }
+        }
+        if !state.hub.check_auth(&q.auth) {
+            return Err(axum::http::StatusCode::UNAUTHORIZED);
+        }
+        if !state
+            .hub
+            .check_scope(&q.auth, backend::synapse_hub::Scope::Read)
+        {
+            return Err(axum::http::StatusCode::FORBIDDEN);
+        }
         let names = q
-            .get("name")
-            .or_else(|| q.get("names"))
+            .name
+            .or_else(|| q.names)
             .map(|v| v.split(',').map(|s| s.to_string()).collect::<Vec<_>>());
-        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms, names.as_deref());
+        let events = event_log::query(
+            q.start_id,
+            q.end_id,
+            q.start_ts_ms,
+            q.end_ts_ms,
+            names.as_deref(),
+            q.offset,
+            q.limit,
+        );
         Ok(Json(serde_json::json!({"events": events})))
     }
     app = app.route("/api/neira/events", get(events_get));
