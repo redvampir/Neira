@@ -46,28 +46,34 @@ fn query_by_time_range() {
 }
 
 /* neira:meta
-id: NEI-20270310-rotate-test
+id: NEI-20270408-000000-rotate-unique
 intent: test
-summary: Проверка ротации и gzip-сжатия EventLog.
+summary: Проверка двух последовательных ротаций и уникальности имён gzip-файлов.
 */
 #[test]
 #[serial]
-fn rotates_and_compresses() {
+fn rotates_twice_with_unique_names() {
     let dir = tempdir().unwrap();
     let file = dir.path().join("events.ndjson");
     env::set_var("EVENT_LOG_PATH", &file);
-    env::set_var("EVENT_LOG_ROTATE_SIZE", "200");
+    env::set_var("EVENT_LOG_ROTATE_SIZE", "1");
     event_log::reset();
     let bus = EventBus::new();
-    for i in 0..50 {
-        bus.publish(&OrganBuilt { id: format!("{i}") });
+    for id in ["a", "b", "c"] {
+        bus.publish(&OrganBuilt { id: id.into() });
     }
-    let has_gz = fs::read_dir(dir.path()).unwrap().any(|e| {
-        e.unwrap()
-            .path()
-            .extension()
-            .map(|s| s == "gz")
-            .unwrap_or(false)
-    });
-    assert!(has_gz, "rotated gzip not found");
+    let mut gz_files: Vec<_> = fs::read_dir(dir.path())
+        .unwrap()
+        .filter_map(|e| {
+            let p = e.ok()?.path();
+            if p.extension().map(|s| s == "gz").unwrap_or(false) {
+                Some(p.file_name().unwrap().to_string_lossy().to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+    gz_files.sort();
+    assert_eq!(gz_files.len(), 2, "expected two rotated files");
+    assert_ne!(gz_files[0], gz_files[1], "rotated file names must differ");
 }

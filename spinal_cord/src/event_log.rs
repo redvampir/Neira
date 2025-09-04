@@ -41,16 +41,26 @@ fn rotate_limit() -> u64 {
         .unwrap_or(5 * 1024 * 1024)
 }
 
+/* neira:meta
+id: NEI-20270408-000000-rotate-seq
+intent: fix
+summary: |-
+  Ротация журнала использует метку времени в миллисекундах
+  и последовательный счётчик в имени файла.
+*/
+/// Сохраняет архив `events.ndjson` в формате
+/// `{stem}-{timestamp_ms}-{seq}.ndjson.gz` при превышении лимита.
 fn rotate_if_needed(path: &Path) {
     let limit = rotate_limit();
     if let Ok(meta) = fs::metadata(path) {
         if meta.len() >= limit {
-            let ts = Utc::now().format("%Y%m%d%H%M%S");
+            let ts = Utc::now().timestamp_millis();
+            let seq = ROTATE_SEQ.fetch_add(1, Ordering::SeqCst) + 1;
             let stem = path
                 .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or("events");
-            let rotated = path.with_file_name(format!("{}-{}.ndjson.gz", stem, ts));
+            let rotated = path.with_file_name(format!("{stem}-{ts}-{seq}.ndjson.gz"));
             if let Ok(mut input) = File::open(path) {
                 if let Ok(out) = File::create(&rotated) {
                     let mut enc = GzEncoder::new(out, Compression::default());
@@ -63,6 +73,7 @@ fn rotate_if_needed(path: &Path) {
     }
 }
 
+static ROTATE_SEQ: AtomicU64 = AtomicU64::new(0);
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub fn append(event: &dyn Event) {

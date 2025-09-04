@@ -713,6 +713,11 @@ async fn get_chat_index(
     Ok(Json(v))
 }
 
+/* neira:meta
+id: NEI-20270415-rotate-filter-ms
+intent: fix
+summary: Фильтрация ротаций контекста использует миллисекундную метку вместо счётчика.
+*/
 #[derive(serde::Deserialize)]
 struct SessionQuery {
     from: Option<String>,
@@ -740,14 +745,18 @@ async fn get_chat_session(
                     && (name.ends_with(".ndjson") || name.ends_with(".ndjson.gz")))
             {
                 if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
-                    // filter by YYYYMMDD window for rotated files
+                    // filter rotated files by timestamp_ms segment
                     let parts: Vec<&str> = name
                         .trim_end_matches(".gz")
                         .trim_end_matches(".ndjson")
                         .split('-')
                         .collect();
                     if parts.len() >= 2 {
-                        let date = parts[parts.len() - 1];
+                        let date = if parts.len() >= 3 {
+                            parts[parts.len() - 2]
+                        } else {
+                            parts[parts.len() - 1]
+                        };
                         if date < from.as_str() || date > to.as_str() {
                             continue;
                         }
@@ -1337,7 +1346,7 @@ async fn export_chat(
         files.sort();
         for p in files {
             let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            // filter by date window if provided
+            // filter by timestamp_ms window if provided
             if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
                 let parts: Vec<&str> = name
                     .trim_end_matches(".gz")
@@ -1345,7 +1354,11 @@ async fn export_chat(
                     .split('-')
                     .collect();
                 if parts.len() >= 2 {
-                    let date = parts[parts.len() - 1];
+                    let date = if parts.len() >= 3 {
+                        parts[parts.len() - 2]
+                    } else {
+                        parts[parts.len() - 1]
+                    };
                     if date < from.as_str() || date > to.as_str() {
                         continue;
                     }
