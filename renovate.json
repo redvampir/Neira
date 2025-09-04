@@ -1,35 +1,26 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
   "extends": ["config:recommended"],
-  "labels": ["dependencies", "renovate"],
-  "dependencyDashboard": true,
 
   "timezone": "Europe/Moscow",
-  "schedule": ["after 8pm every day"],
 
-  "prHourlyLimit": 2,
-  "prConcurrentLimit": 10,
+  // Всегда ребейзим, если ветка отстаёт от main — это убирает висячие конфликты
+  "rebaseWhen": "behind-base-branch",
 
-  "rebaseWhen": "conflicted",
-  "lockFileMaintenance": { "enabled": true, "automerge": true },
-  "vulnerabilityAlerts": { "enabled": false },
+  // Снимаем ограничение по времени, чтобы обновления шли сразу
+  // "schedule": ["after 8pm every day"],
 
-  "assignees": ["redvampir"],
-  "reviewers": ["redvampir"],
-
-  "platformAutomerge": true,
-  "rangeStrategy": "auto",
+  // Меньше параллельных PR → меньше гонок за lock-файл
+  "prConcurrentLimit": 5,
+  "branchConcurrentLimit": 1,
 
   "packageRules": [
     {
-      "description": "Глобально отключаем major",
-      "matchUpdateTypes": ["major"],
-      "enabled": false
-    },
-    {
-      "description": "Автослияние patch для npm и cargo (после зелёных чеков) + дедупликация",
-      "matchDatasources": ["npm", "cargo"],
+      "description": "Автослияние patch для npm и cargo (одним PR)",
+      "matchManagers": ["npm", "cargo"],
       "matchUpdateTypes": ["patch"],
+      "groupName": "Patch deps (automerge)",
       "automerge": true,
       "automergeType": "pr",
       "postUpdateOptions": ["npmDedupe", "yarnDedupeHighest", "pnpmDedupe"]
@@ -38,17 +29,33 @@
       "description": "Группируем minor для npm",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor"],
-      "groupName": "NPM minor (daily after 20:00 MSK)"
+      "groupName": "NPM minor (daily)"
     },
     {
       "description": "Группируем minor для cargo",
       "matchManagers": ["cargo"],
       "matchUpdateTypes": ["minor"],
-      "groupName": "Rust minor (daily after 20:00 MSK)"
+      "groupName": "Rust minor (daily)"
     }
   ],
 
+  "labels": ["dependencies", "renovate"],
+  "dependencyDashboard": true,
+
+  "lockFileMaintenance": { "enabled": true, "automerge": true },
+
+  "assignees": ["redvampir"],
+  "reviewers": ["redvampir"],
+
+  // Автослияние через GitHub, если всё зелёное
+  "platformAutomerge": true,
+  "rangeStrategy": "auto",
+
   "semanticCommits": "enabled",
   "semanticCommitType": "chore",
-  "semanticCommitScope": "deps"
+  "semanticCommitScope": "deps",
+
+  // Автоматически закрываем старые PR, если появляется новый на ту же зависимость
+  "pruneStaleBranches": true,
+  "pruneStaleAutomerge": true
 }
