@@ -9,7 +9,10 @@ neira:meta
 set -euo pipefail
 
 # Detect duplicate crate versions in Cargo dependencies.
-output=$(cargo tree -d)
+output=$(cargo tree -d --target all 2>/dev/null)
+if [ "$output" = "nothing to print" ]; then
+  output=""
+fi
 if [ -n "$output" ]; then
   echo "$output"
   echo "Duplicate crate versions detected. Ensure a single version per crate." >&2
