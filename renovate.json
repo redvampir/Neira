@@ -1,17 +1,15 @@
-// renovate.json
+
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
 
   "extends": ["config:recommended"],
   "timezone": "Europe/Moscow",
 
-  // Теперь ребейзим не только при отставании, но и при конфликтах
+
   "rebaseWhen": "conflicted",
 
-  // Без ограничений по времени
+ 
   // "schedule": ["after 8pm every day"],
-
-  // Меньше параллельных PR → меньше гонок за lock-файл
   "prConcurrentLimit": 5,
   "branchConcurrentLimit": 1,
 
