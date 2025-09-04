@@ -43,7 +43,6 @@
   "assignees": ["redvampir"],
   "reviewers": ["redvampir"],
 
-  // Автослияние через GitHub, если всё зелёное
   "platformAutomerge": true,
   "rangeStrategy": "auto",
 
@@ -51,7 +50,6 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
 
-  // Автоматически закрываем старые PR, если появляется новый на ту же зависимость
   "pruneStaleBranches": true,
   "pruneStaleAutomerge": true
 }
