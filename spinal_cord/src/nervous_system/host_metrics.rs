@@ -64,7 +64,7 @@ impl HostMetrics {
         shutdown: CancellationToken,
     ) -> Self {
         let sys = System::new_with_specifics(
-            RefreshKind::new()
+            RefreshKind::nothing()
                 .with_cpu(CpuRefreshKind::everything())
                 .with_memory(MemoryRefreshKind::everything()),
         );
@@ -92,10 +92,10 @@ impl SystemProbe for HostMetrics {
 
     /// Refresh metrics and publish them via `metrics::gauge!` and `MetricsCollectorCell`.
     fn collect(&mut self) {
-        self.sys.refresh_cpu();
+        self.sys.refresh_cpu_all();
         self.sys.refresh_memory();
 
-        let cpu = self.sys.global_cpu_info().cpu_usage() as f64;
+        let cpu = self.sys.global_cpu_usage() as f64;
         let total_mem = self.sys.total_memory() as f64;
         let used_mem = self.sys.used_memory() as f64;
         let mem_percent = if total_mem > 0.0 {
