@@ -4,6 +4,15 @@ intent: chore
 summary: Добавлен генератор идентификаторов NEI-YYYYMMDD-HHMMSS-<slug> (UTC).
 */
 
+/* neira:meta
+id: NEI-20250904-134900-gen-id-lint
+intent: chore
+summary: Объявлена среда Node для корректной работы ESLint.
+*/
+
+/* eslint-env node */
+/* global console, process */
+
 import crypto from 'node:crypto';
 
 function tsUTC(date = new Date()) {
