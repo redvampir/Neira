@@ -72,6 +72,11 @@ serial_test = "3"
 # intent: test
 # summary: Добавлена dev-зависимость trybuild для компиляционных проверок DigestivePipeline.
 trybuild = "1"
+# neira:meta
+# id: NEI-20270401-httpmock-dep
+# intent: test
+# summary: Добавлена dev-зависимость httpmock для мокирования HTTP в тестах.
+httpmock = "0.7"
 
 [patch.crates-io]
 kqueue-sys = { path = "../patches/kqueue-sys" }

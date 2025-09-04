@@ -3,7 +3,13 @@ id: NEI-20270520-action-engine-test
 intent: test
 summary: Проверяет работу ActionEngine и контроль прав.
 */
+/* neira:meta
+id: NEI-20270401-http-post-test
+intent: test
+summary: Добавлен сценарий отправки HTTP POST через мок‑сервер.
+*/
 use backend::action_engine::{ActionCommand, ActionEngine, ActionError};
+use httpmock::prelude::*;
 use serial_test::serial;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -58,4 +64,23 @@ async fn file_read_uses_cache() {
     tmp.close().unwrap();
     let second = engine.execute(cmd).await.unwrap();
     assert_eq!(first, second);
+}
+
+#[tokio::test]
+#[serial]
+async fn http_post_executes() {
+    std::env::set_var("NEIRA_ALLOW_NETWORK_POST", "1");
+    let server = MockServer::start();
+    let mock = server.mock(|when, then| {
+        when.method(POST).path("/submit").body("data");
+        then.status(200).body("ok");
+    });
+    let engine = ActionEngine::new();
+    let cmd = ActionCommand::HttpPost {
+        url: format!("{}/submit", server.base_url()),
+        body: "data".into(),
+    };
+    let res = engine.execute(cmd).await.unwrap();
+    assert_eq!(res, "ok");
+    mock.assert();
 }
