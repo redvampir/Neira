@@ -68,6 +68,12 @@ pub static GLOBAL_HUB: OnceLock<RwLock<Option<Arc<SynapseHub>>>> = OnceLock::new
 pub mod factory;
 pub mod organ_builder;
 pub mod policy;
+/* neira:meta
+id: NEI-20270310-120200-event-log-export
+intent: code
+summary: Экспортирован модуль event_log.
+*/
+pub mod event_log;
 
 /* neira:meta
 id: NEI-20240513-lib-test-allow
