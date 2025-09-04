@@ -142,3 +142,22 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check bans
+
+  # neira:meta
+  # id: NEI-20250904-ci-required-gateway
+  # intent: ci
+  # summary: Агрегирующий job "required" склеивает статусы build и dependency-hygiene в один обязательный чек для правил веток.
+  required:
+    name: required
+    runs-on: ubuntu-latest
+    needs: [build, dependency-hygiene]
+    if: ${{ always() }}
+    steps:
+      - name: Print upstream results
+        run: |
+          echo "build: ${{ needs.build.result }}"
+          echo "dependency-hygiene: ${{ needs.dependency-hygiene.result }}"
+      - name: Ensure all upstream jobs succeeded
+        run: |
+          [[ "${{ needs.build.result }}" == "success" ]] || exit 1
+          [[ "${{ needs.dependency-hygiene.result }}" == "success" ]] || exit 1
