@@ -7,7 +7,7 @@ summary: |
 */
 
 /* neira:meta
-id: NEI-20250904-155647-node-env
+id: NEI-20250904-163139-change
 intent: chore
 summary: |
   Удалён блок const TYPES, добавлен eslint-env для Node
