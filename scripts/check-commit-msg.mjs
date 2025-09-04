@@ -6,23 +6,16 @@ summary: |
   Подключается через .husky/commit-msg.
 */
 
-import { readFileSync } from 'node:fs';
+/* neira:meta
+id: NEI-20250904-134900-commit-msg-lint
+intent: chore
+summary: Исправлены ошибки lint: удалён неиспользуемый массив, объявлена среда Node.
+*/
 
-// Basic Conventional Commits pattern
-// type(scope?): subject
-const TYPES = [
-  'feat',
-  'fix',
-  'docs',
-  'style',
-  'refactor',
-  'perf',
-  'test',
-  'chore',
-  'ci',
-  'build',
-  'revert',
-];
+/* eslint-env node */
+/* global console, process */
+
+import { readFileSync } from 'node:fs';
 
 const TYPE_RE = /^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\([^)]+\))?(!)?:\s.+$/;
 

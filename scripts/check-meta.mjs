@@ -6,6 +6,15 @@ summary: |
   (staged или относительно базовой ветки). Интегрируется в pre-commit и CI.
 */
 
+/* neira:meta
+id: NEI-20250904-134900-check-meta-lint
+intent: chore
+summary: Исправлены ошибки lint: добавлены комментарии в пустые catch, объявлена среда Node.
+*/
+
+/* eslint-env node */
+/* global console, process */
+
 // Lightweight neira:meta coverage checker.
 // Usage:
 //   node scripts/check-meta.mjs --staged
@@ -22,7 +31,9 @@ try {
   // Optional dependency; used in --strict mode when available
   const m = await import('yaml');
   YAMLmod = m.default || m;
-} catch {}
+} catch {
+  // YAML module not installed; strict mode will be unavailable
+}
 
 function run(cmd) {
   return execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
@@ -90,13 +101,13 @@ function requiresMeta(file) {
 
 function extractMetaBlocks(text) {
   const blocks = [];
-  // HTML style <!-- neira:meta ... -->
+  // HTML style meta block
   {
     const re = /<!--\s*neira:meta[\s\S]*?-->/g;
     let m;
     while ((m = re.exec(text))) blocks.push({ raw: m[0], kind: 'html' });
   }
-  // Block comment /* neira:meta ... */
+  // Block comment meta block
   {
     const re = /\/\*\s*neira:meta[\s\S]*?\*\//g;
     let m;
@@ -227,7 +238,7 @@ function main(argv) {
             const data = YAMLmod.parse(body);
             const v = validateMetaObject(data);
             invalid.push(...(v.valid ? [] : [{ file: f, errors: v.errors }]));
-          } catch (e) {
+          } catch {
             invalid.push({ file: f, errors: ['invalid_yaml'] });
           }
           checked = true;
@@ -255,7 +266,9 @@ function main(argv) {
 
   const report = { total: toCheck.length, missing, invalid };
   if (outPath) {
-    try { writeFileSync(outPath, JSON.stringify(report, null, 2)); } catch {}
+    try { writeFileSync(outPath, JSON.stringify(report, null, 2)); } catch {
+      // Ignore write errors for optional report output
+    }
   }
 
   if (reportFmt === 'summary' || reportFmt === 'github') {
@@ -276,7 +289,11 @@ function main(argv) {
     }
     const summary = lines.join('\n');
     if (reportFmt === 'github' && process.env.GITHUB_STEP_SUMMARY) {
-      try { writeFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n', { flag: 'a' }); } catch {}
+      try {
+        writeFileSync(process.env.GITHUB_STEP_SUMMARY, summary + '\n', { flag: 'a' });
+      } catch {
+        // Ignore summary write errors
+      }
     } else {
       console.log(summary);
     }

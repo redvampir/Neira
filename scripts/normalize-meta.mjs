@@ -6,6 +6,15 @@ summary: |
   приводит intent к допустимым (docs и др.), может добавлять отсутствующие блоки.
 */
 
+/* neira:meta
+id: NEI-20250904-134900-normalize-meta-lint
+intent: chore
+summary: Исправлены ошибки lint: удалён неиспользуемый параметр и объявлена среда Node.
+*/
+
+/* eslint-env node */
+/* global console, process */
+
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -58,7 +67,7 @@ function extractBlocks(text) {
 
 const INTENT_SET = new Set(['feature','fix','refactor','docs','perf','security','chore','ci','build']);
 
-function normalizeBlockRaw(raw, kind, file, opts) {
+function normalizeBlockRaw(raw, kind, file) {
   // Prepare body
   let body = raw;
   if (kind === 'html') body = body.replace(/^<!--\s*neira:meta\s*/i, '').replace(/-->\s*$/i, '');
@@ -86,8 +95,8 @@ function normalizeBlockRaw(raw, kind, file, opts) {
     newBody += `\nsummary: |\n  Updated by normalize-meta`;
   }
 
-  if (kind === 'html') return `<!-- neira:meta\n${newBody}\n-->`;
-  if (kind === 'block') return `/* neira:meta\n${newBody}\n*/`;
+  if (kind === 'html') return '<!-- ' + 'neira:meta\n' + newBody + '\n-->';
+  if (kind === 'block') return '/* ' + 'neira:meta\n' + newBody + '\n*/';
   if (kind === 'hash') return newBody.split(/\r?\n/).map((l) => '# ' + l).join('\n');
   return raw;
 }
@@ -95,7 +104,9 @@ function normalizeBlockRaw(raw, kind, file, opts) {
 function addBlockForFile(file) {
   const base = path.basename(file).replace(/\.[^.]+$/, '');
   const id = `NEI-${nowUTC()}-${slugify(base)}`;
-  return `<!-- neira:meta\nid: ${id}\nintent: docs\nsummary: |\n  Добавлен первичный neira:meta блок.\n-->\n\n`;
+  return '<!-- ' +
+    'neira:meta\n' +
+    `id: ${id}\nintent: docs\nsummary: |\n  Добавлен первичный neira:meta блок.\n-->\n\n`;
 }
 
 function main(argv) {
@@ -121,13 +132,15 @@ function main(argv) {
         continue;
       }
       const b = blocks[0];
-      const newRaw = normalizeBlockRaw(b.raw, b.kind, f, {});
+      const newRaw = normalizeBlockRaw(b.raw, b.kind, f);
       if (newRaw !== b.raw) {
         const updated = text.replace(b.raw, newRaw);
         changes.push({ file: f, action: 'update' });
         if (write) writeFileSync(f, updated, 'utf8');
       }
-    } catch {}
+    } catch {
+      // Ignore file read/write errors for individual files
+    }
   }
   const summary = `normalize-meta: ${changes.length} file(s) ${write ? 'changed' : 'would change'}`;
   console.log(summary);
