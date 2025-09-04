@@ -1,14 +1,14 @@
+// renovate.json
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
 
   "extends": ["config:recommended"],
-
   "timezone": "Europe/Moscow",
 
-  // Всегда ребейзим, если ветка отстаёт от main — это убирает висячие конфликты
-  "rebaseWhen": "behind-base-branch",
+  // Теперь ребейзим не только при отставании, но и при конфликтах
+  "rebaseWhen": "conflicted",
 
-  // Снимаем ограничение по времени, чтобы обновления шли сразу
+  // Без ограничений по времени
   // "schedule": ["after 8pm every day"],
 
   // Меньше параллельных PR → меньше гонок за lock-файл
