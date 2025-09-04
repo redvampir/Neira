@@ -8,8 +8,6 @@
 
   "rebaseWhen": "conflicted",
 
- 
-  // "schedule": ["after 8pm every day"],
   "prConcurrentLimit": 5,
   "branchConcurrentLimit": 1,
 
