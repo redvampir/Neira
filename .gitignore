@@ -1,5 +1,11 @@
+# neira:meta
+# id: NEI-20260716-unignore-gitmodules
+# intent: build
+# summary: Разрешён отслеживаемый файл .gitmodules.
+
 node_modules/
 target/
 logs/*
 !logs/.keep
 **/.git*
+!.gitmodules
