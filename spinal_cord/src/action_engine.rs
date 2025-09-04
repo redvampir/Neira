@@ -4,7 +4,12 @@ intent: feature
 summary: |
   Асинхронный движок для файловых, сетевых и системных операций с проверкой прав.
 */
-use crate::security::{check_operation, Operation, SecurityError};
+/* neira:meta
+id: NEI-20270401-action-http-post
+intent: feature
+summary: Добавлена команда HttpPost и отправка POST-запросов через reqwest.
+*/
+use crate::security::{check_permission, Operation, SecurityError};
 use reqwest;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -15,6 +20,7 @@ use tokio::{fs, process::Command, sync::Mutex};
 pub enum ActionCommand {
     ReadFile { path: String },
     HttpGet { url: String },
+    HttpPost { url: String, body: String },
     RunCommand { program: String, args: Vec<String> },
 }
 
@@ -62,9 +68,10 @@ impl ActionEngine {
         let op = match &cmd {
             ActionCommand::ReadFile { path } => Operation::FileRead(path.clone()),
             ActionCommand::HttpGet { url } => Operation::NetworkRequest(url.clone()),
+            ActionCommand::HttpPost { url, .. } => Operation::NetworkPost(url.clone()),
             ActionCommand::RunCommand { program, .. } => Operation::SystemCommand(program.clone()),
         };
-        check_operation(&op)?;
+        check_permission(&op)?;
         match cmd {
             ActionCommand::ReadFile { path } => {
                 let path_buf = PathBuf::from(&path);
@@ -76,6 +83,10 @@ impl ActionEngine {
                 Ok(contents)
             }
             ActionCommand::HttpGet { url } => Ok(reqwest::get(&url).await?.text().await?),
+            ActionCommand::HttpPost { url, body } => {
+                let client = reqwest::Client::new();
+                Ok(client.post(&url).body(body).send().await?.text().await?)
+            }
             ActionCommand::RunCommand { program, args } => {
                 let output = Command::new(program).args(args).output().await?;
                 Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
