@@ -60,6 +60,11 @@ id: NEI-20270420-digestive-strict-typing
 intent: refactor
 summary: Добавлены serde-атрибуты и PathBuf для строгой типизации DigestiveSettings.
 */
+/* neira:meta
+id: NEI-20270715-digestive-xml-flatten
+intent: fix
+summary: Раскрыты узлы `$text` в XML перед валидацией.
+*/
 use crate::cell_template::load_schema_from;
 use crate::memory_cell::MemoryCell;
 use crate::time_metrics::{record_parse_duration_ms, record_validation_duration_ms};
@@ -156,24 +161,35 @@ impl DigestivePipeline {
     pub fn ingest(raw_input: &str) -> Result<ParsedInput, PipelineError> {
         debug!("ingest input: {raw_input}");
         let start = Instant::now();
+        let trimmed = raw_input.trim_start();
         let parsed = if let Ok(mut json) = serde_json::from_str::<Value>(raw_input) {
             info!("detected json input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             sanitize_value(&mut json);
             validate(&json)?;
             ParsedInput::Json(json)
+        } else if trimmed.starts_with('<') {
+            match from_xml::<Value>(raw_input) {
+                Ok(mut xml) => {
+                    info!("detected xml input");
+                    record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
+                    sanitize_value(&mut xml);
+                    flatten_xml_text(&mut xml);
+                    validate(&xml)?;
+                    ParsedInput::Json(xml)
+                }
+                Err(_) => {
+                    warn!("unknown input format, treating as text");
+                    record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
+                    ParsedInput::Text(sanitize_text(raw_input))
+                }
+            }
         } else if let Ok(mut yaml) = serde_yaml::from_str::<Value>(raw_input) {
             info!("detected yaml input");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
             sanitize_value(&mut yaml);
             validate(&yaml)?;
             ParsedInput::Json(yaml)
-        } else if let Ok(mut xml) = from_xml::<Value>(raw_input) {
-            info!("detected xml input");
-            record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
-            sanitize_value(&mut xml);
-            validate(&xml)?;
-            ParsedInput::Json(xml)
         } else {
             warn!("unknown input format, treating as text");
             record_parse_duration_ms(start.elapsed().as_secs_f64() * 1000.0);
@@ -217,6 +233,29 @@ fn sanitize_value(value: &mut Value) {
         Value::Object(map) => {
             for v in map.values_mut() {
                 sanitize_value(v);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn flatten_xml_text(value: &mut Value) {
+    match value {
+        Value::Object(map) => {
+            if map.len() == 1 && map.contains_key("$text") {
+                if let Some(mut inner) = map.remove("$text") {
+                    flatten_xml_text(&mut inner);
+                    *value = inner;
+                }
+            } else {
+                for v in map.values_mut() {
+                    flatten_xml_text(v);
+                }
+            }
+        }
+        Value::Array(arr) => {
+            for v in arr {
+                flatten_xml_text(v);
             }
         }
         _ => {}
