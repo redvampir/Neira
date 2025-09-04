@@ -133,7 +133,12 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: ./scripts/check-duplicates.ps1
+      # neira:meta
+      # id: NEI-20250905-ci-cargo-deny-linux
+      # intent: ci
+      # summary: Шаг cargo-deny (bans) выполняется только на Linux.
       - name: Cargo deny (bans)
+        if: matrix.os == 'ubuntu-latest'
         uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check bans
