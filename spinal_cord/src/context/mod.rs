@@ -16,4 +16,3 @@ pub fn context_dir() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("context"))
 }
-

@@ -9,8 +9,8 @@ env:
   - METRICS_LOW_INTERVAL_MS
 */
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
@@ -72,15 +72,13 @@ impl MetricsCollectorCell {
 
     /// Переключает коллектор в режим «normal».
     pub fn set_normal(&self) {
-        self
-            .current_interval_ms
+        self.current_interval_ms
             .store(self.normal_interval_ms, Ordering::SeqCst);
     }
 
     /// Переключает коллектор в режим «low».
     pub fn set_low(&self) {
-        self
-            .current_interval_ms
+        self.current_interval_ms
             .store(self.low_interval_ms, Ordering::SeqCst);
     }
 }
@@ -92,4 +90,3 @@ impl ActionCell for MetricsCollectorCell {
 
     fn preload(&self, _triggers: &[String], _memory: &Arc<MemoryCell>) {}
 }
-

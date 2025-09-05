@@ -18,4 +18,3 @@ pub fn record_validation_duration_ms(ms: f64) {
     histogram!("digestive_validation_duration_ms_p95").record(ms);
     histogram!("digestive_validation_duration_ms_p99").record(ms);
 }
-

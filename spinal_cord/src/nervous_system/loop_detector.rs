@@ -36,7 +36,11 @@ pub fn check_sequence(
     let ratio = max_rep / (win.len() as f32);
     let mut ent: f32 = 0.0;
     if entropy_min > 0.0 {
-        let concat = win.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(" ");
+        let concat = win
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<&str>>()
+            .join(" ");
         let mut cf: HashMap<char, usize> = HashMap::new();
         for ch in concat.chars() {
             *cf.entry(ch).or_insert(0) += 1;
