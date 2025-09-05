@@ -560,11 +560,18 @@ summary: |
 -->
 ### Pre-commit
 
-Установите локальные хуки для форматирования и линтинга:
+Установите `pre-commit` и локальные хуки для форматирования и линтинга:
 
 ```bash
+pip install pre-commit
 pre-commit install
 ```
+
+<!-- neira:meta
+id: NEI-20250301-pre-commit-pip-doc
+intent: docs
+summary: Добавлена команда установки pre-commit через pip.
+-->
 
 ## Схемы
 
