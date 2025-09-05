@@ -182,6 +182,7 @@ dependencies = [
  "once_cell",
  "parking_lot",
  "quick-xml",
+ "quote",
  "regex",
  "reqwest",
  "semver",

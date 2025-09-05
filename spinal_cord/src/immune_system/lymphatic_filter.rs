@@ -12,7 +12,8 @@ use sha2::{Digest, Sha256};
 use std::{collections::HashMap, path::PathBuf};
 use walkdir::WalkDir;
 
-use syn::{Item, ItemFn};
+use quote::ToTokens;
+use syn::{Item, ItemFn, Meta};
 
 /// Отчёт о найденном дубликате функции.
 #[derive(Debug, Clone)]
@@ -106,10 +107,10 @@ pub fn scan_workspace() -> Vec<DuplicationReport> {
 
 fn fingerprint(func: &ItemFn, file: PathBuf) -> FunctionFingerprint {
     let gene_id = func.sig.ident.to_string();
-    let signature = hash(&format!("{:?}", func.sig));
+    let signature = hash(&func.sig.to_token_stream().to_string());
     let behavior = hash(&simplify_behavior(func));
     let semantic = hash(&collect_semantic(func));
-    let structure = hash(&format!("{:?}", func.block));
+    let structure = hash(&func.block.to_token_stream().to_string());
     FunctionFingerprint {
         gene_id,
         file,
@@ -124,11 +125,11 @@ fn collect_semantic(func: &ItemFn) -> String {
     let mut text = func.sig.ident.to_string();
     for attr in &func.attrs {
         if attr.path().is_ident("doc") {
-            if let Ok(syn::Meta::NameValue(meta)) = attr.parse_meta() {
+            if let Meta::NameValue(meta) = &attr.meta {
                 if let syn::Expr::Lit(syn::ExprLit {
                     lit: syn::Lit::Str(lit),
                     ..
-                }) = meta.value
+                }) = &meta.value
                 {
                     text.push_str(&lit.value());
                 }
