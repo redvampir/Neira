@@ -189,6 +189,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2",
+ "syn",
  "sysinfo",
  "thiserror",
  "tokio",
@@ -200,6 +201,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "walkdir",
  "zip",
 ]
 
