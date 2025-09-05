@@ -16,6 +16,11 @@ id: NEI-20270330-deployment-workspace-install
 intent: docs
 summary: Уточнена установка зависимостей через npm/pnpm workspace.
 -->
+<!-- neira:meta
+id: NEI-20270424-shared-workspace-deps
+intent: docs
+summary: Добавлено примечание о едином наборе зависимостей для sensory_organs.
+-->
 
 ## Установка зависимостей
 1. Установите Cell.js 20 LTS (runtime Node.js) и Rust 1.75 или новее.
@@ -25,6 +30,8 @@ summary: Уточнена установка зависимостей через
    npm run setup
    ```
    Workspace установит зависимости для всех пакетов, включая sensory_organs.
+   Не запускайте `npm install` внутри каталога sensory_organs:
+   пакеты берутся из корневого `node_modules`.
 3. Соберите серверную часть:
    ```bash
    cd spinal_cord
