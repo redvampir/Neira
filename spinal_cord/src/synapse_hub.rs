@@ -1,6 +1,6 @@
 /* neira:meta
-id: NEI-20250922-adaptive-queues
-intent: code
+id: NEI-20250922-000000-adaptive-queues
+intent: feature
 summary: |
   Очереди анализа выбирают адаптивные пороги на основе истории и
   переопределяются через переменные окружения.
@@ -9,6 +9,11 @@ summary: |
 id: NEI-20250220-env-flag-hub
 intent: refactor
 summary: Несколько флагов хаба парсятся через env_flag.
+*/
+/* neira:meta
+id: NEI-20270830-000000-env-flag-clean
+intent: refactor
+summary: Все булевые флаги SynapseHub читаются через env_flag.
 */
 /* neira:meta
 id: NEI-20250214-watchdog-refactor
@@ -67,7 +72,7 @@ use crate::action::diagnostics_cell::DiagnosticsCell;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
 use crate::analysis_cell::QualityMetrics;
 use crate::circulatory_system::DataFlowController;
-use crate::config::Config;
+use crate::config::{env_flag, Config};
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::event_bus::{CellCreated, EventBus, OrganBuilt};
 use crate::factory::{FabricatorCell, SelectorCell, StemCellFactory};
@@ -182,7 +187,7 @@ impl SynapseHub {
             "session" => RateKeyMode::Session,
             _ => RateKeyMode::Auth,
         };
-        let idem_persist = crate::config::env_flag("IDEMPOTENT_PERSIST", false);
+        let idem_persist = env_flag("IDEMPOTENT_PERSIST", false);
         let idem = if idem_persist {
             let dir = std::env::var("IDEMPOTENT_STORE_DIR").unwrap_or_else(|_| "context".into());
             let ttl = std::env::var("IDEMPOTENT_TTL_SECS")
@@ -193,8 +198,7 @@ impl SynapseHub {
         } else {
             None
         };
-        let persist_require_session_id =
-            crate::config::env_flag("PERSIST_REQUIRE_SESSION_ID", false);
+        let persist_require_session_id = env_flag("PERSIST_REQUIRE_SESSION_ID", false);
         let io_watcher_threshold_ms = std::env::var("IO_WATCHER_THRESHOLD_MS")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -266,7 +270,7 @@ impl SynapseHub {
             cancels: RwLock::new(std::collections::HashMap::new()),
             analysis_cancels: RwLock::new(std::collections::HashMap::new()),
             traces: RwLock::new(std::collections::HashMap::new()),
-            trace_enabled: AtomicBool::new(crate::config::env_flag("TRACE_ENABLED", false)),
+            trace_enabled: AtomicBool::new(env_flag("TRACE_ENABLED", false)),
             trace_max_events: std::env::var("TRACE_MAX_EVENTS")
                 .ok()
                 .and_then(|v| v.parse().ok())
@@ -698,14 +702,11 @@ impl SynapseHub {
                 // after 'train'
                 match k.to_lowercase().as_str() {
                     "script" => std::env::set_var("TRAINING_SCRIPT", v),
-                    "dry_run" | "dry" => std::env::set_var(
-                        "TRAINING_DRY_RUN",
-                        if v.eq_ignore_ascii_case("true") || v == "1" {
-                            "true"
-                        } else {
-                            "false"
-                        },
-                    ),
+                    "dry_run" | "dry" => {
+                        std::env::set_var("TRAINING_DRY_RUN", &v);
+                        let flag = env_flag("TRAINING_DRY_RUN", false);
+                        std::env::set_var("TRAINING_DRY_RUN", if flag { "true" } else { "false" });
+                    }
                     _ => {}
                 }
             }
@@ -966,7 +967,7 @@ impl SynapseHub {
                     _ = sleep(Duration::from_millis(soft_ms)) => {
                         soft_fired = true;
                         wd.soft_timeout();
-                        let auto_requeue = std::env::var("AUTO_REQUEUE_ON_SOFT").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false);
+                        let auto_requeue = env_flag("AUTO_REQUEUE_ON_SOFT", false);
                         if auto_requeue {
                             // Re-enqueue into Long queue with lower priority and return draft result now
                             self.scheduler.write().unwrap().enqueue(
