@@ -13,6 +13,11 @@ id: NEI-20250214-120500-lymph-filter-capability
 intent: docs
 summary: Добавлен компонент «Лимфатический фильтр» в перечень способностей.
 -->
+<!-- neira:meta
+id: NEI-20270615-lymphatic-capability-update
+intent: docs
+summary: Уточнён статус и метрики события duplicate_found.
+-->
 
 # Neira Capabilities & Feature Gates
 
@@ -295,5 +300,5 @@ capabilities:
     notes: безопасные HEAD/GET для проверок доступности; без POST
   lymphatic_filter:
     state: experimental
-    notes: фильтрация входящих сигналов через лимфатический фильтр
+    notes: фильтрация входящих сигналов через лимфатический фильтр; событие `lymphatic.duplicate_found`
 ```

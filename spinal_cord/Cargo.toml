@@ -44,6 +44,13 @@ serde_yaml = "0.9"
 # intent: chore
 # summary: Заменена зависимость serde-xml-rs на quick-xml для разбора XML.
 quick-xml = { version = "0.31", features = ["serialize"] }
+/* neira:meta
+id: NEI-20270615-lymphatic-deps
+intent: chore
+summary: Добавлены зависимости walkdir и syn для лимфатического фильтра.
+*/
+walkdir = "2"
+syn = { version = "2", features = ["full"] }
 toml = "0.8"
 notify = { version = "8.2.0", default-features = false }
 semver = "1"
