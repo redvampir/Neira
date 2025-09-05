@@ -15,9 +15,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
-use metrics::{counter, histogram};
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use metrics::{counter, histogram};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LoggedEvent {
