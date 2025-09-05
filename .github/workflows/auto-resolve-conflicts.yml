@@ -34,10 +34,11 @@ jobs:
         with:
           script: |
             // Когда триггер push, нужно пробежать все открытые PR
-            if (github.context.eventName === 'push') {
+            const ev = process.env.GITHUB_EVENT_NAME || '';
+            if (ev === 'push') {
               const { data: prs } = await github.rest.pulls.list({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
                 state: 'open',
                 per_page: 100
               });
@@ -46,17 +47,18 @@ jobs:
                 number: p.number,
                 headRef: p.head.ref,
                 baseRef: p.base.ref,
-                isCrossRepo: p.head.repo.full_name !== github.context.repo.owner + '/' + github.context.repo.repo,
+                isCrossRepo: p.head.repo.full_name !== (context.repo.owner + '/' + context.repo.repo),
                 headRepo: p.head.repo.full_name
               }))));
             } else {
-              const p = github.context.payload.pull_request;
+              const p = (context.payload && context.payload.pull_request) ? context.payload.pull_request : null;
+              if (!p) { core.setOutput('mode','batch'); core.setOutput('prs','[]'); return; }
               core.setOutput('mode', 'single');
               core.setOutput('prs', JSON.stringify([{
                 number: p.number,
                 headRef: p.head.ref,
                 baseRef: p.base.ref,
-                isCrossRepo: p.head.repo.full_name !== github.context.repo.owner + '/' + github.context.repo.repo,
+                isCrossRepo: p.head.repo.full_name !== (context.repo.owner + '/' + context.repo.repo),
                 headRepo: p.head.repo.full_name
               }]));
             }
@@ -85,7 +87,7 @@ jobs:
               try {
                 // Чекаут ветки PR из этого же репозитория
                 exec(`git init`, { stdio: 'inherit' });
-                exec(`git remote add origin https://x-access-token:${process.env.GH_TOKEN}@github.com/${github.context.repo.owner}/${github.context.repo.repo}.git`, { stdio: 'inherit' });
+                exec(`git remote add origin https://x-access-token:${process.env.GH_TOKEN}@github.com/${context.repo.owner}/${context.repo.repo}.git`, { stdio: 'inherit' });
                 exec(`git fetch --no-tags origin ${pr.headRef}:${pr.headRef} ${pr.baseRef}:${pr.baseRef}`, { stdio: 'inherit' });
                 exec(`git checkout ${pr.headRef}`, { stdio: 'inherit' });
 
@@ -116,22 +118,22 @@ jobs:
                   // Для codex-веток — закрываем PR, чтобы не висел
                   if (isCodex(pr.headRef)) {
                     await github.rest.issues.createComment({
-                      owner: github.context.repo.owner,
-                      repo: github.context.repo.repo,
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
                       issue_number: pr.number,
                       body: `🤖 Автослияние не удалось (сложные конфликты). PR закрыт автоматически; создайте новый от свежей базы или вручную решите конфликты.`
                     });
                     await github.rest.pulls.update({
-                      owner: github.context.repo.owner,
-                      repo: github.context.repo.repo,
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
                       pull_number: pr.number,
                       state: 'closed'
                     });
                     core.info('Сложные конфликты: PR закрыт (codex/*).');
                   } else {
                     await github.rest.issues.createComment({
-                      owner: github.context.repo.owner,
-                      repo: github.context.repo.repo,
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
                       issue_number: pr.number,
                       body: `⚠️ Автоматическое разрешение конфликтов не удалось. Проверьте ветку **${pr.headRef}**.`
                     });
@@ -142,8 +144,8 @@ jobs:
                   // Успех — пушим обратно в ветку PR
                   exec(`git push origin HEAD:${pr.headRef}`, { stdio: 'inherit' });
                   await github.rest.issues.createComment({
-                    owner: github.context.repo.owner,
-                    repo: github.context.repo.repo,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
                     issue_number: pr.number,
                     body: `✅ Конфликты автоматически разрешены в пользу ветки PR (strategy: \`-X ours\`).`
                   });
