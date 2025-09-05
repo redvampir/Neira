@@ -1,0 +1,156 @@
+# neira:meta
+# id: NEI-20250905-ci-pr-conflict-fixer
+# intent: ci
+# summary: Тривиальный авто‑фиксер конфликтов по метке auto-fix-conflicts с режимами: prefer-branch-soft (по умолчанию) и prefer-branch-hard. Импорт/экспорт git rerere-кэша в ветку rerere-cache.
+
+name: PR Conflict Fixer
+
+on:
+  pull_request_target:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  fix:
+    if: contains(github.event.pull_request.labels.*.name, 'auto-fix-conflicts')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare labels context
+        id: ctx
+        shell: bash
+        run: |
+          set -euo pipefail
+          labels_str='${{ join(github.event.pull_request.labels.*.name, ',') }}'
+          echo "labels=$labels_str" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Setup git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config rerere.enabled true
+
+      - name: Import rerere cache (if exists)
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_REPO="${{ github.repository }}"
+          git remote add upstream "https://github.com/${BASE_REPO}.git" || true
+          git fetch upstream +refs/heads/rerere-cache:refs/remotes/upstream/rerere-cache || true
+          mkdir -p .git/rr-cache
+          tmpdir=$(mktemp -d)
+          if git ls-remote --exit-code upstream refs/heads/rerere-cache >/dev/null 2>&1; then
+            git clone --depth 1 -b rerere-cache "https://x-access-token:${{ github.token }}@github.com/${BASE_REPO}.git" "$tmpdir/repo" >/dev/null 2>&1 || true
+            if [ -d "$tmpdir/repo/rr-cache" ]; then
+              cp -R "$tmpdir/repo/rr-cache/." .git/rr-cache/ || true
+            fi
+          fi
+          rm -rf "$tmpdir"
+
+      - name: Merge base into PR and auto-resolve trivial conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_REF='${{ github.event.pull_request.base.ref }}'
+          git remote add upstream "https://github.com/${GITHUB_REPOSITORY}.git" || true
+          git fetch upstream +refs/heads/${BASE_REF}:refs/remotes/upstream/base
+
+          # Режим: prefer-branch-hard или prefer-branch-soft (по умолчанию)
+          LABELS='${{ steps.ctx.outputs.labels }}'
+          MODE="branch-soft"
+          case ",${LABELS}," in
+            *,prefer-branch-hard,*) MODE="branch-hard" ;;
+            *,prefer-branch-soft,*) MODE="branch-soft" ;;
+          esac
+          echo "Resolution mode: $MODE"
+
+          if git merge --no-commit --no-ff refs/remotes/upstream/base; then
+            echo "No conflicts. Committing merge context."
+            git commit -m "chore: merge base into PR (no conflicts)"
+          else
+            echo "Conflicts detected. Applying heuristics (prefer PR branch)."
+
+            # 1) Базовое правило: предпочтение ветки PR (ours)
+            git checkout --ours -- . 2>/dev/null || true
+
+            # 2) Мягкий режим: lockfiles берём из base (theirs)
+            if [ "$MODE" = "branch-soft" ]; then
+              git ls-files -u | awk '{print $4}' | sort -u | \
+                grep -Ei '(^|/)cargo.lock$|(^|/)package-lock.json$|(^|/)yarn.lock$|(^|/)pnpm-lock.yaml$' | \
+                xargs -I{} bash -c 'git checkout --theirs -- "{}" 2>/dev/null || true' || true
+            fi
+
+            # 3) generated/** — остаётся ours (шаг 1)
+
+            # 4) *.list — union: ours ∪ theirs (уникальные строки)
+            while IFS= read -r f; do
+              case "$f" in
+                *.list)
+                  ours_tmp="$(mktemp)"; theirs_tmp="$(mktemp)"; out_tmp="$(mktemp)"
+                  git show ":2:$f" 2>/dev/null >"$ours_tmp" || true
+                  git show ":3:$f" 2>/dev/null >"$theirs_tmp" || true
+                  cat "$ours_tmp" "$theirs_tmp" 2>/dev/null | sort -u > "$out_tmp" || true
+                  if [ -s "$out_tmp" ]; then
+                    mkdir -p "$(dirname "$f")"
+                    cp "$out_tmp" "$f"
+                    git add "$f"
+                  fi
+                  rm -f "$ours_tmp" "$theirs_tmp" "$out_tmp"
+                  ;;
+              esac
+            done < <(git status --porcelain | awk '/^UU /{print $2}')
+
+            # 5) Закоммитить, если есть изменения
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: auto-resolve trivial conflicts (mode=$MODE; lockfiles=base-if-soft; union=*.list)"
+            else
+              echo "Nothing staged after heuristics. Aborting merge to avoid half state."
+              git merge --abort || true
+              exit 0
+            fi
+          fi
+
+      - name: Push changes
+        run: |
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+
+      - name: Export rerere cache to shared branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d .git/rr-cache ]; then
+            echo "No rr-cache directory, skipping export"; exit 0; fi
+
+          BASE_REPO="${{ github.repository }}"
+          tmpdir=$(mktemp -d)
+          git clone --depth 1 "https://x-access-token:${{ github.token }}@github.com/${BASE_REPO}.git" "$tmpdir/repo"
+          cd "$tmpdir/repo"
+          if git ls-remote --exit-code origin refs/heads/rerere-cache >/dev/null 2>&1; then
+            git fetch origin rerere-cache:rerere-cache
+            git switch rerere-cache
+          else
+            git switch --orphan rerere-cache
+            rm -rf ./*
+          fi
+          mkdir -p rr-cache
+          rsync -a --delete "${GITHUB_WORKSPACE}/.git/rr-cache/" rr-cache/ || cp -R "${GITHUB_WORKSPACE}/.git/rr-cache/." rr-cache/ || true
+          git add rr-cache
+          if git diff --cached --quiet; then
+            echo "No rr-cache changes to commit"
+          else
+            git commit -m "chore(rerere): update cache from PR fixer"
+            git push origin HEAD:rerere-cache
+          fi
+

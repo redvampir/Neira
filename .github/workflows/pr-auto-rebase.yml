@@ -1,0 +1,25 @@
+# neira:meta
+# id: NEI-20250905-ci-pr-auto-rebase
+# intent: ci
+# summary: Авто‑ребейз по метке auto-rebase для держания PR актуальными к base.
+
+name: PR Auto Rebase
+
+on:
+  pull_request_target:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  rebase:
+    if: contains(github.event.pull_request.labels.*.name, 'auto-rebase')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebase PR onto base branch
+        uses: peter-evans/rebase@v3
+        with:
+          token: ${{ github.token }}

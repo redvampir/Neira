@@ -13,6 +13,11 @@ id: NEI-20261005-digestive-log-serial
 intent: test
 summary: Тест логов выполняется последовательно для изоляции метрик.
 */
+/* neira:meta
+id: NEI-20270715-digestive-xml-test-strict
+intent: test
+summary: XML теперь должен успешно проходить валидацию.
+*/
 use backend::digestive_pipeline::{DigestivePipeline, ParsedInput, PipelineError};
 use serial_test::serial;
 use std::sync::{Arc, Mutex};
@@ -27,11 +32,8 @@ fn parses_yaml_input() {
 #[test]
 fn parses_xml_input() {
     let raw = "<root><id>1</id><result>ok</result><metadata><schema>s</schema></metadata></root>";
-    let parsed = DigestivePipeline::ingest(raw);
-    assert!(matches!(
-        parsed,
-        Ok(ParsedInput::Json(_)) | Err(PipelineError::Validation(_))
-    ));
+    let parsed = DigestivePipeline::ingest(raw).expect("parse xml");
+    assert!(matches!(parsed, ParsedInput::Json(_)));
 }
 
 #[test]
