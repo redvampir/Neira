@@ -4,6 +4,10 @@ name: Auto-resolve PR conflicts (prefer PR branch)
 # id: NEI-20250217-github-script-core-fix
 # intent: ci
 # summary: Убрано повторное объявление core/github и исправлена передача списка PR.
+# neira:meta
+# id: NEI-20250909-pr-conflict-execsync
+# intent: ci
+# summary: Заменено использование exec на execSync в github-script во избежание повторного объявления переменной exec.
 
 on:
   # Обновили PR — попробуем починить конфликты
@@ -70,7 +74,7 @@ jobs:
           PRS: ${{ steps.ctx.outputs.prs }}
         with:
           script: |
-            const exec = require('child_process').execSync;
+            const { execSync } = require('child_process');
 
             const prs = JSON.parse(process.env.PRS);
             const isCodex = (ref) => /^codex\//.test(ref) || /codex/i.test(ref);
@@ -86,21 +90,21 @@ jobs:
 
               try {
                 // Чекаут ветки PR из этого же репозитория
-                exec(`git init`, { stdio: 'inherit' });
-                exec(`git remote add origin https://x-access-token:${process.env.GH_TOKEN}@github.com/${context.repo.owner}/${context.repo.repo}.git`, { stdio: 'inherit' });
-                exec(`git fetch --no-tags origin ${pr.headRef}:${pr.headRef} ${pr.baseRef}:${pr.baseRef}`, { stdio: 'inherit' });
-                exec(`git checkout ${pr.headRef}`, { stdio: 'inherit' });
+                execSync(`git init`, { stdio: 'inherit' });
+                execSync(`git remote add origin https://x-access-token:${process.env.GH_TOKEN}@github.com/${context.repo.owner}/${context.repo.repo}.git`, { stdio: 'inherit' });
+                execSync(`git fetch --no-tags origin ${pr.headRef}:${pr.headRef} ${pr.baseRef}:${pr.baseRef}`, { stdio: 'inherit' });
+                execSync(`git checkout ${pr.headRef}`, { stdio: 'inherit' });
 
                 // Настраиваем автора коммита
-                exec(`git config user.name "github-actions[bot]"`, { stdio: 'inherit' });
-                exec(`git config user.email "41898282+github-actions[bot]@users.noreply.github.com"`, { stdio: 'inherit' });
+                execSync(`git config user.name "github-actions[bot]"`, { stdio: 'inherit' });
+                execSync(`git config user.email "41898282+github-actions[bot]@users.noreply.github.com"`, { stdio: 'inherit' });
 
                 // ВЛИВАЕМ base В ПОЛЬЗУ НОВОЙ ВЕТКИ:
                 // -X ours  => побеждают изменения текущей ветки (PR)
                 // Хочешь наоборот — замени на:  -X theirs
                 let merged = true;
                 try {
-                  exec(`git merge origin/${pr.baseRef} -X ours --no-edit`, { stdio: 'inherit' });
+                  execSync(`git merge origin/${pr.baseRef} -X ours --no-edit`, { stdio: 'inherit' });
                 } catch (e) {
                   merged = false;
                 }
@@ -108,12 +112,12 @@ jobs:
                 // Если остались незамерженные файлы — отменяем merge
                 let unmerged = '';
                 try {
-                  unmerged = exec(`git ls-files -u`, { stdio: 'pipe' }).toString().trim();
+                  unmerged = execSync(`git ls-files -u`, { stdio: 'pipe' }).toString().trim();
                 } catch (e) {}
 
                 if (!merged || unmerged) {
                   // Не смогли решить конфликты автоматически
-                  exec(`git merge --abort || true`, { stdio: 'inherit' });
+                  execSync(`git merge --abort || true`, { stdio: 'inherit' });
 
                   // Для codex-веток — закрываем PR, чтобы не висел
                   if (isCodex(pr.headRef)) {
@@ -142,7 +146,7 @@ jobs:
 
                 } else {
                   // Успех — пушим обратно в ветку PR
-                  exec(`git push origin HEAD:${pr.headRef}`, { stdio: 'inherit' });
+                  execSync(`git push origin HEAD:${pr.headRef}`, { stdio: 'inherit' });
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
