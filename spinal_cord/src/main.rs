@@ -58,6 +58,7 @@ use axum::{
     Json, Router,
 };
 use backend::context::context_storage::set_runtime_mask_config;
+use backend::event_log;
 use backend::hearing;
 #[allow(unused_imports)]
 use backend::immune_system;
@@ -70,6 +71,8 @@ use dotenvy::dotenv;
 use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use regex::Regex;
+use reqwest::header::LAST_MODIFIED;
+use reqwest::Client;
 use std::convert::Infallible;
 use std::fs;
 use std::io::{Cursor, Write};
@@ -78,8 +81,6 @@ use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing::error;
-use reqwest::header::LAST_MODIFIED;
-use reqwest::Client;
 use zip::ZipArchive;
 
 use backend::action::chat_cell::EchoChatCell;
@@ -712,6 +713,11 @@ async fn get_chat_index(
     Ok(Json(v))
 }
 
+/* neira:meta
+id: NEI-20270415-rotate-filter-ms
+intent: fix
+summary: Фильтрация ротаций контекста использует миллисекундную метку вместо счётчика.
+*/
 #[derive(serde::Deserialize)]
 struct SessionQuery {
     from: Option<String>,
@@ -739,14 +745,18 @@ async fn get_chat_session(
                     && (name.ends_with(".ndjson") || name.ends_with(".ndjson.gz")))
             {
                 if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
-                    // filter by YYYYMMDD window for rotated files
+                    // filter rotated files by timestamp_ms segment
                     let parts: Vec<&str> = name
                         .trim_end_matches(".gz")
                         .trim_end_matches(".ndjson")
                         .split('-')
                         .collect();
                     if parts.len() >= 2 {
-                        let date = parts[parts.len() - 1];
+                        let date = if parts.len() >= 3 {
+                            parts[parts.len() - 2]
+                        } else {
+                            parts[parts.len() - 1]
+                        };
                         if date < from.as_str() || date > to.as_str() {
                             continue;
                         }
@@ -1336,7 +1346,7 @@ async fn export_chat(
         files.sort();
         for p in files {
             let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            // filter by date window if provided
+            // filter by timestamp_ms window if provided
             if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
                 let parts: Vec<&str> = name
                     .trim_end_matches(".gz")
@@ -1344,7 +1354,11 @@ async fn export_chat(
                     .split('-')
                     .collect();
                 if parts.len() >= 2 {
-                    let date = parts[parts.len() - 1];
+                    let date = if parts.len() >= 3 {
+                        parts[parts.len() - 2]
+                    } else {
+                        parts[parts.len() - 1]
+                    };
                     if date < from.as_str() || date > to.as_str() {
                         continue;
                     }
@@ -1547,7 +1561,9 @@ async fn sync_schemas() -> Result<(), Box<dyn std::error::Error>> {
         .and_then(|v| v.to_str().ok())
         .and_then(|s| chrono::DateTime::parse_from_rfc2822(s).ok())
         .map(|dt| dt.timestamp());
-    let local_ts = fs::read_to_string(&meta).ok().and_then(|s| s.trim().parse::<i64>().ok());
+    let local_ts = fs::read_to_string(&meta)
+        .ok()
+        .and_then(|s| s.trim().parse::<i64>().ok());
     let need = match (remote_ts, local_ts) {
         (Some(r), Some(l)) => r > l,
         _ => true,
@@ -2317,6 +2333,29 @@ async fn main() {
         Ok(Json(serde_json::json!({"cancelled": ok})))
     }
     app = app.route("/api/neira/analysis/cancel", post(analysis_cancel));
+
+    /* neira:meta
+    id: NEI-20270310-120300-events-endpoint
+    intent: feature
+    summary: REST-ручка для чтения EventLog.
+    */
+    /* neira:meta
+    id: NEI-20270501-000000-events-name-filter
+    intent: feature
+    summary: Эндпоинт поддерживает фильтр по имени события.
+    */
+    async fn events_get(
+        axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+    ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+        let start_id = q.get("start_id").and_then(|v| v.parse::<u64>().ok());
+        let end_id = q.get("end_id").and_then(|v| v.parse::<u64>().ok());
+        let start_ts_ms = q.get("start_ts_ms").and_then(|v| v.parse::<i64>().ok());
+        let end_ts_ms = q.get("end_ts_ms").and_then(|v| v.parse::<i64>().ok());
+        let name = q.get("name").map(|s| s.as_str());
+        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms, name);
+        Ok(Json(serde_json::json!({"events": events})))
+    }
+    app = app.route("/api/neira/events", get(events_get));
 
     // Logs tail endpoint with filters: /api/neira/logs/tail?lines=&level=&since_ts_ms=
     async fn logs_tail(

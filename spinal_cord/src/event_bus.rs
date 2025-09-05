@@ -1,6 +1,6 @@
 /* neira:meta
-id: NEI-20251227-event-bus
-intent: code
+id: NEI-20251227-000000-event-bus
+intent: feature
 summary: |-
   Простой шина событий с трейтом Event и подписчиками.
 */
@@ -26,6 +26,12 @@ intent: refactor
 summary: publish отправляет типизированное FlowEvent вместо строки.
 */
 use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
+/* neira:meta
+id: NEI-20270310-120100-event-bus-log-hook
+intent: feature
+summary: publish пишет событие в EventLog и учитывает метрики публикаций.
+*/
+use crate::event_log;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
@@ -73,6 +79,11 @@ impl EventBus {
             flow.send(FlowMessage::Event(FlowEvent {
                 name: event.name().to_string(),
             }));
+        }
+        if event_log::append(event).is_ok() {
+            metrics::counter!("event_bus_publish_total").increment(1);
+        } else {
+            metrics::counter!("event_bus_publish_failures_total").increment(1);
         }
     }
 }

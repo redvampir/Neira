@@ -1,7 +1,13 @@
 <!-- neira:meta
-id: NEI-20270223-spinal-digestive-doc
+id: NEI-20270223-000000-spinal-digestive-doc
 intent: docs
 summary: Добавлен раздел DigestivePipeline с форматами, конфигурацией и примерами.
+-->
+
+<!-- neira:meta
+id: NEI-20270408-000000-event-log-doc
+intent: docs
+summary: Описан формат именования архивов EventLog с миллисекундами и счётчиком.
 -->
 
 # Инструкции для spinal_cord
@@ -23,3 +29,9 @@ let parsed = DigestivePipeline::ingest(raw)?; // ParsedInput
 # config/digestive.toml
 schema_path = "schemas/input.json"
 ```
+
+## EventLog
+
+- Ротация создаёт gzip-файлы вида `{stem}-{timestamp_ms}-{seq}.ndjson.gz`,
+  где `timestamp_ms` — время в миллисекундах, `seq` — счётчик `AtomicU64`.
+
