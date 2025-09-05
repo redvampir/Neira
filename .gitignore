@@ -3,7 +3,13 @@
 # intent: build
 # summary: Разрешён отслеживаемый файл .gitmodules.
 
+# neira:meta
+# id: NEI-20270330-ignore-sensory-node-modules
+# intent: build
+# summary: Игнорируется sensory_organs/node_modules.
+
 node_modules/
+sensory_organs/node_modules/
 target/
 logs/*
 !logs/.keep

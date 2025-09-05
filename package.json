@@ -1,6 +1,10 @@
 {
     "name":  "neira",
     "version":  "1.0.0",
+    "private":  true,
+    "workspaces":  [
+                     "sensory_organs"
+                   ],
     "scripts":  {
                     "test":  "jest",
                     "lint":  "eslint .",

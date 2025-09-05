@@ -6,6 +6,12 @@ intent: docs
 summary: Добавлен пример с CellRegistry и уточнён runtime.
 -->
 
+<!-- neira:meta
+id: NEI-20270330-usage-workspace-install
+intent: docs
+summary: Уточнена установка зависимостей через npm/pnpm.
+-->
+
 Последовательность обработки запроса в Neira:
 
 1. **Пользовательский запрос** — отправляется через CLI или API.
@@ -62,7 +68,7 @@ curl -X POST http://localhost:4000/api/neira/interact \
 
 ```bash
 # установка зависимостей
-npm install
+npm install # или pnpm install
 # подготовка окружения
 npm run setup
 # запуск API сервера на http://localhost:4000
