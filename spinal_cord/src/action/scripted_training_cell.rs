@@ -14,6 +14,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::action_cell::ActionCell;
+/* neira:meta
+id: NEI-20250101-000003-scripted-training-context
+intent: refactor
+summary: Сценарный узел обучения пишет результаты через context_dir().
+*/
+use crate::context::context_dir;
 use crate::context::context_storage::ContextStorage;
 use crate::memory_cell::MemoryCell;
 use serde::{Deserialize, Serialize};
@@ -341,8 +347,7 @@ impl ScriptedTrainingCell {
     }
 
     fn err_with_attachment(msg: &str, body: &str) -> String {
-        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-        let dir = std::path::Path::new(&base).join("training");
+        let dir = context_dir().join("training");
         let _ = std::fs::create_dir_all(&dir);
         let ts = chrono::Utc::now().timestamp_millis();
         let path_rel = format!("training/failure_{}.txt", ts);
@@ -529,8 +534,7 @@ impl ScriptedTrainingCell {
     }
 
     fn write_reports(name: &str, results: &[TrainingResult]) -> Result<(), String> {
-        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-        let dir = std::path::Path::new(&base).join("training");
+        let dir = context_dir().join("training");
         let _ = std::fs::create_dir_all(&dir);
         let tests = results.len();
         let failures = results.iter().filter(|r| !r.3).count();

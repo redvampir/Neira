@@ -1,3 +1,9 @@
+use backend::context::context_dir;
+/* neira:meta
+id: NEI-20250101-000004-main-context-dir
+intent: refactor
+summary: Основной сервис использует context_dir() вместо прямого чтения CONTEXT_DIR.
+*/
 use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use std::sync::{Arc, Mutex};
 
@@ -702,10 +708,7 @@ async fn chat_request(
 async fn get_chat_index(
     Path(chat_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let path = std::path::Path::new(&base)
-        .join(&chat_id)
-        .join("index.json");
+    let path = context_dir().join(&chat_id).join("index.json");
     if !path.exists() {
         return Ok(Json(serde_json::json!({})));
     }
@@ -735,8 +738,7 @@ async fn get_chat_session(
     Path((chat_id, session_id)): Path<(String, String)>,
     axum::extract::Query(q): axum::extract::Query<SessionQuery>,
 ) -> impl axum::response::IntoResponse {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     let mut body = String::new();
     if let Ok(rd) = std::fs::read_dir(&dir) {
         let mut files: Vec<std::path::PathBuf> = rd.flatten().map(|e| e.path()).collect();
@@ -910,8 +912,7 @@ async fn delete_session(
     {
         return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into()));
     }
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     if let Ok(rd) = std::fs::read_dir(&dir) {
         for e in rd.flatten() {
             let p = e.path();
@@ -979,8 +980,7 @@ async fn rename_session(
             "empty new_session_id".into(),
         ));
     }
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     if let Ok(rd) = std::fs::read_dir(&dir) {
         for e in rd.flatten() {
             let p = e.path();
@@ -1209,8 +1209,7 @@ async fn search_chat(
     Path((chat_id, session_id)): Path<(String, String)>,
     axum::extract::Query(params): axum::extract::Query<SearchQuery>,
 ) -> Result<(axum::http::HeaderMap, String), (axum::http::StatusCode, String)> {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     let mut out = String::new();
     let mut matches: Vec<(i64, String)> = Vec::new();
     let q = params.q.clone();
@@ -1341,8 +1340,7 @@ async fn export_chat(
     Path(chat_id): Path<String>,
     axum::extract::Query(q): axum::extract::Query<ExportQuery>,
 ) -> impl axum::response::IntoResponse {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     let mut body = String::new();
     if let Ok(rd) = std::fs::read_dir(&dir) {
         let mut files: Vec<std::path::PathBuf> = rd.flatten().map(|e| e.path()).collect();
@@ -1668,7 +1666,7 @@ async fn main() {
     let storage = Arc::new(FileContextStorage::new("context"));
     // Initialize sessions_active gauge by reading index.json files
     {
-        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+        let base = context_dir();
         let mut total = 0u64;
         if let Ok(rd) = std::fs::read_dir(&base) {
             for e in rd.flatten() {
@@ -1917,8 +1915,7 @@ async fn main() {
         .route(
             "/context/{*path}",
             get(|Path(path): Path<String>| async move {
-                let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-                let full = std::path::Path::new(&base).join(path);
+                let full = context_dir().join(path);
                 match std::fs::read(&full) {
                     Ok(bytes) => {
                         let ct = if full.extension().and_then(|s| s.to_str()) == Some("html") {
@@ -2155,7 +2152,7 @@ async fn main() {
             .map(|s| s.contains("context"))
             .unwrap_or(false)
         {
-            let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+            let base = context_dir();
             let mut index: std::collections::HashMap<String, Vec<String>> =
                 std::collections::HashMap::new();
             if let Ok(rd) = std::fs::read_dir(&base) {
@@ -2861,7 +2858,7 @@ async fn main() {
             let ttl_ms = ttl_days.max(0) * 86_400_000;
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(compact_every_ms)).await;
-                let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+                let base = context_dir();
                 if let Ok(rd) = std::fs::read_dir(&base) {
                     for e in rd.flatten() {
                         let idx = e.path().join("index.json");

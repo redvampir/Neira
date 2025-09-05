@@ -250,10 +250,16 @@ fn update_storage_metrics(cfg: &Config, added_bytes: u64, lines: usize) {
 
 impl FileContextStorage {
     pub fn new(root: impl Into<PathBuf>) -> Self {
-        let root = std::env::var("CONTEXT_DIR")
-            .ok()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| root.into());
+        /* neira:meta
+        id: NEI-20250101-000001-context-storage-env
+        intent: refactor
+        summary: new() использует context_dir() при наличии CONTEXT_DIR.
+        */
+        let root = if std::env::var_os("CONTEXT_DIR").is_some() {
+            crate::context::context_dir()
+        } else {
+            root.into()
+        };
         let cfg = Config::from_env(&root);
         if cfg.flush_interval_ms > 0 {
             let (tx, mut rx) = mpsc::channel::<(String, String, ChatMessage)>(1024);
