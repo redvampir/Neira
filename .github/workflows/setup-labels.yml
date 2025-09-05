@@ -1,0 +1,49 @@
+# neira:meta
+# id: NEI-20250905-ci-setup-labels
+# intent: ci
+# summary: Одноразовое создание меток: auto-rebase, auto-fix-conflicts, prefer-branch-soft, prefer-branch-hard.
+
+name: Setup Labels
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure labels exist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [
+              { name: 'auto-rebase',          color: '1f6feb', description: 'Авто-ребейз PR поверх base' },
+              { name: 'auto-fix-conflicts',   color: '0e8a16', description: 'Авто-фиксер тривиальных конфликтов' },
+              { name: 'prefer-branch-soft',   color: '8b949e', description: 'Предпочтение ветки PR (lockfiles из base)' },
+              { name: 'prefer-branch-hard',   color: 'd73a4a', description: 'Жёстко: всегда сторона PR' }
+            ];
+
+            const { owner, repo } = context.repo;
+            const existing = await github.rest.issues.listLabelsForRepo({ owner, repo, per_page: 100 });
+            const byName = new Map(existing.data.map(l => [l.name.toLowerCase(), l]));
+            for (const lbl of labels) {
+              const key = lbl.name.toLowerCase();
+              if (!byName.has(key)) {
+                core.info(`Creating label ${lbl.name}`);
+                await github.rest.issues.createLabel({ owner, repo, name: lbl.name, color: lbl.color, description: lbl.description });
+              } else {
+                const cur = byName.get(key);
+                const needUpdate = cur.color.toLowerCase() !== lbl.color.toLowerCase() || (cur.description || '') !== lbl.description;
+                if (needUpdate) {
+                  core.info(`Updating label ${lbl.name}`);
+                  await github.rest.issues.updateLabel({ owner, repo, name: lbl.name, color: lbl.color, description: lbl.description });
+                } else {
+                  core.info(`Label ${lbl.name} already ok`);
+                }
+              }
+            }
+
