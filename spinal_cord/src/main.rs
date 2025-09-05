@@ -2,7 +2,7 @@ use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
-id: NEI-20250603-axum-ws-api
+id: NEI-20250603-000000-axum-ws-api
 intent: refactor
 summary: обновлена интеграция WebSocket для axum 0.8.
 */
@@ -725,6 +725,11 @@ summary: |-
   Фильтрация истории и экспорта учитывает архивы старого формата
   `{session_id}-{YYYYMMDDHHMMSS}.ndjson.gz`.
 */
+/* neira:meta
+id: NEI-20270419-000000-legacy-numeric-id-filter
+intent: fix
+summary: Уточнена фильтрация для архивов с числовыми суффиксами session_id.
+*/
 #[derive(serde::Deserialize)]
 struct SessionQuery {
     from: Option<String>,
@@ -744,14 +749,18 @@ fn extract_timestamp_segment(name: &str) -> Option<&str> {
     if parts.len() >= 3 {
         let last = parts[parts.len() - 1];
         let penult = parts[parts.len() - 2];
-        if last.chars().all(|c| c.is_ascii_digit()) && penult.chars().all(|c| c.is_ascii_digit()) {
+        if last.chars().all(|c| c.is_ascii_digit())
+            && penult.chars().all(|c| c.is_ascii_digit())
+            && penult.len() == 13
+            && last.len() < penult.len()
+        {
             return Some(penult);
         }
     }
     parts
         .iter()
         .rev()
-        .find(|seg| seg.chars().all(|c| c.is_ascii_digit()))
+        .find(|seg| seg.chars().all(|c| c.is_ascii_digit()) && seg.len() >= 13)
         .copied()
 }
 
@@ -1523,7 +1532,7 @@ mod tests {
         let dir = tempdir().unwrap();
         std::env::set_var("CONTEXT_DIR", dir.path());
         let chat = "c1";
-        let session = "sess-20240412010203-1a";
+        let session = "sess-20240412010203-1";
         let chat_dir = dir.path().join(chat);
         fs::create_dir_all(&chat_dir).unwrap();
 
