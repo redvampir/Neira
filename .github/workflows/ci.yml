@@ -62,6 +62,17 @@ jobs:
         run: |
           npm ci
           npm ci --prefix sensory_organs
+      # neira:meta
+      # id: NEI-20251024-ci-python-pre-commit
+      # intent: ci
+      # summary: Добавлены шаги setup-python и pre-commit для проверки workflow файлов.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Run pre-commit
+        run: |
+          pip install pre-commit
+          pre-commit run --files .github/workflows/auto-resolve-conflicts.yml .github/workflows/ci.yml
       - name: Check neira:meta coverage (strict)
         run: |
           node scripts/check-meta.mjs --since origin/main --strict --report github --out meta-report.json
