@@ -9,3 +9,6 @@ logs/*
 !logs/.keep
 **/.git*
 !.gitmodules
+!/.github/
+!/.github/workflows/
+!/.github/workflows/**
