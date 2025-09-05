@@ -7,6 +7,12 @@ use tokio_stream::wrappers::IntervalStream;
 use tokio_stream::StreamExt;
 
 use backend::action::scripted_training_cell::ScriptedTrainingCell;
+/* neira:meta
+id: NEI-20250101-000002-training-context-dir
+intent: refactor
+summary: Тренировочные маршруты используют context_dir() вместо прямого чтения CONTEXT_DIR.
+*/
+use backend::context::context_dir;
 
 #[derive(Deserialize)]
 pub struct TrainingRunReq {
@@ -48,8 +54,7 @@ pub async fn training_status() -> Result<Json<serde_json::Value>, (StatusCode, S
 }
 
 fn latest_training_file() -> Option<std::path::PathBuf> {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join("training");
+    let dir = context_dir().join("training");
     let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(&dir)
         .ok()?
         .flatten()
@@ -75,8 +80,7 @@ pub async fn training_stream(
     let filter_chat = q.chat_id.unwrap_or_else(|| "training".into());
     let filter_sess = q.session_id.unwrap_or_else(|| "run".into());
     let mut current: Option<std::path::PathBuf> = latest_training_file().or_else(|| {
-        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-        let dir = std::path::Path::new(&base).join(&filter_chat);
+        let dir = context_dir().join(&filter_chat);
         let file = format!("{}.ndjson", filter_sess);
         let p = dir.join(file);
         if p.exists() {
