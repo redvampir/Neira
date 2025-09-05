@@ -1,10 +1,15 @@
 /* neira:meta
-id: NEI-20270615-lymphatic-filter-module
+id: NEI-20270615-000000-lymphatic-filter-module
 intent: feature
 summary: Лимфатический фильтр сканирует рабочее пространство и выявляет дубликаты функций.
 */
+/* neira:meta
+id: NEI-20270715-000000-lymphatic-filter-perf
+intent: perf
+summary: Ограничен обход исходников и оптимизирован поиск дубликатов.
+*/
 use sha2::{Digest, Sha256};
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 use walkdir::WalkDir;
 
 use syn::{Item, ItemFn};
@@ -28,12 +33,30 @@ struct FunctionFingerprint {
     structure: String,
 }
 
-/// Сканирует текущий рабочий каталог в поиске дубликатов функций.
+/// Сканирует исходники в поиске дубликатов функций.
 pub fn scan_workspace() -> Vec<DuplicationReport> {
-    let root = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let mut fingerprints = Vec::new();
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let root = if cwd.join("spinal_cord/src").exists() {
+        cwd.join("spinal_cord/src")
+    } else if cwd.join("src").exists() {
+        cwd.join("src")
+    } else {
+        cwd
+    };
 
-    for entry in WalkDir::new(&root).into_iter().filter_map(Result::ok) {
+    let mut buckets: HashMap<String, Vec<FunctionFingerprint>> = HashMap::new();
+    let mut reports = Vec::new();
+
+    let walker = WalkDir::new(root).into_iter().filter_entry(|e| {
+        let name = e.file_name().to_string_lossy();
+        if e.file_type().is_dir() {
+            !matches!(name.as_ref(), "target" | "node_modules" | ".git")
+        } else {
+            true
+        }
+    });
+
+    for entry in walker.filter_map(Result::ok) {
         if !entry.file_type().is_file() {
             continue;
         }
@@ -44,47 +67,40 @@ pub fn scan_workspace() -> Vec<DuplicationReport> {
             if let Ok(file) = syn::parse_file(&content) {
                 for item in file.items {
                     if let Item::Fn(func) = item {
-                        fingerprints.push(fingerprint(&func, entry.path().to_path_buf()));
+                        let fp = fingerprint(&func, entry.path().to_path_buf());
+                        let bucket = buckets.entry(fp.signature.clone()).or_default();
+                        for other in bucket.iter() {
+                            let mut matched = vec!["signature"];
+                            let mut score = 1.0;
+                            if fp.behavior == other.behavior {
+                                matched.push("behavior");
+                                score += 1.0;
+                            }
+                            if fp.semantic == other.semantic {
+                                matched.push("semantic");
+                                score += 1.0;
+                            }
+                            if fp.structure == other.structure {
+                                matched.push("structure");
+                                score += 1.0;
+                            }
+                            let similarity = score / 4.0;
+                            if similarity >= 0.8 {
+                                reports.push(DuplicationReport {
+                                    gene_id: other.gene_id.clone(),
+                                    file: other.file.clone(),
+                                    similarity,
+                                    rationale: format!("совпадения: {}", matched.join(", ")),
+                                });
+                            }
+                        }
+                        bucket.push(fp);
                     }
                 }
             }
         }
     }
 
-    let mut reports = Vec::new();
-    for i in 0..fingerprints.len() {
-        for j in (i + 1)..fingerprints.len() {
-            let a = &fingerprints[i];
-            let b = &fingerprints[j];
-            let mut matched = Vec::new();
-            let mut score = 0.0;
-            if a.signature == b.signature {
-                matched.push("signature");
-                score += 1.0;
-            }
-            if a.behavior == b.behavior {
-                matched.push("behavior");
-                score += 1.0;
-            }
-            if a.semantic == b.semantic {
-                matched.push("semantic");
-                score += 1.0;
-            }
-            if a.structure == b.structure {
-                matched.push("structure");
-                score += 1.0;
-            }
-            let similarity = score / 4.0;
-            if similarity >= 0.8 {
-                reports.push(DuplicationReport {
-                    gene_id: b.gene_id.clone(),
-                    file: b.file.clone(),
-                    similarity,
-                    rationale: format!("совпадения: {}", matched.join(", ")),
-                });
-            }
-        }
-    }
     reports
 }
 
