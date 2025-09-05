@@ -20,12 +20,18 @@ id: NEI-20270501-event-log-name-filter
 intent: feature
 summary: query фильтрует события по имени.
 */
+/* neira:meta
+id: NEI-20270610-120100-event-log-payload
+intent: feature
+summary: LoggedEvent хранит произвольные данные события в поле data.
+*/
 use crate::event_bus::Event;
 use chrono::Utc;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::fs::{self, File, OpenOptions};
 use std::io::{copy, Error as IoError, ErrorKind, Result as IoResult, Write};
 use std::path::{Path, PathBuf};
@@ -40,6 +46,8 @@ pub struct LoggedEvent {
     pub id: u64,
     pub ts_ms: i64,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<Value>,
 }
 
 fn log_path() -> PathBuf {
@@ -138,6 +146,7 @@ pub fn append(event: &dyn Event) -> IoResult<()> {
         id,
         ts_ms: Utc::now().timestamp_millis(),
         name: event.name().to_string(),
+        data: event.data(),
     };
     PENDING.fetch_add(1, Ordering::SeqCst);
     SENDER.send(entry).map_err(|e| {

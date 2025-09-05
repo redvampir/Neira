@@ -8,11 +8,17 @@
 # intent: build
 # summary: Игнорируется sensory_organs/node_modules.
 
+# neira:meta
+# id: NEI-20270610-120500-logs-example
+# intent: docs
+# summary: Разрешён пример журнала logs/events.ndjson.
+
 node_modules/
 sensory_organs/node_modules/
 target/
 logs/*
 !logs/.keep
+!logs/events.ndjson
 **/.git*
 !.gitmodules
 !/.github/

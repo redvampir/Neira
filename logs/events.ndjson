@@ -1,0 +1,6 @@
+/* neira:meta
+id: NEI-20270610-120300-lymphatic-event-sample
+intent: docs
+summary: Пример записи события lymphatic_filter.activated.
+*/
+{"id":1,"ts_ms":0,"name":"lymphatic_filter.activated","data":{"function_id":"FUNC1","similarity":0.95,"decision":"keep"}}
