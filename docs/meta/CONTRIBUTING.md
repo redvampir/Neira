@@ -11,6 +11,11 @@ id: NEI-20270330-contrib-workspace-install
 intent: docs
 summary: Добавлена установка зависимостей через npm/pnpm workspace.
 -->
+<!-- neira:meta
+id: NEI-20270424-contrib-shared-deps
+intent: docs
+summary: Уточнено, что sensory_organs использует зависимости из корня.
+-->
 
 ## Требования
 
@@ -42,6 +47,8 @@ npm install # или pnpm install
 ```
 
 Команда настроит pre-commit хуки Husky и lint-staged.
+Все пакеты, включая sensory_organs, используют общий набор зависимостей
+из корневого `node_modules`.
 
 ## Тестирование
 
