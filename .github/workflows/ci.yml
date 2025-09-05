@@ -82,9 +82,10 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Guard: run only for pull_request events and when context is present
-            if (!globalThis.context || globalThis.context.eventName !== 'pull_request') {
-              core.info(`Skip commenting: event=${globalThis.context ? globalThis.context.eventName : 'unknown'}`);
+            // Guard: run only for pull_request events (robust to missing context)
+            const ev = process.env.GITHUB_EVENT_NAME || '';
+            if (ev !== 'pull_request') {
+              core.info(`Skip commenting: event=${ev || 'unknown'}`);
               return;
             }
             const fs = require('fs');
@@ -105,8 +106,11 @@ jobs:
               report.invalid.length ? ('Invalid blocks:\n' + report.invalid.map(it => `- ${it.file}: ${it.errors.join(', ')}`).join('\n')) : '',
             ].filter(Boolean).join('\n');
 
-            const { owner, repo } = context.repo;
-            const issue_number = (context.issue && context.issue.number) || (context.payload && context.payload.pull_request && context.payload.pull_request.number);
+            // Try to read PR number from context if available; otherwise skip gracefully
+            const { context, github, core: ccore } = globalThis;
+            const owner = (context && context.repo && context.repo.owner) || process.env.GITHUB_REPOSITORY?.split('/')[0];
+            const repo = (context && context.repo && context.repo.repo) || process.env.GITHUB_REPOSITORY?.split('/')[1];
+            const issue_number = (context && context.issue && context.issue.number) || (context && context.payload && context.payload.pull_request && context.payload.pull_request.number);
             if (!issue_number) {
               core.info('No PR number found in context; skipping comment.');
               return;
