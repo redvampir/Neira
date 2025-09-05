@@ -17,8 +17,8 @@ use std::sync::{Arc, RwLock};
 use lru::LruCache;
 
 use chrono::{DateTime, Utc};
-use tokio::spawn;
 use std::time::Instant;
+use tokio::spawn;
 
 use crate::analysis_cell::{AnalysisResult, QualityMetrics, ReasoningStep};
 use crate::digestive_pipeline::ParsedInput;
@@ -130,13 +130,7 @@ impl MemoryCell {
         let mut key = triggers.to_vec();
         key.sort();
         let cache_key = key.join("|");
-        if let Some(records) = self
-            .preload_cache
-            .write()
-            .unwrap()
-            .get(&cache_key)
-            .cloned()
-        {
+        if let Some(records) = self.preload_cache.write().unwrap().get(&cache_key).cloned() {
             let elapsed = start.elapsed().as_secs_f64() * 1000.0;
             metrics::histogram!("memory_cell_preload_duration_ms").record(elapsed);
             metrics::histogram!("memory_cell_preload_duration_ms_p95").record(elapsed);

@@ -1,9 +1,15 @@
-use backend::context::context_dir;
 /* neira:meta
 id: NEI-20250101-000004-main-context-dir
 intent: refactor
 summary: Основной сервис использует context_dir() вместо прямого чтения CONTEXT_DIR.
 */
+/* neira:meta
+id: NEI-20250220-env-flag-main
+intent: refactor
+summary: Булевы переменные в main читаются через config::env_flag.
+*/
+use backend::config;
+use backend::context::context_dir;
 use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use std::sync::{Arc, Mutex};
 
@@ -1110,9 +1116,7 @@ async fn chat_stream(
         let mut chars = 0usize;
         let start = Instant::now();
         let dev_delay_ms = std::env::var("SSE_DEV_DELAY_MS").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
-        let loop_enabled = std::env::var("LOOP_DETECT_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let loop_enabled = config::env_flag("LOOP_DETECT_ENABLED", true);
         let loop_win: usize = std::env::var("LOOP_WINDOW_TOKENS")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -1727,9 +1731,7 @@ async fn main() {
 
     let file_appender = tracing_appender::rolling::daily(logs_dir, "backend.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-    let json_logs = std::env::var("NERVOUS_SYSTEM_JSON_LOGS")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false);
+    let json_logs = config::env_flag("NERVOUS_SYSTEM_JSON_LOGS", false);
     let fmt_builder = tracing_subscriber::fmt()
         .with_writer(non_blocking)
         .with_ansi(false)
@@ -1896,9 +1898,7 @@ async fn main() {
             let _deep_secs = t.deep_secs;
             let alpha = anti_idle::ema_alpha();
             let dry_depth_env = anti_idle::dryrun_queue_depth();
-            let dryrun_enabled = std::env::var("LEARNING_MICROTASKS_DRYRUN")
-                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                .unwrap_or(false);
+            let dryrun_enabled = config::env_flag("LEARNING_MICROTASKS_DRYRUN", false);
             let mut accum_idle_secs: u64 = 0;
             let mut idle_ema: f64 = 0.0;
             loop {
@@ -2083,9 +2083,7 @@ async fn main() {
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
-        let allow = std::env::var("CONTROL_ALLOW_PAUSE")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let allow = config::env_flag("CONTROL_ALLOW_PAUSE", true);
         if !allow {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -2150,9 +2148,7 @@ async fn main() {
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
-        let allow = std::env::var("CONTROL_ALLOW_PAUSE")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let allow = config::env_flag("CONTROL_ALLOW_PAUSE", true);
         if !allow {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -2214,9 +2210,7 @@ async fn main() {
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
-        let allow = std::env::var("CONTROL_ALLOW_KILL")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let allow = config::env_flag("CONTROL_ALLOW_KILL", true);
         if !allow {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -2751,12 +2745,17 @@ async fn main() {
         let (idle_state, since) = anti_idle::idle_state(active);
         let t = *anti_idle::thresholds();
         metrics::gauge!("time_since_activity_seconds").set(since as f64);
+        /* neira:meta
+        id: NEI-20250220-env-flag-main-caps
+        intent: refactor
+        summary: Сводка возможностей использует env_flag.
+        */
         let caps = serde_json::json!({
             "trace_requests": state.hub.is_trace_enabled(),
             "inspect_snapshot": true,
-            "control_pause_resume": std::env::var("CONTROL_ALLOW_PAUSE").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true),
-            "control_kill_switch": std::env::var("CONTROL_ALLOW_KILL").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true),
-            "dev_routes": std::env::var("DEV_ROUTES_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false),
+            "control_pause_resume": config::env_flag("CONTROL_ALLOW_PAUSE", true),
+            "control_kill_switch": config::env_flag("CONTROL_ALLOW_KILL", true),
+            "dev_routes": config::env_flag("DEV_ROUTES_ENABLED", false),
             "factory_adapter": state.hub.factory_is_adapter_enabled(),
             "organs_builder": state.hub.organ_builder_enabled()
         });
@@ -2832,10 +2831,7 @@ async fn main() {
         .route("/api/neira/plugins", get(list_plugins))
         .route("/api/neira/ui/tools", get(list_ui_tools));
 
-    if std::env::var("DEV_ROUTES_ENABLED")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false)
-    {
+    if config::env_flag("DEV_ROUTES_ENABLED", false) {
         // register dev slow analysis cell
         struct DevSlowCell;
         impl AnalysisCell for DevSlowCell {

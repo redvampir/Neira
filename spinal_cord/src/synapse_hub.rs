@@ -6,6 +6,11 @@ summary: |
   переопределяются через переменные окружения.
 */
 /* neira:meta
+id: NEI-20250220-env-flag-hub
+intent: refactor
+summary: Несколько флагов хаба парсятся через env_flag.
+*/
+/* neira:meta
 id: NEI-20250214-watchdog-refactor
 intent: refactor
 summary: Логика watchdog вынесена в модуль nervous_system::watchdog.
@@ -177,9 +182,7 @@ impl SynapseHub {
             "session" => RateKeyMode::Session,
             _ => RateKeyMode::Auth,
         };
-        let idem_persist = std::env::var("IDEMPOTENT_PERSIST")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let idem_persist = crate::config::env_flag("IDEMPOTENT_PERSIST", false);
         let idem = if idem_persist {
             let dir = std::env::var("IDEMPOTENT_STORE_DIR").unwrap_or_else(|_| "context".into());
             let ttl = std::env::var("IDEMPOTENT_TTL_SECS")
@@ -190,9 +193,8 @@ impl SynapseHub {
         } else {
             None
         };
-        let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let persist_require_session_id =
+            crate::config::env_flag("PERSIST_REQUIRE_SESSION_ID", false);
         let io_watcher_threshold_ms = std::env::var("IO_WATCHER_THRESHOLD_MS")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -264,11 +266,7 @@ impl SynapseHub {
             cancels: RwLock::new(std::collections::HashMap::new()),
             analysis_cancels: RwLock::new(std::collections::HashMap::new()),
             traces: RwLock::new(std::collections::HashMap::new()),
-            trace_enabled: AtomicBool::new(
-                std::env::var("TRACE_ENABLED")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false),
-            ),
+            trace_enabled: AtomicBool::new(crate::config::env_flag("TRACE_ENABLED", false)),
             trace_max_events: std::env::var("TRACE_MAX_EVENTS")
                 .ok()
                 .and_then(|v| v.parse().ok())

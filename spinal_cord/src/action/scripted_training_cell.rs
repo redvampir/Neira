@@ -9,6 +9,11 @@ env:
   - TRAINING_PROGRESS
   - TRAINING_DRY_RUN
 */
+/* neira:meta
+id: NEI-20250220-env-flag-training
+intent: refactor
+summary: Читает TRAINING_* флаги через env_flag.
+*/
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -121,9 +126,7 @@ impl ScriptedTrainingCell {
             .unwrap_or_else(|_| "examples/training_script.yaml".into());
         let progress = std::env::var("TRAINING_PROGRESS")
             .unwrap_or_else(|_| "context/training/progress.json".into());
-        let dry_run = std::env::var("TRAINING_DRY_RUN")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let dry_run = crate::config::env_flag("TRAINING_DRY_RUN", false);
         Self {
             id: "scripted.training".into(),
             script_path: script.into(),
@@ -421,9 +424,7 @@ impl ScriptedTrainingCell {
                 }
             }
             Hook::Shell { cmd } => {
-                let allow = std::env::var("TRAINING_ALLOW_SHELL")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false);
+                let allow = crate::config::env_flag("TRAINING_ALLOW_SHELL", false);
                 if !allow {
                     return;
                 }

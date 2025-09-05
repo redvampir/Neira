@@ -1,3 +1,8 @@
+/* neira:meta
+id: NEI-20250220-context-env-flag
+intent: refactor
+summary: Флаги контекста читаются через общую функцию env_flag.
+*/
 use crate::nervous_system::anti_idle;
 use chrono::{Datelike, Utc};
 use flate2::write::GzEncoder;
@@ -450,19 +455,13 @@ impl Config {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(metrics.max_bytes);
-        let daily_rotation = std::env::var("CONTEXT_DAILY_ROTATION")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
-        let archive_gz = std::env::var("CONTEXT_ARCHIVE_GZ")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let daily_rotation = crate::config::env_flag("CONTEXT_DAILY_ROTATION", true);
+        let archive_gz = crate::config::env_flag("CONTEXT_ARCHIVE_GZ", true);
         let flush_interval_ms = std::env::var("CONTEXT_FLUSH_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(0);
-        let mask_enabled = std::env::var("MASK_PII")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let mask_enabled = crate::config::env_flag("MASK_PII", true);
         let mask_regex = std::env::var("MASK_REGEX")
             .ok()
             .map(|s| s.split(';').filter_map(|p| Regex::new(p).ok()).collect())

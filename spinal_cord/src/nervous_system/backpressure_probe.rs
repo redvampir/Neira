@@ -4,6 +4,11 @@ intent: docs
 summary: |-
   Монитор очередей планировщика, публикующий backpressure и выполняющий троттлинг.
 */
+/* neira:meta
+id: NEI-20250220-env-flag-backpressure
+intent: refactor
+summary: Добавлен флаг AUTO_BACKOFF_ENABLED через env_flag.
+*/
 
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
@@ -55,11 +60,7 @@ impl BackpressureProbe {
             metrics::counter!("throttle_events_total").increment(1);
             sleep(Duration::from_millis(bp_sleep)).await;
         }
-        if std::env::var("AUTO_BACKOFF_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false)
-            && bp > bp_high
-        {
+        if crate::config::env_flag("AUTO_BACKOFF_ENABLED", false) && bp > bp_high {
             let max_backoff = std::env::var("BP_MAX_BACKOFF_MS")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
