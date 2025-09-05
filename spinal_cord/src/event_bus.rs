@@ -25,6 +25,11 @@ id: NEI-20240514-event-bus-flowevent
 intent: refactor
 summary: publish отправляет типизированное FlowEvent вместо строки.
 */
+/* neira:meta
+id: NEI-20270610-120000-lymphatic-event
+intent: feature
+summary: Добавлено событие lymphatic_filter.activated и метод data для передачи полей события.
+*/
 use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
 /* neira:meta
 id: NEI-20270310-120100-event-bus-log-hook
@@ -32,12 +37,16 @@ intent: feature
 summary: publish пишет событие в EventLog и учитывает метрики публикаций.
 */
 use crate::event_log;
+use serde_json::{json, Value};
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
 pub trait Event: Send + Sync {
     fn name(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
+    fn data(&self) -> Option<Value> {
+        None
+    }
 }
 
 pub trait Subscriber: Send + Sync {
@@ -113,5 +122,42 @@ impl Event for OrganBuilt {
     }
     fn as_any(&self) -> &dyn Any {
         self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LymphaticDecision {
+    Keep,
+    Remove,
+}
+
+impl LymphaticDecision {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Keep => "keep",
+            Self::Remove => "remove",
+        }
+    }
+}
+
+pub struct LymphaticFilterActivated {
+    pub function_id: String,
+    pub similarity: f32,
+    pub decision: LymphaticDecision,
+}
+
+impl Event for LymphaticFilterActivated {
+    fn name(&self) -> &str {
+        "lymphatic_filter.activated"
+    }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+    fn data(&self) -> Option<Value> {
+        Some(json!({
+            "function_id": self.function_id,
+            "similarity": self.similarity,
+            "decision": self.decision.as_str(),
+        }))
     }
 }
