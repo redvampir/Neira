@@ -18,6 +18,11 @@ intent: code
 summary: переименована переменная на ORGANS_BUILDER_STAGE_DELAYS.
 */
 /* neira:meta
+id: NEI-20250220-env-flag-organ-builder
+intent: refactor
+summary: Флаг ORGANS_BUILDER_ENABLED обрабатывается через env_flag.
+*/
+/* neira:meta
 id: NEI-20251115-organ-cancel-build
 intent: code
 summary: сохраняются JoinHandle задач и добавлен cancel_build для их остановки.
@@ -74,9 +79,7 @@ impl OrganBuilder {
     /// Создаёт новый орган-билдер. Включение контролируется переменной окружения
     /// `ORGANS_BUILDER_ENABLED`.
     pub fn new() -> Arc<Self> {
-        let enabled = std::env::var("ORGANS_BUILDER_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let enabled = crate::config::env_flag("ORGANS_BUILDER_ENABLED", false);
         let dir = std::env::var("ORGANS_BUILDER_TEMPLATES_DIR")
             .unwrap_or_else(|_| "organ_templates".into());
         let templates_dir = PathBuf::from(dir);

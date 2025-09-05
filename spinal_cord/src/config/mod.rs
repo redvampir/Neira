@@ -1,5 +1,18 @@
+/* neira:meta
+id: NEI-20250220-env-flag
+intent: refactor
+summary: Добавлена функция env_flag для чтения булевых флагов из окружения.
+*/
 use serde::Deserialize;
 use std::collections::HashMap;
+
+/// Читает булево значение из переменной окружения.
+/// Возвращает `default`, если переменная не установлена.
+pub fn env_flag(key: &str, default: bool) -> bool {
+    std::env::var(key)
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(default)
+}
 
 /// Configuration for optional components of the backend.
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -43,24 +56,17 @@ impl Default for ProbeConfig {
 impl Config {
     /// Load configuration from environment variables.
     pub fn from_env() -> Self {
-        let enabled = std::env::var("NERVOUS_SYSTEM_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let enabled = env_flag("NERVOUS_SYSTEM_ENABLED", true);
 
-        let host_metrics_enabled = std::env::var("PROBES_HOST_METRICS_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let host_metrics_enabled = env_flag("PROBES_HOST_METRICS_ENABLED", true);
 
         // Новое решение: сначала читаем PROBES_IO_WATCHER_ENABLED,
         // при ошибке — проверяем legacy-переменную IO_WATCHER_ENABLED,
         // по умолчанию выключено (false).
-        let io_watcher_enabled = std::env::var("PROBES_IO_WATCHER_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or_else(|_| {
-                std::env::var("IO_WATCHER_ENABLED")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false)
-            });
+        let io_watcher_enabled = env_flag(
+            "PROBES_IO_WATCHER_ENABLED",
+            env_flag("IO_WATCHER_ENABLED", false),
+        );
 
         let mut probes = HashMap::new();
         probes.insert(
@@ -80,5 +86,32 @@ impl Config {
             nervous_system: NervousSystemConfig { enabled },
             probes,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::env_flag;
+
+    #[test]
+    fn parses_true_values() {
+        std::env::set_var("ENV_FLAG_TEST_TRUE", "1");
+        assert!(env_flag("ENV_FLAG_TEST_TRUE", false));
+        std::env::set_var("ENV_FLAG_TEST_TRUE", "true");
+        assert!(env_flag("ENV_FLAG_TEST_TRUE", false));
+        std::env::set_var("ENV_FLAG_TEST_TRUE", "TRUE");
+        assert!(env_flag("ENV_FLAG_TEST_TRUE", false));
+        std::env::remove_var("ENV_FLAG_TEST_TRUE");
+    }
+
+    #[test]
+    fn parses_false_and_default() {
+        std::env::set_var("ENV_FLAG_TEST_FALSE", "0");
+        assert!(!env_flag("ENV_FLAG_TEST_FALSE", true));
+        std::env::set_var("ENV_FLAG_TEST_FALSE", "false");
+        assert!(!env_flag("ENV_FLAG_TEST_FALSE", true));
+        std::env::remove_var("ENV_FLAG_TEST_FALSE");
+        assert!(env_flag("ENV_FLAG_TEST_FALSE", true));
+        assert!(!env_flag("ENV_FLAG_TEST_FALSE", false));
     }
 }

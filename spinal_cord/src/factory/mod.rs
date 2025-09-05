@@ -19,6 +19,11 @@ id: NEI-20251227-factory-event-bus
 intent: refactor
 summary: Прямые вызовы watch/observe убраны в пользу событий.
 */
+/* neira:meta
+id: NEI-20250220-env-flag-factory
+intent: refactor
+summary: Переменная FACTORY_ADAPTER_ENABLED парсится через env_flag.
+*/
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -63,9 +68,7 @@ pub struct StemCellFactory {
 
 impl StemCellFactory {
     pub fn new() -> Arc<Self> {
-        let adapter_enabled = std::env::var("FACTORY_ADAPTER_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let adapter_enabled = crate::config::env_flag("FACTORY_ADAPTER_ENABLED", false);
         Arc::new(Self {
             records: RwLock::new(HashMap::new()),
             adapter_enabled,
