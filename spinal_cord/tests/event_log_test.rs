@@ -113,3 +113,23 @@ fn filter_by_name() {
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].name, "Foo");
 }
+
+/* neira:meta
+id: NEI-20270505-event-log-broadcast-test
+intent: test
+summary: Проверка получения события через broadcast-канал.
+*/
+#[tokio::test]
+#[serial]
+async fn broadcast_channel_delivers_events() {
+    let dir = tempdir().unwrap();
+    let file = dir.path().join("events.ndjson");
+    std::env::set_var("EVENT_LOG_FILE", &file);
+    event_log::reset();
+    let mut rx = event_log::subscribe();
+    let bus = EventBus::new();
+    bus.publish(&OrganBuilt { id: "ws".into() });
+    event_log::flush();
+    let ev = rx.recv().await.unwrap();
+    assert_eq!(ev.name, "OrganBuilt");
+}
