@@ -76,8 +76,13 @@ jobs:
           echo "Resolution mode: $MODE"
 
           if git merge --no-commit --no-ff refs/remotes/upstream/base; then
-            echo "No conflicts. Committing merge context."
-            git commit -m "chore: merge base into PR (no conflicts)"
+            echo "No conflicts during merge. Checking if there is anything to commit..."
+            # If merge produced no staged changes, skip committing to avoid a non-zero exit from git commit
+            if git diff --cached --quiet && git diff --quiet; then
+              echo "Up to date. Nothing to commit."
+            else
+              git commit -m "chore: merge base into PR (no conflicts)" || true
+            fi
           else
             echo "Conflicts detected. Applying heuristics (prefer PR branch)."
 
@@ -153,4 +158,3 @@ jobs:
             git commit -m "chore(rerere): update cache from PR fixer"
             git push origin HEAD:rerere-cache
           fi
-

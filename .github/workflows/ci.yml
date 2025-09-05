@@ -24,6 +24,10 @@ name: CI
 # id: NEI-20270407-ci-cargo-metadata-format
 # intent: ci
 # summary: Добавлен параметр --format-version=1 для вызова cargo metadata.
+# neira:meta
+# id: NEI-20250909-ci-context-cleanup
+# intent: ci
+# summary: Удалено повторное объявление переменной context в шаге github-script, устранён SyntaxError.
 
 on:
   push:
@@ -78,10 +82,16 @@ jobs:
       - name: Test root
         run: npm test
       - name: Comment neira:meta coverage on PR
-        if: always() && github.event_name == 'pull_request'
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
+            // Guard: run only for pull_request events (robust to missing context)
+            const ev = process.env.GITHUB_EVENT_NAME || '';
+            if (ev !== 'pull_request') {
+              core.info(`Skip commenting: event=${ev || 'unknown'}`);
+              return;
+            }
             const fs = require('fs');
             const path = 'meta-report.json';
             if (!fs.existsSync(path)) {
@@ -100,10 +110,16 @@ jobs:
               report.invalid.length ? ('Invalid blocks:\n' + report.invalid.map(it => `- ${it.file}: ${it.errors.join(', ')}`).join('\n')) : '',
             ].filter(Boolean).join('\n');
 
-            const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
+            // Try to read PR number from context if available; otherwise skip gracefully
+            const owner = (context && context.repo && context.repo.owner) || process.env.GITHUB_REPOSITORY?.split('/')[0];
+            const repo = (context && context.repo && context.repo.repo) || process.env.GITHUB_REPOSITORY?.split('/')[1];
+            const issue_number = (context && context.issue && context.issue.number) || (context && context.payload && context.payload.pull_request && context.payload.pull_request.number);
+            if (!issue_number) {
+              core.info('No PR number found in context; skipping comment.');
+              return;
+            }
             const existing = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
-            const prev = existing.data.find(c => c.user.type === 'Bot' && c.body && c.body.startsWith(header));
+            const prev = existing.data.find(c => c.user && c.user.type === 'Bot' && c.body && c.body.startsWith(header));
             if (prev) {
               await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
             } else {
