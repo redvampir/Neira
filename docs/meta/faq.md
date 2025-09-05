@@ -11,8 +11,14 @@ intent: docs
 summary: Обновлены инструкции для каталога spinal_cord.
 -->
 
+<!-- neira:meta
+id: NEI-20270330-faq-workspace-install
+intent: docs
+summary: Уточнена установка зависимостей через npm/pnpm.
+-->
+
 ### Как развернуть Neira?
-Установите Cell runtime (Node.js 20 LTS) и Rust 1.75+. Затем выполните `npm install`, `npm run setup` и соберите spinal_cord командой `cargo build` внутри каталога `spinal_cord`. Подробности см. в [deployment.md](deployment.md).
+Установите Cell runtime (Node.js 20 LTS) и Rust 1.75+. Затем выполните `npm install` (или `pnpm install`), `npm run setup` и соберите spinal_cord командой `cargo build` внутри каталога `spinal_cord`. Подробности см. в [deployment.md](deployment.md).
 
 ### Какие системные требования и ограничения по ресурсам?
 Минимум: 4 ядра CPU, 8 ГБ RAM и Cell runtime (Node.js 20 LTS). GPU не требуется, но ускоряет работу. Лимиты по времени и итерациям задаются планировщиком `TaskScheduler`. Подробности см. в [analysis-architecture.md](analysis-architecture.md).

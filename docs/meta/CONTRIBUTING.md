@@ -6,6 +6,12 @@ intent: docs
 summary: Уточнено, что используется Cell runtime (Node.js 20 LTS).
 -->
 
+<!-- neira:meta
+id: NEI-20270330-contrib-workspace-install
+intent: docs
+summary: Добавлена установка зависимостей через npm/pnpm workspace.
+-->
+
 ## Требования
 
 - Cell runtime: Node.js 20 LTS (см. `.nvmrc`)
@@ -29,10 +35,10 @@ rustup toolchain install 1.75
 
 ## Установка зависимостей и хуков
 
-После установки runtime и Rust установите npm зависимости:
+После установки runtime и Rust установите зависимости workspace:
 
 ```
-npm install
+npm install # или pnpm install
 ```
 
 Команда настроит pre-commit хуки Husky и lint-staged.
