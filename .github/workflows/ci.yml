@@ -77,10 +77,12 @@ jobs:
           path: ~/.npm
           key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json', 'sensory_organs/package-lock.json') }}
           restore-keys: ${{ runner.os }}-npm-
+      # neira:meta
+      # id: NEI-20250220-ci-workspaces-install
+      # intent: ci
+      # summary: Установка зависимостей через npm workspaces; тесты sensory_organs выполняются через npm script.
       - name: Install dependencies
-        run: |
-          npm ci
-          npm ci --prefix sensory_organs
+        run: npm ci --workspaces --include-workspace-root
       # neira:meta
       # id: NEI-20251024-ci-python-pre-commit
       # intent: ci
@@ -108,7 +110,7 @@ jobs:
       - name: Test spinal cord
         run: cargo test --manifest-path spinal_cord/Cargo.toml
       - name: Test sensory organs
-        run: npm test --prefix sensory_organs
+        run: npm run sensory_organs:test
       - name: Test root
         run: npm test
       - name: Comment neira:meta coverage on PR
