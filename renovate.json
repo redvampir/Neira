@@ -1,54 +1,83 @@
-{
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "labels": ["dependencies", "renovate"],
-  "dependencyDashboard": true,
-
-  "timezone": "Europe/Moscow",
-  "schedule": ["after 8pm every day"],
-
-  "prHourlyLimit": 2,
-  "prConcurrentLimit": 10,
-
-  "rebaseWhen": "conflicted",
-  "lockFileMaintenance": { "enabled": true, "automerge": true },
-  "vulnerabilityAlerts": { "enabled": false },
-
-  "assignees": ["redvampir"],
-  "reviewers": ["redvampir"],
-
-  "platformAutomerge": true,
-  "rangeStrategy": "auto",
-
-  "packageRules": [
-    {
-      "description": "Глобально отключаем major",
-      "matchUpdateTypes": ["major"],
-      "enabled": false
-    },
-    {
-      "description": "Автослияние patch для npm и cargo (после зелёных чеков) + дедупликация",
-      "matchDatasources": ["npm", "cargo"],
-      "matchUpdateTypes": ["patch"],
-      "automerge": true,
-      "automergeType": "pr",
-      "postUpdateOptions": ["npmDedupe", "yarnDedupeHighest", "pnpmDedupe"]
-    },
-    {
-      "description": "Группируем minor для npm",
-      "matchManagers": ["npm"],
-      "matchUpdateTypes": ["minor"],
-      "groupName": "NPM minor (daily after 20:00 MSK)"
-    },
-    {
-      "description": "Группируем minor для cargo",
-      "matchManagers": ["cargo"],
-      "matchUpdateTypes": ["minor"],
-      "groupName": "Rust minor (daily after 20:00 MSK)"
-    }
-  ],
-
-  "semanticCommits": "enabled",
-  "semanticCommitType": "chore",
-  "semanticCommitScope": "deps"
+﻿{
+    "$schema":  "https://docs.renovatebot.com/renovate-schema.json",
+    "extends":  [
+                    "config:recommended"
+                ],
+    "labels":  [
+                   "dependencies",
+                   "renovate"
+               ],
+    "dependencyDashboard":  true,
+    "timezone":  "Europe/Moscow",
+    "schedule":  [
+                     "after 8pm every day"
+                 ],
+    "prHourlyLimit":  2,
+    "prConcurrentLimit":  3,
+    "rebaseWhen":  "behind-base-branch",
+    "lockFileMaintenance":  {
+                                "enabled":  true,
+                                "automerge":  true
+                            },
+    "vulnerabilityAlerts":  {
+                                "enabled":  false
+                            },
+    "assignees":  [
+                      "redvampir"
+                  ],
+    "reviewers":  [
+                      "redvampir"
+                  ],
+    "platformAutomerge":  true,
+    "rangeStrategy":  "auto",
+    "packageRules":  [
+                         {
+                             "description":  "Р“Р»РѕР±Р°Р»СЊРЅРѕ РѕС‚РєР»СЋС‡Р°РµРј major",
+                             "matchUpdateTypes":  [
+                                                      "major"
+                                                  ],
+                             "enabled":  false
+                         },
+                         {
+                             "description":  "РђРІС‚РѕСЃР»РёСЏРЅРёРµ patch РґР»СЏ npm Рё cargo (РїРѕСЃР»Рµ Р·РµР»С‘РЅС‹С… С‡РµРєРѕРІ) + РґРµРґСѓРїР»РёРєР°С†РёСЏ",
+                             "matchDatasources":  [
+                                                      "npm",
+                                                      "cargo"
+                                                  ],
+                             "matchUpdateTypes":  [
+                                                      "patch"
+                                                  ],
+                             "automerge":  true,
+                             "automergeType":  "pr",
+                             "postUpdateOptions":  [
+                                                       "npmDedupe",
+                                                       "yarnDedupeHighest",
+                                                       "pnpmDedupe"
+                                                   ]
+                         },
+                         {
+                             "description":  "Р“СЂСѓРїРїРёСЂСѓРµРј minor РґР»СЏ npm",
+                             "matchManagers":  [
+                                                   "npm"
+                                               ],
+                             "matchUpdateTypes":  [
+                                                      "minor"
+                                                  ],
+                             "groupName":  "NPM minor (daily after 20:00 MSK)"
+                         },
+                         {
+                             "description":  "Р“СЂСѓРїРїРёСЂСѓРµРј minor РґР»СЏ cargo",
+                             "matchManagers":  [
+                                                   "cargo"
+                                               ],
+                             "matchUpdateTypes":  [
+                                                      "minor"
+                                                  ],
+                             "groupName":  "Rust minor (daily after 20:00 MSK)"
+                         }
+                     ],
+    "semanticCommits":  "enabled",
+    "semanticCommitType":  "chore",
+    "semanticCommitScope":  "deps",
+    "recreateWhen":  "always"
 }
