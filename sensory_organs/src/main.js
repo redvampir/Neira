@@ -1,8 +1,8 @@
 /* neira:meta
-id: NEI-20250829-180333-sensory_organs-main
+id: NEI-20250829-180333-sensory-organs-main
 intent: docs
 summary: |
-  Пример простого PWA с формой и обработкой сообщений. Добавлена поддержка VITE_API_URL.
+  Пример простого PWA с формой и обработкой сообщений. Добавлена поддержка VITE_API_URL и экспорт addMessage.
 */
 
 /* global navigator, window, document, fetch, console */
@@ -57,7 +57,7 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-function addMessage(role, text) {
+export function addMessage(role, text) {
   const div = document.createElement("div");
   div.className = `msg ${role}`;
   div.textContent = text;
