@@ -33,6 +33,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{self, Sender};
 use std::thread;
 use std::time::Duration;
+use tokio::sync::broadcast;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LoggedEvent {
@@ -105,11 +106,31 @@ static SENDER: Lazy<Sender<LoggedEvent>> = Lazy::new(|| {
                     let _ = writeln!(file, "{}", line);
                 }
             }
+            let _ = BROADCAST.send(entry.clone());
             PENDING.fetch_sub(1, Ordering::SeqCst);
         }
     });
     tx
 });
+
+/* neira:meta
+id: NEI-20270505-event-log-broadcast
+intent: feature
+summary: |-
+  Подписчики получают новые события через broadcast-канал.
+*/
+static BROADCAST: Lazy<broadcast::Sender<LoggedEvent>> = Lazy::new(|| {
+    let cap = std::env::var("EVENT_LOG_BROADCAST_CAPACITY")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1024);
+    let (tx, _rx) = broadcast::channel(cap);
+    tx
+});
+
+pub fn subscribe() -> broadcast::Receiver<LoggedEvent> {
+    BROADCAST.subscribe()
+}
 
 pub fn append(event: &dyn Event) -> IoResult<()> {
     let id = COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
