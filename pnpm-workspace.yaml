@@ -1,0 +1,7 @@
+# neira:meta
+# id: NEI-20270330-pnpm-workspace
+# intent: build
+# summary: Подключён sensory_organs к pnpm workspace.
+
+packages:
+  - sensory_organs
