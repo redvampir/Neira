@@ -53,7 +53,10 @@ use axum::{
         Path, State,
     },
     http::HeaderMap,
-    response::sse::{Event, Sse},
+    response::{
+        sse::{Event, Sse},
+        IntoResponse,
+    },
     routing::{delete, get, post},
     Json, Router,
 };
@@ -2339,6 +2342,11 @@ async fn main() {
     intent: feature
     summary: REST-ручка для чтения EventLog.
     */
+    /* neira:meta
+    id: NEI-20270501-000000-events-name-filter
+    intent: feature
+    summary: Эндпоинт поддерживает фильтр по имени события.
+    */
     async fn events_get(
         axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
     ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
@@ -2346,10 +2354,32 @@ async fn main() {
         let end_id = q.get("end_id").and_then(|v| v.parse::<u64>().ok());
         let start_ts_ms = q.get("start_ts_ms").and_then(|v| v.parse::<i64>().ok());
         let end_ts_ms = q.get("end_ts_ms").and_then(|v| v.parse::<i64>().ok());
-        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms);
+        let name = q.get("name").map(|s| s.as_str());
+        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms, name);
         Ok(Json(serde_json::json!({"events": events})))
     }
     app = app.route("/api/neira/events", get(events_get));
+
+    /* neira:meta
+    id: NEI-20270505-events-ws
+    intent: feature
+    summary: WebSocket-поток EventLog для живых подписок.
+    */
+    async fn events_ws(ws: WebSocketUpgrade) -> impl IntoResponse {
+        ws.on_upgrade(|mut socket| async move {
+            let mut rx = event_log::subscribe();
+            while let Ok(ev) = rx.recv().await {
+                if socket
+                    .send(Message::Text(serde_json::to_string(&ev).unwrap().into()))
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        })
+    }
+    app = app.route("/api/neira/events/ws", get(events_ws));
 
     // Logs tail endpoint with filters: /api/neira/logs/tail?lines=&level=&since_ts_ms=
     async fn logs_tail(

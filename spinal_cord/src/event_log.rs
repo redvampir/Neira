@@ -10,15 +10,30 @@ intent: feature
 summary: |-
   Добавлена ротация журнала с gzip‑сжатием и настройкой пути через переменные окружения.
 */
+/* neira:meta
+id: NEI-20270501-event-log-async
+intent: refactor
+summary: Запись событий через асинхронный канал и поддержка flush().
+*/
+/* neira:meta
+id: NEI-20270501-event-log-name-filter
+intent: feature
+summary: query фильтрует события по имени.
+*/
 use crate::event_bus::Event;
 use chrono::Utc;
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
-use std::io::{copy, Write};
+use std::io::{copy, Error as IoError, ErrorKind, Result as IoResult, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::mpsc::{self, Sender};
+use std::thread;
+use std::time::Duration;
+use tokio::sync::broadcast;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LoggedEvent {
@@ -75,24 +90,60 @@ fn rotate_if_needed(path: &Path) {
 
 static ROTATE_SEQ: AtomicU64 = AtomicU64::new(0);
 static COUNTER: AtomicU64 = AtomicU64::new(0);
+static PENDING: AtomicU64 = AtomicU64::new(0);
 
-pub fn append(event: &dyn Event) {
+static SENDER: Lazy<Sender<LoggedEvent>> = Lazy::new(|| {
+    let (tx, rx) = mpsc::channel::<LoggedEvent>();
+    thread::spawn(move || {
+        for entry in rx {
+            let path = log_path();
+            if let Some(parent) = path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            rotate_if_needed(&path);
+            if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {
+                if let Ok(line) = serde_json::to_string(&entry) {
+                    let _ = writeln!(file, "{}", line);
+                }
+            }
+            let _ = BROADCAST.send(entry.clone());
+            PENDING.fetch_sub(1, Ordering::SeqCst);
+        }
+    });
+    tx
+});
+
+/* neira:meta
+id: NEI-20270505-event-log-broadcast
+intent: feature
+summary: |-
+  Подписчики получают новые события через broadcast-канал.
+*/
+static BROADCAST: Lazy<broadcast::Sender<LoggedEvent>> = Lazy::new(|| {
+    let cap = std::env::var("EVENT_LOG_BROADCAST_CAPACITY")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1024);
+    let (tx, _rx) = broadcast::channel(cap);
+    tx
+});
+
+pub fn subscribe() -> broadcast::Receiver<LoggedEvent> {
+    BROADCAST.subscribe()
+}
+
+pub fn append(event: &dyn Event) -> IoResult<()> {
     let id = COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
     let entry = LoggedEvent {
         id,
         ts_ms: Utc::now().timestamp_millis(),
         name: event.name().to_string(),
     };
-    if let Ok(line) = serde_json::to_string(&entry) {
-        let path = log_path();
-        if let Some(parent) = path.parent() {
-            let _ = fs::create_dir_all(parent);
-        }
-        rotate_if_needed(&path);
-        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
-            let _ = writeln!(file, "{}", line);
-        }
-    }
+    PENDING.fetch_add(1, Ordering::SeqCst);
+    SENDER.send(entry).map_err(|e| {
+        PENDING.fetch_sub(1, Ordering::SeqCst);
+        IoError::new(ErrorKind::Other, e)
+    })
 }
 
 pub fn query(
@@ -100,6 +151,7 @@ pub fn query(
     end_id: Option<u64>,
     start_ts_ms: Option<i64>,
     end_ts_ms: Option<i64>,
+    name: Option<&str>,
 ) -> Vec<LoggedEvent> {
     let path = log_path();
     let Ok(data) = fs::read_to_string(path) else {
@@ -128,13 +180,25 @@ pub fn query(
                     return false;
                 }
             }
+            if let Some(n) = name {
+                if ev.name != n {
+                    return false;
+                }
+            }
             true
         })
         .collect()
 }
 
 pub fn reset() {
+    flush();
     COUNTER.store(0, Ordering::SeqCst);
     let path = log_path();
     let _ = fs::remove_file(path);
+}
+
+pub fn flush() {
+    while PENDING.load(Ordering::SeqCst) > 0 {
+        thread::sleep(Duration::from_millis(1));
+    }
 }
