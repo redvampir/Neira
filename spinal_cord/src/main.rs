@@ -53,7 +53,10 @@ use axum::{
         Path, State,
     },
     http::HeaderMap,
-    response::sse::{Event, Sse},
+    response::{
+        sse::{Event, Sse},
+        IntoResponse,
+    },
     routing::{delete, get, post},
     Json, Router,
 };
@@ -2356,6 +2359,27 @@ async fn main() {
         Ok(Json(serde_json::json!({"events": events})))
     }
     app = app.route("/api/neira/events", get(events_get));
+
+    /* neira:meta
+    id: NEI-20270505-events-ws
+    intent: feature
+    summary: WebSocket-поток EventLog для живых подписок.
+    */
+    async fn events_ws(ws: WebSocketUpgrade) -> impl IntoResponse {
+        ws.on_upgrade(|mut socket| async move {
+            let mut rx = event_log::subscribe();
+            while let Ok(ev) = rx.recv().await {
+                if socket
+                    .send(Message::Text(serde_json::to_string(&ev).unwrap().into()))
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        })
+    }
+    app = app.route("/api/neira/events/ws", get(events_ws));
 
     // Logs tail endpoint with filters: /api/neira/logs/tail?lines=&level=&since_ts_ms=
     async fn logs_tail(
