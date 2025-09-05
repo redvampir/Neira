@@ -29,15 +29,24 @@ use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
 /* neira:meta
 id: NEI-20270310-120100-event-bus-log-hook
 intent: feature
-summary: publish пишет событие в EventLog и учитывает метрики публикаций.
+summary: publish пишет событие в EventLog.
+*/
+/* neira:meta
+id: NEI-20270311-event-serialize
+intent: feature
+summary: События могут отдавать JSON-представление для EventLog.
 */
 use crate::event_log;
+use serde::Serialize;
 use std::any::Any;
 use std::sync::{Arc, RwLock};
 
 pub trait Event: Send + Sync {
     fn name(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
+    fn to_json(&self) -> Option<serde_json::Value> {
+        None
+    }
 }
 
 pub trait Subscriber: Send + Sync {
@@ -80,11 +89,7 @@ impl EventBus {
                 name: event.name().to_string(),
             }));
         }
-        if event_log::append(event).is_ok() {
-            metrics::counter!("event_bus_publish_total").increment(1);
-        } else {
-            metrics::counter!("event_bus_publish_failures_total").increment(1);
-        }
+        event_log::append(event);
     }
 }
 
@@ -103,6 +108,7 @@ impl Event for CellCreated {
     }
 }
 
+#[derive(Serialize)]
 pub struct OrganBuilt {
     pub id: String,
 }
@@ -113,5 +119,8 @@ impl Event for OrganBuilt {
     }
     fn as_any(&self) -> &dyn Any {
         self
+    }
+    fn to_json(&self) -> Option<serde_json::Value> {
+        serde_json::to_value(self).ok()
     }
 }

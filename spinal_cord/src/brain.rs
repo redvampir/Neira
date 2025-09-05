@@ -1,6 +1,6 @@
 /* neira:meta
-id: NEI-20260614-brain-loop
-intent: code
+id: NEI-20260614-000000-brain-loop
+intent: feature
 summary: Обрабатывает сообщения DataFlowController, распределяя события и задачи.
 */
 /* neira:meta
@@ -39,7 +39,7 @@ use crate::task_scheduler::{Priority, Queue, TaskScheduler};
 /* neira:meta
 id: NEI-20240514-brain-flowevent-import
 intent: refactor
-summary: Реализует Event для FlowEvent из кровотока.
+summary: Реализует Event для FlowEvent из кровотока и сериализацию в JSON.
 */
 
 impl Event for FlowEvent {
@@ -48,6 +48,9 @@ impl Event for FlowEvent {
     }
     fn as_any(&self) -> &dyn Any {
         self
+    }
+    fn to_json(&self) -> Option<serde_json::Value> {
+        serde_json::to_value(self).ok()
     }
 }
 
