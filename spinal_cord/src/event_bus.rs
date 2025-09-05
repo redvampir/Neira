@@ -161,3 +161,34 @@ impl Event for LymphaticFilterActivated {
         }))
     }
 }
+
+/* neira:meta
+id: NEI-20270615-lymphatic-duplicate-event
+intent: feature
+summary: Добавлено событие LymphaticDuplicateFound для фиксации дубликатов функций.
+*/
+pub struct LymphaticDuplicateFound {
+    pub gene_id: String,
+    pub location: PathBuf,
+    pub similarity: f32,
+    pub decision: LymphaticDecision,
+}
+
+impl Event for LymphaticDuplicateFound {
+    fn name(&self) -> &str {
+        "lymphatic.duplicate_found"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn data(&self) -> Option<Value> {
+        Some(json!({
+            "gene_id": self.gene_id,
+            "location": self.location.to_string_lossy(),
+            "similarity": self.similarity,
+            "decision": self.decision.as_str(),
+        }))
+    }
+}

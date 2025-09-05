@@ -50,6 +50,15 @@ summary: |
 -->
 ```
 
+Пример блока для события `lymphatic.duplicate_found`
+```rust
+/* neira:meta
+id: NEI-YYYYMMDD-HHMMSS-lymphatic-duplicate-event
+intent: feature
+summary: Публикация события о найденном дубликате функции.
+*/
+```
+
 Purpose
 - Provide lightweight, machine-readable metadata for significant changes.
 - Make it easy to scan and parse context by searching for a stable marker.
