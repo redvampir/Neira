@@ -3,9 +3,14 @@
 # id: NEI-20260413-pre-commit-rename
 # intent: chore
 # summary: Обновлён путь к spinal_cord в cargo test.
+# neira:meta
+# id: NEI-20250301-pre-commit-staged
+# intent: chore
+# summary: Добавлен запуск pre-commit для стадированных файлов перед lint.
 set -e
 
 node scripts/check-meta.mjs --staged
+pre-commit run --files $(git diff --staged --name-only)
 npm run lint
 npm test
 cargo metadata --locked
