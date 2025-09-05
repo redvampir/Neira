@@ -1,20 +1,51 @@
 #!/usr/bin/env sh
+
 # neira:meta
+
 # id: NEI-20260413-pre-commit-rename
+
 # intent: chore
+
 # summary: Обновлён путь к spinal_cord в cargo test.
+
 # neira:meta
+
 # id: NEI-20250301-pre-commit-staged
+
 # intent: chore
+
 # summary: Добавлен запуск pre-commit для стадированных файлов перед lint.
+
+# neira:meta
+
+# id: NEI-20260701-pre-commit-ignore-deletions
+
+# intent: fix
+
+# summary: Исключены удалённые файлы из списка для pre-commit.
+
 set -e
 
 node scripts/check-meta.mjs --staged
-pre-commit run --files $(git diff --staged --name-only)
+
+staged_files="$(git diff --cached --name-only --diff-filter=ACM)"
+
+if [ -n "$staged_files" ]; then
+
+  pre-commit run --files $staged_files
+
+fi
+
 npm run lint
+
 npm test
+
 cargo metadata --locked
+
 cargo clippy
+
 scripts/check-duplicates.sh
+
 cargo test
+
 cargo test --manifest-path spinal_cord/Cargo.toml
