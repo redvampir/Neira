@@ -8,6 +8,11 @@ id: NEI-20250207-capabilities-sample-organs
 intent: docs
 summary: добавлены ссылки на примеры шаблонов органов.
 -->
+<!-- neira:meta
+id: NEI-20250214-120500-lymph-filter-capability
+intent: docs
+summary: Добавлен компонент «Лимфатический фильтр» в перечень способностей.
+-->
 
 # Neira Capabilities & Feature Gates
 
@@ -288,4 +293,7 @@ capabilities:
   organ_net_probe:
     state: locked
     notes: безопасные HEAD/GET для проверок доступности; без POST
+  lymphatic_filter:
+    state: experimental
+    notes: фильтрация входящих сигналов через лимфатический фильтр
 ```
