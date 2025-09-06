@@ -11,6 +11,11 @@
 # intent: ci
 # summary: Добавлена сериализация job'ов, исключающая параллельный запуск в одной ветке.
 
+# neira:meta
+# id: NEI-20250916-comment-conflict-driver
+# intent: ci
+# summary: Подключён merge driver comment-ours и фиксация rr-cache после его работы.
+
 name: PR Conflict Fixer
 
 on:
@@ -51,6 +56,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config rerere.enabled true
+          git config merge.comment-ours.driver 'bash scripts/merge-comments.sh %O %A %B'
 
       - name: Import rerere cache (if exists)
         shell: bash
@@ -143,10 +149,13 @@ jobs:
               git commit -m "chore: auto-resolve trivial conflicts (mode=$MODE; lockfiles=base-if-soft; manifests=merged; union=*.list)"
             else
               echo "Nothing staged after heuristics. Aborting merge to avoid half state."
-              git merge --abort || true
-              exit 0
-            fi
+            git merge --abort || true
+            exit 0
           fi
+        fi
+
+      - name: Record rerere resolutions
+        run: git rerere
 
       - name: Push changes
         run: |
