@@ -16,6 +16,11 @@ neira:meta
 # intent: ci
 # summary: Игнорируется дубль crate, если присутствует только одна версия.
 
+# neira:meta
+# id: NEI-20250221-parse-cargo-tree
+# intent: ci
+# summary: Исправлен парсинг вывода cargo tree -d, чтобы скрипт проверял все crates.
+
 set -euo pipefail
 
 # Detect duplicate crate versions in Cargo dependencies.
@@ -28,20 +33,27 @@ if [ "$raw_output" = "nothing to print" ]; then
 fi
 
 filtered=$(printf "%s" "$raw_output" \
-  | awk 'BEGIN{RS=""; ORS="\n\n"} {
-      # первым словом идёт имя crate, вторым — версия
-      name=$1; ver=$2;
-      if (name ~ /^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$/) next;
-      block[name]=block[name] (block[name]!=""?ORS:"") $0;
-      if (vers[name] !~ "(^| )" ver "( |$)") vers[name]=vers[name] " " ver;
-    }
-    END {
-      for (n in block) {
-        split(vers[n], arr, " ");
-        count=0; for (i in arr) if (arr[i]!="") count++;
-        if (count>1) print block[n];
+  | awk '
+      {
+        if (match($0, /([[:alnum:]_-]+) v([0-9][^ ]*)/, m)) {
+          name=m[1]; ver=m[2];
+          if (name ~ /^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$/) next;
+          block[name]=block[name] (block[name]!=""?"\n":"") $0;
+          if (vers[name] !~ "(^| )" ver "( |$)") vers[name]=vers[name] " " ver;
+        }
       }
-    }' \
+      END {
+        first=1;
+        for (n in block) {
+          split(vers[n], arr, " ");
+          count=0; for (i in arr) if (arr[i]!="") count++;
+          if (count>1) {
+            if (!first) printf("\n");
+            print block[n];
+            first=0;
+          }
+        }
+      }' \
 )
 
 if [ -n "$filtered" ]; then
