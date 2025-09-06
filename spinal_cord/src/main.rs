@@ -14,7 +14,7 @@ use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
-id: NEI-20250603-axum-ws-api
+id: NEI-20250603-000000-axum-ws-api
 intent: refactor
 summary: обновлена интеграция WebSocket для axum 0.8.
 */
@@ -730,6 +730,18 @@ id: NEI-20270415-rotate-filter-ms
 intent: fix
 summary: Фильтрация ротаций контекста использует миллисекундную метку вместо счётчика.
 */
+/* neira:meta
+id: NEI-20270416-legacy-rotate-filter
+intent: fix
+summary: |-
+  Фильтрация истории и экспорта учитывает архивы старого формата
+  `{session_id}-{YYYYMMDDHHMMSS}.ndjson.gz`.
+*/
+/* neira:meta
+id: NEI-20270419-000000-legacy-numeric-id-filter
+intent: fix
+summary: Уточнена фильтрация для архивов с числовыми суффиксами session_id.
+*/
 #[derive(serde::Deserialize)]
 struct SessionQuery {
     from: Option<String>,
@@ -738,6 +750,30 @@ struct SessionQuery {
     limit: Option<usize>,
     since_id: Option<u64>,
     after_ts: Option<i64>,
+}
+
+fn extract_timestamp_segment(name: &str) -> Option<&str> {
+    let parts: Vec<&str> = name
+        .trim_end_matches(".gz")
+        .trim_end_matches(".ndjson")
+        .split('-')
+        .collect();
+    if parts.len() >= 3 {
+        let last = parts[parts.len() - 1];
+        let penult = parts[parts.len() - 2];
+        if last.chars().all(|c| c.is_ascii_digit())
+            && penult.chars().all(|c| c.is_ascii_digit())
+            && penult.len() == 13
+            && last.len() < penult.len()
+        {
+            return Some(penult);
+        }
+    }
+    parts
+        .iter()
+        .rev()
+        .find(|seg| seg.chars().all(|c| c.is_ascii_digit()) && seg.len() >= 13)
+        .copied()
 }
 
 async fn get_chat_session(
@@ -756,18 +792,7 @@ async fn get_chat_session(
                     && (name.ends_with(".ndjson") || name.ends_with(".ndjson.gz")))
             {
                 if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
-                    // filter rotated files by timestamp_ms segment
-                    let parts: Vec<&str> = name
-                        .trim_end_matches(".gz")
-                        .trim_end_matches(".ndjson")
-                        .split('-')
-                        .collect();
-                    if parts.len() >= 2 {
-                        let date = if parts.len() >= 3 {
-                            parts[parts.len() - 2]
-                        } else {
-                            parts[parts.len() - 1]
-                        };
+                    if let Some(date) = extract_timestamp_segment(name) {
                         if date < from.as_str() || date > to.as_str() {
                             continue;
                         }
@@ -1351,19 +1376,9 @@ async fn export_chat(
         files.sort();
         for p in files {
             let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            // filter by timestamp_ms window if provided
+            // filter by timestamp window if provided
             if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
-                let parts: Vec<&str> = name
-                    .trim_end_matches(".gz")
-                    .trim_end_matches(".ndjson")
-                    .split('-')
-                    .collect();
-                if parts.len() >= 2 {
-                    let date = if parts.len() >= 3 {
-                        parts[parts.len() - 2]
-                    } else {
-                        parts[parts.len() - 1]
-                    };
+                if let Some(date) = extract_timestamp_segment(name) {
                     if date < from.as_str() || date > to.as_str() {
                         continue;
                     }
@@ -1503,6 +1518,107 @@ struct MaskingDryRun {
 #[derive(serde::Serialize)]
 struct MaskingDryRunResult {
     masked: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::to_bytes,
+        extract::{Path, Query},
+        response::IntoResponse,
+    };
+    use flate2::{write::GzEncoder, Compression};
+    use std::{fs, io::Write};
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn filters_legacy_and_new_archives() {
+        let dir = tempdir().unwrap();
+        std::env::set_var("CONTEXT_DIR", dir.path());
+        let chat = "c1";
+        let session = "sess-20240412010203-1";
+        let chat_dir = dir.path().join(chat);
+        fs::create_dir_all(&chat_dir).unwrap();
+
+        // legacy rotated file
+        let legacy_ts = "20240413123456";
+        let legacy_name = format!("{session}-{legacy_ts}.ndjson.gz");
+        let legacy_path = chat_dir.join(&legacy_name);
+        let mut gz = GzEncoder::new(
+            fs::File::create(&legacy_path).unwrap(),
+            Compression::default(),
+        );
+        writeln!(gz, "{{\"role\":\"user\",\"content\":\"old\"}}").unwrap();
+        gz.finish().unwrap();
+
+        // new rotated file
+        let new_ts = "1715000000000";
+        let new_name = format!("{session}-{new_ts}-1.ndjson.gz");
+        let new_path = chat_dir.join(&new_name);
+        let mut gz = GzEncoder::new(fs::File::create(&new_path).unwrap(), Compression::default());
+        writeln!(gz, "{{\"role\":\"user\",\"content\":\"new\"}}").unwrap();
+        gz.finish().unwrap();
+
+        // query legacy window for get_chat_session
+        let q = SessionQuery {
+            from: Some("20240413000000".into()),
+            to: Some("20240414000000".into()),
+            offset: None,
+            limit: None,
+            since_id: None,
+            after_ts: None,
+        };
+        let resp = get_chat_session(Path((chat.to_string(), session.to_string())), Query(q))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("old"));
+        assert!(!text.contains("new"));
+
+        // query legacy window for export_chat
+        let eq = ExportQuery {
+            from: Some("20240413000000".into()),
+            to: Some("20240414000000".into()),
+        };
+        let resp = export_chat(Path(chat.to_string()), Query(eq))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("old"));
+        assert!(!text.contains("new"));
+
+        // query new window ensures new file found
+        let qn = SessionQuery {
+            from: Some(new_ts.into()),
+            to: Some(format!("{}1", new_ts)),
+            offset: None,
+            limit: None,
+            since_id: None,
+            after_ts: None,
+        };
+        let resp = get_chat_session(Path((chat.to_string(), session.to_string())), Query(qn))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("new"));
+        assert!(!text.contains("old"));
+
+        let eqn = ExportQuery {
+            from: Some(new_ts.into()),
+            to: Some(format!("{}1", new_ts)),
+        };
+        let resp = export_chat(Path(chat.to_string()), Query(eqn))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("new"));
+        assert!(!text.contains("old"));
+    }
 }
 
 async fn masking_dry_run(
@@ -2333,11 +2449,6 @@ async fn main() {
     intent: feature
     summary: REST-ручка для чтения EventLog.
     */
-    /* neira:meta
-    id: NEI-20270501-000000-events-name-filter
-    intent: feature
-    summary: Эндпоинт поддерживает фильтр по имени события.
-    */
     async fn events_get(
         axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
     ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
@@ -2345,8 +2456,7 @@ async fn main() {
         let end_id = q.get("end_id").and_then(|v| v.parse::<u64>().ok());
         let start_ts_ms = q.get("start_ts_ms").and_then(|v| v.parse::<i64>().ok());
         let end_ts_ms = q.get("end_ts_ms").and_then(|v| v.parse::<i64>().ok());
-        let name = q.get("name").map(|s| s.as_str());
-        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms, name);
+        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms);
         Ok(Json(serde_json::json!({"events": events})))
     }
     app = app.route("/api/neira/events", get(events_get));
