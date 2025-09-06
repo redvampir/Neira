@@ -12,6 +12,10 @@ name: Auto-resolve PR conflicts (prefer PR branch)
 # id: NEI-20250906-041548-rerere
 # intent: ci
 # summary: Включён rerere и добавлен импорт/экспорт кэша конфликтов в auto-resolve.
+# neira:meta
+# id: NEI-20260517-serialize-conflict-jobs
+# intent: ci
+# summary: Добавлена сериализация job'ов, предотвращающая параллельный запуск в одной ветке.
 
 on:
   # Обновили PR — попробуем починить конфликты
@@ -28,6 +32,10 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  group: pr-conflict-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   resolve:
