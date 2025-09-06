@@ -1,7 +1,20 @@
 # neira:meta
-# id: NEI-20250905-ci-pr-conflict-fixer
+# id: NEI-20250905-000000-ci-pr-conflict-fixer
 # intent: ci
 # summary: Тривиальный авто‑фиксер конфликтов по метке auto-fix-conflicts с режимами: prefer-branch-soft (по умолчанию) и prefer-branch-hard. Импорт/экспорт git rerere-кэша в ветку rerere-cache.
+# neira:meta
+# id: NEI-20250101-120000-merge-manifest-ci
+# intent: ci
+# summary: Добавлено авто‑объединение зависимостей в Cargo.toml и package.json при фиксации конфликтов.
+# neira:meta
+# id: NEI-20260517-serialize-conflict-fixer
+# intent: ci
+# summary: Добавлена сериализация job'ов, исключающая параллельный запуск в одной ветке.
+
+# neira:meta
+# id: NEI-20250916-comment-conflict-driver
+# intent: ci
+# summary: Подключён merge driver comment-ours и фиксация rr-cache после его работы.
 
 name: PR Conflict Fixer
 
@@ -13,6 +26,10 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  group: pr-conflict-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   fix:
@@ -39,6 +56,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config rerere.enabled true
+          git config merge.comment-ours.driver 'bash scripts/merge-comments.sh %O %A %B'
 
       - name: Import rerere cache (if exists)
         shell: bash
@@ -96,9 +114,18 @@ jobs:
                 xargs -I{} bash -c 'git checkout --theirs -- "{}" 2>/dev/null || true' || true
             fi
 
-            # 3) generated/** — остаётся ours (шаг 1)
+            # 3) Cargo.toml/package.json — объединение зависимостей
+            while IFS= read -r f; do
+              case "$f" in
+                */Cargo.toml|Cargo.toml|*/package.json|package.json)
+                  scripts/merge-manifest.sh "$f" && git add "$f"
+                  ;;
+              esac
+            done < <(git status --porcelain | awk '/^UU /{print $2}')
 
-            # 4) *.list — union: ours ∪ theirs (уникальные строки)
+            # 4) generated/** — остаётся ours (шаг 1)
+
+            # 5) *.list — union: ours ∪ theirs (уникальные строки)
             while IFS= read -r f; do
               case "$f" in
                 *.list)
@@ -116,16 +143,19 @@ jobs:
               esac
             done < <(git status --porcelain | awk '/^UU /{print $2}')
 
-            # 5) Закоммитить, если есть изменения
+            # 6) Закоммитить, если есть изменения
             git add -A
             if ! git diff --cached --quiet; then
-              git commit -m "chore: auto-resolve trivial conflicts (mode=$MODE; lockfiles=base-if-soft; union=*.list)"
+              git commit -m "chore: auto-resolve trivial conflicts (mode=$MODE; lockfiles=base-if-soft; manifests=merged; union=*.list)"
             else
               echo "Nothing staged after heuristics. Aborting merge to avoid half state."
-              git merge --abort || true
-              exit 0
-            fi
+            git merge --abort || true
+            exit 0
           fi
+        fi
+
+      - name: Record rerere resolutions
+        run: git rerere
 
       - name: Push changes
         run: |

@@ -30,6 +30,11 @@ id: NEI-20270610-120000-lymphatic-event
 intent: feature
 summary: Добавлено событие lymphatic_filter.activated и метод data для передачи полей события.
 */
+/* neira:meta
+id: NEI-20270618-event-bus-pathbuf
+intent: chore
+summary: Импортирован PathBuf для поля location события лимфатического фильтра.
+*/
 use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
 /* neira:meta
 id: NEI-20270310-120100-event-bus-log-hook

@@ -1,6 +1,6 @@
 /* neira:meta
-id: NEI-20270615-lymphatic-filter-tests
-intent: test
+id: NEI-20270618-000000-lymphatic-filter-tests
+intent: feature
 summary: Юнит-тесты лимфатического фильтра на поиск дубликатов и работу флага.
 */
 use backend::event_bus::{CellCreated, Event, EventBus, LymphaticDuplicateFound, Subscriber};
@@ -84,4 +84,23 @@ fn respects_env_flag() {
     std::env::set_current_dir(prev).unwrap();
     std::env::remove_var("LYMPHATIC_FILTER_ENABLED");
     assert_eq!(*cap.count.lock().unwrap(), 0);
+}
+
+#[test]
+fn scan_dir_and_ignore_and_patch() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("a.rs"), "fn foo() {}\n").unwrap();
+    std::fs::write(dir.path().join("b.rs"), "fn foo() {}\n").unwrap();
+    std::fs::create_dir(dir.path().join("ignored")).unwrap();
+    std::fs::write(dir.path().join("ignored/c.rs"), "fn foo() {}\n").unwrap();
+    std::fs::write(dir.path().join(".lymphaticignore"), "ignored\n").unwrap();
+    std::env::set_var("LYMPHATIC_SCAN_DIR", dir.path());
+    let reports = lymphatic_filter::scan_workspace();
+    std::env::remove_var("LYMPHATIC_SCAN_DIR");
+    assert_eq!(reports.len(), 1);
+    assert!(reports[0]
+        .patch
+        .as_ref()
+        .map(|p| p.exists())
+        .unwrap_or(false));
 }
