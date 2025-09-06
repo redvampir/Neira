@@ -6,6 +6,10 @@
 # id: NEI-20250101-120000-merge-manifest-ci
 # intent: ci
 # summary: Добавлено авто‑объединение зависимостей в Cargo.toml и package.json при фиксации конфликтов.
+# neira:meta
+# id: NEI-20260517-serialize-conflict-fixer
+# intent: ci
+# summary: Добавлена сериализация job'ов, исключающая параллельный запуск в одной ветке.
 
 name: PR Conflict Fixer
 
@@ -17,6 +21,10 @@ on:
 permissions:
   contents: write
   pull-requests: write
+
+concurrency:
+  group: pr-conflict-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   fix:
