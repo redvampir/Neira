@@ -8,6 +8,10 @@ name: Auto-resolve PR conflicts (prefer PR branch)
 # id: NEI-20250909-pr-conflict-execsync
 # intent: ci
 # summary: Заменено использование exec на execSync в github-script во избежание повторного объявления переменной exec.
+# neira:meta
+# id: NEI-20250906-041548-rerere
+# intent: ci
+# summary: Включён rerere и добавлен импорт/экспорт кэша конфликтов в auto-resolve.
 
 on:
   # Обновили PR — попробуем починить конфликты
@@ -91,6 +95,7 @@ jobs:
               try {
                 // Чекаут ветки PR из этого же репозитория
                 execSync(`git init`, { stdio: 'inherit' });
+                execSync(`git config rerere.enabled true`, { stdio: 'inherit' });
                 execSync(`git remote add origin https://x-access-token:${process.env.GH_TOKEN}@github.com/${context.repo.owner}/${context.repo.repo}.git`, { stdio: 'inherit' });
                 execSync(`git fetch --no-tags origin ${pr.headRef}:${pr.headRef} ${pr.baseRef}:${pr.baseRef}`, { stdio: 'inherit' });
                 execSync(`git checkout ${pr.headRef}`, { stdio: 'inherit' });
@@ -98,6 +103,24 @@ jobs:
                 // Настраиваем автора коммита
                 execSync(`git config user.name "github-actions[bot]"`, { stdio: 'inherit' });
                 execSync(`git config user.email "41898282+github-actions[bot]@users.noreply.github.com"`, { stdio: 'inherit' });
+
+                // Импортируем общий rerere-кэш
+                try {
+                  execSync(`bash -c '
+                    set -euo pipefail
+                    mkdir -p .git/rr-cache
+                    tmpdir=$(mktemp -d)
+                    if git ls-remote --exit-code origin refs/heads/rerere-cache >/dev/null 2>&1; then
+                      git clone --depth 1 -b rerere-cache https://x-access-token:${process.env.GH_TOKEN}@github.com/${context.repo.owner}/${context.repo.repo}.git "$tmpdir/repo" >/dev/null 2>&1 || true
+                      if [ -d "$tmpdir/repo/rr-cache" ]; then
+                        cp -R "$tmpdir/repo/rr-cache/." .git/rr-cache/ || true
+                      fi
+                    fi
+                    rm -rf "$tmpdir"
+                  '`, { stdio: 'inherit' });
+                } catch (e) {
+                  core.info('rerere cache import skipped: ' + e.message);
+                }
 
                 // ВЛИВАЕМ base В ПОЛЬЗУ НОВОЙ ВЕТКИ:
                 // -X ours  => побеждают изменения текущей ветки (PR)
@@ -147,6 +170,34 @@ jobs:
                 } else {
                   // Успех — пушим обратно в ветку PR
                   execSync(`git push origin HEAD:${pr.headRef}`, { stdio: 'inherit' });
+                  try {
+                    execSync(`bash -c '
+                      set -euo pipefail
+                      [ -d .git/rr-cache ] || exit 0
+                      tmpdir=$(mktemp -d)
+                      git clone --depth 1 https://x-access-token:${process.env.GH_TOKEN}@github.com/${context.repo.owner}/${context.repo.repo}.git "$tmpdir/repo"
+                      cd "$tmpdir/repo"
+                      if git ls-remote --exit-code origin refs/heads/rerere-cache >/dev/null 2>&1; then
+                        git fetch origin rerere-cache:rerere-cache
+                        git switch rerere-cache
+                      else
+                        git switch --orphan rerere-cache
+                        rm -rf ./*
+                      fi
+                      mkdir -p rr-cache
+                      rsync -a --delete "${process.cwd()}/.git/rr-cache/" rr-cache/ || cp -R "${process.cwd()}/.git/rr-cache/." rr-cache/ || true
+                      git add rr-cache
+                      if git diff --cached --quiet; then
+                        echo "No rr-cache changes to commit"
+                      else
+                        git commit -m "chore(rerere): update cache from auto-resolve"
+                        git push origin HEAD:rerere-cache
+                      fi
+                      rm -rf "$tmpdir"
+                    '`, { stdio: 'inherit' });
+                  } catch (e) {
+                    core.warning('rerere cache export failed: ' + e.message);
+                  }
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
