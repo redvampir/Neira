@@ -13,7 +13,7 @@ use std::{
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
-use syn::{Item, ItemFn};
+use syn::{visit::Visit, ImplItemMethod, Item, ItemFn};
 use walkdir::WalkDir;
 
 /// Отчёт о найденном дубликате функции.
@@ -46,6 +46,30 @@ struct CachedFile {
 struct FingerprintCache {
     cargo_lock_mtime: u64,
     files: HashMap<String, CachedFile>,
+}
+
+struct FnCollector {
+    file: PathBuf,
+    functions: Vec<FunctionFingerprint>,
+}
+
+impl<'ast> Visit<'ast> for FnCollector {
+    fn visit_item_fn(&mut self, node: &'ast ItemFn) {
+        self.functions.push(fingerprint(node, self.file.clone()));
+        syn::visit::visit_item_fn(self, node);
+    }
+
+    fn visit_impl_item_method(&mut self, node: &'ast ImplItemMethod) {
+        let item_fn = ItemFn {
+            attrs: node.attrs.clone(),
+            vis: node.vis.clone(),
+            sig: node.sig.clone(),
+            block: Box::new(node.block.clone()),
+        };
+        self.functions
+            .push(fingerprint(&item_fn, self.file.clone()));
+        syn::visit::visit_impl_item_method(self, node);
+    }
 }
 
 static SYNONYMS: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
@@ -115,21 +139,20 @@ pub fn scan_workspace() -> Vec<DuplicationReport> {
 
         if let Ok(content) = fs::read_to_string(entry.path()) {
             if let Ok(file) = syn::parse_file(&content) {
-                let mut funcs = Vec::new();
-                for item in file.items {
-                    if let Item::Fn(func) = item {
-                        funcs.push(fingerprint(&func, entry.path().to_path_buf()));
-                    }
-                }
-                if !funcs.is_empty() {
+                let mut collector = FnCollector {
+                    file: entry.path().to_path_buf(),
+                    functions: Vec::new(),
+                };
+                collector.visit_file(&file);
+                if !collector.functions.is_empty() {
                     cache.files.insert(
                         path_str.clone(),
                         CachedFile {
                             mtime: file_mtime,
-                            functions: funcs.clone(),
+                            functions: collector.functions.clone(),
                         },
                     );
-                    fingerprints.extend(funcs);
+                    fingerprints.extend(collector.functions);
                 }
             }
         }
