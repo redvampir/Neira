@@ -47,9 +47,11 @@ quick-xml = { version = "0.31", features = ["serialize"] }
 # neira:meta
 # id: NEI-20270615-lymphatic-deps
 # intent: chore
-# summary: Добавлены зависимости walkdir и syn для лимфатического фильтра.
+# summary: Добавлены зависимости walkdir, syn, strsim и quote для лимфатического фильтра.
 walkdir = "2"
 syn = { version = "2", features = ["full"] }
+strsim = "0.10"
+quote = "1"
 toml = "0.8"
 notify = { version = "8.2.0", default-features = false }
 semver = "1"
