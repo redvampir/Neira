@@ -39,6 +39,7 @@ summary: publish пишет событие в EventLog и учитывает м�
 use crate::event_log;
 use serde_json::{json, Value};
 use std::any::Any;
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 pub trait Event: Send + Sync {
