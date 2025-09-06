@@ -4,6 +4,11 @@
 # summary: |
 #   Настроен merge driver cargo-toml для безопасного объединения зависимостей.
 
+# neira:meta
+# id: NEI-20250916-comment-merge-driver
+# intent: ci
+# summary: Подключён merge driver comment-ours для исходников и документации.
+
 # Унифицируем переносы строк (все файлы в LF)
 * text=auto eol=lf
 
@@ -14,6 +19,11 @@ Cargo.lock merge=theirs
 # Манифесты Cargo: использовать кастомный merge driver
 Cargo.toml merge=cargo-toml
 **/Cargo.toml merge=cargo-toml
+
+# Комментарии: если различия только в комментариях, оставляем нашу версию
+*.rs   merge=comment-ours
+*.ts   merge=comment-ours
+*.md   merge=comment-ours
 
 # Сгенерированные артефакты: не диффить и всегда брать "наши"
 generated/** merge=ours -diff

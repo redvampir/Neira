@@ -17,6 +17,11 @@ name: Auto-resolve PR conflicts (prefer PR branch)
 # intent: ci
 # summary: Добавлена сериализация job'ов, предотвращающая параллельный запуск в одной ветке.
 
+# neira:meta
+# id: NEI-20250916-comment-conflict-driver
+# intent: ci
+# summary: Подключён merge driver comment-ours и фиксация rr-cache после его работы.
+
 on:
   # Обновили PR — попробуем починить конфликты
   pull_request:
@@ -104,6 +109,7 @@ jobs:
                 // Чекаут ветки PR из этого же репозитория
                 execSync(`git init`, { stdio: 'inherit' });
                 execSync(`git config rerere.enabled true`, { stdio: 'inherit' });
+                execSync(`git config merge.comment-ours.driver 'bash scripts/merge-comments.sh %O %A %B'`, { stdio: 'inherit' });
                 execSync(`git remote add origin https://x-access-token:${process.env.GH_TOKEN}@github.com/${context.repo.owner}/${context.repo.repo}.git`, { stdio: 'inherit' });
                 execSync(`git fetch --no-tags origin ${pr.headRef}:${pr.headRef} ${pr.baseRef}:${pr.baseRef}`, { stdio: 'inherit' });
                 execSync(`git checkout ${pr.headRef}`, { stdio: 'inherit' });
@@ -177,6 +183,7 @@ jobs:
 
                 } else {
                   // Успех — пушим обратно в ветку PR
+                  execSync(`git rerere`, { stdio: 'inherit' });
                   execSync(`git push origin HEAD:${pr.headRef}`, { stdio: 'inherit' });
                   try {
                     execSync(`bash -c '
