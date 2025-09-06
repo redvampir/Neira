@@ -228,7 +228,12 @@ impl SynapseHub {
         */
         event_bus.subscribe(Arc::new(BrainSubscriber::new(data_flow.clone())));
         event_bus.subscribe(Arc::new(NervousSystemSubscriber));
-        event_bus.subscribe(Arc::new(ImmuneSystemSubscriber));
+        /* neira:meta
+        id: NEI-20270615-immune-bus-pass
+        intent: refactor
+        summary: Передаёт ссылку на EventBus в ImmuneSystemSubscriber.
+        */
+        event_bus.subscribe(Arc::new(ImmuneSystemSubscriber::new(event_bus.clone())));
 
         let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
         scheduler

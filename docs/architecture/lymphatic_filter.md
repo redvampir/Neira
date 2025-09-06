@@ -8,12 +8,33 @@ id: NEI-20270610-120400-lymphatic-activated-doc
 intent: docs
 summary: Добавлено событие lymphatic_filter.activated и его поля.
 -->
+<!-- neira:meta
+id: NEI-20270615-lymphatic-impl-doc
+intent: docs
+summary: Описана реализация сканирования репозитория и событие duplicate_found.
+-->
 
 # Фильтр лимфатической системы
 
 Фильтр лимфатической системы отвечает за поиск и нейтрализацию дублирующегося
 функционала. Он предотвращает рост "лишних" генов, облегчая сопровождение и
 повышая устойчивость к ошибкам.
+
+## Реализация
+
+Модуль `immune_system::lymphatic_filter` обходит рабочее пространство при помощи
+`walkdir`, строит AST-фингерпринты функций через `syn` и сравнивает их на четырёх
+уровнях: сигнатурном, поведенческом, семантическом и структурном. Результаты
+кэшируются в `logs/lymphatic_cache.json`, чтобы повторные запуски обрабатывали
+только изменённые файлы. Диапазон сканирования настраивается переменными
+`LYMPHATIC_SCAN_DIR` и `LYMPHATIC_STAGED_ONLY`, а исключения задаются в
+файле `.lymphaticignore`. Вес семантики регулируется `LYMPHATIC_SEMANTIC_WEIGHT`.
+Для каждого совпадения публикуется событие `lymphatic.duplicate_found` с
+полями `gene_id`, `location`, `similarity` и `decision`. Событие логируется в
+`logs/events.ndjson`, а метрики `lymphatic_duplicates_found_total` и
+`lymphatic_artifacts_removed_total` отражают количество обнаруженных и
+удалённых дубликатов. Для упрощения устранения копий генерируются патчи в
+`logs/lymphatic_patches`.
 
 ## Этапы анализа дубликатов
 

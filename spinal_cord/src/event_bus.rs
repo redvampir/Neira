@@ -30,6 +30,11 @@ id: NEI-20270610-120000-lymphatic-event
 intent: feature
 summary: Добавлено событие lymphatic_filter.activated и метод data для передачи полей события.
 */
+/* neira:meta
+id: NEI-20270618-event-bus-pathbuf
+intent: chore
+summary: Импортирован PathBuf для поля location события лимфатического фильтра.
+*/
 use crate::circulatory_system::{DataFlowController, FlowEvent, FlowMessage};
 /* neira:meta
 id: NEI-20270310-120100-event-bus-log-hook
@@ -39,6 +44,7 @@ summary: publish пишет событие в EventLog и учитывает м�
 use crate::event_log;
 use serde_json::{json, Value};
 use std::any::Any;
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 pub trait Event: Send + Sync {
@@ -156,6 +162,37 @@ impl Event for LymphaticFilterActivated {
     fn data(&self) -> Option<Value> {
         Some(json!({
             "function_id": self.function_id,
+            "similarity": self.similarity,
+            "decision": self.decision.as_str(),
+        }))
+    }
+}
+
+/* neira:meta
+id: NEI-20270615-lymphatic-duplicate-event
+intent: feature
+summary: Добавлено событие LymphaticDuplicateFound для фиксации дубликатов функций.
+*/
+pub struct LymphaticDuplicateFound {
+    pub gene_id: String,
+    pub location: PathBuf,
+    pub similarity: f32,
+    pub decision: LymphaticDecision,
+}
+
+impl Event for LymphaticDuplicateFound {
+    fn name(&self) -> &str {
+        "lymphatic.duplicate_found"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn data(&self) -> Option<Value> {
+        Some(json!({
+            "gene_id": self.gene_id,
+            "location": self.location.to_string_lossy(),
             "similarity": self.similarity,
             "decision": self.decision.as_str(),
         }))
