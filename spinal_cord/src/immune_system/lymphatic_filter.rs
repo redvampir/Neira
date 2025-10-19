@@ -87,8 +87,8 @@ pub fn scan_workspace() -> Vec<DuplicationReport> {
                             let similarity = score / 4.0;
                             if similarity >= 0.8 {
                                 reports.push(DuplicationReport {
-                                    gene_id: other.gene_id.clone(),
-                                    file: other.file.clone(),
+                                    gene_id: fp.gene_id.clone(),
+                                    file: fp.file.clone(),
                                     similarity,
                                     rationale: format!("совпадения: {}", matched.join(", ")),
                                 });
