@@ -34,22 +34,33 @@ fi
 
 filtered=$(printf "%s" "$raw_output" \
   | awk '
+      function is_allowed(name) {
+        return name ~ /^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$/;
+      }
+
       {
-        if (match($0, /([[:alnum:]_-]+) v([0-9][^ ]*)/, m)) {
+        if (match($0, /([[:alnum:]_.+-]+) v([0-9][^ ]*)/, m)) {
           name=m[1]; ver=m[2];
-          if (name ~ /^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$/) next;
-          block[name]=block[name] (block[name]!=""?"\n":"") $0;
-          if (vers[name] !~ "(^| )" ver "( |$)") vers[name]=vers[name] " " ver;
+          if (is_allowed(name)) next;
+
+          # Deduplicate identical version records for the same crate so we only
+          # keep one representative line per version.
+          if (!seen[name, ver]) {
+            seen[name, ver]=1;
+            versions[name]=versions[name] (versions[name]!=""?" ":"") ver;
+            block[name]=block[name] (block[name]!=""?"\n":"") $0;
+          }
         }
       }
       END {
         first=1;
-        for (n in block) {
-          split(vers[n], arr, " ");
-          count=0; for (i in arr) if (arr[i]!="") count++;
+        for (name in versions) {
+          split(versions[name], arr, " ");
+          count=0;
+          for (i in arr) if (arr[i]!="") count++;
           if (count>1) {
             if (!first) printf("\n");
-            print block[n];
+            print block[name];
             first=0;
           }
         }
