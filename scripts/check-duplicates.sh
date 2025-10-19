@@ -32,28 +32,44 @@ if [ "$raw_output" = "nothing to print" ]; then
   raw_output=""
 fi
 
-filtered=$(printf "%s" "$raw_output" \
-  | awk '
-      {
-        if (match($0, /([[:alnum:]_-]+) v([0-9][^ ]*)/, m)) {
-          name=m[1]; ver=m[2];
-          if (name ~ /^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$/) next;
-          block[name]=block[name] (block[name]!=""?"\n":"") $0;
-          if (vers[name] !~ "(^| )" ver "( |$)") vers[name]=vers[name] " " ver;
-        }
-      }
-      END {
-        first=1;
-        for (n in block) {
-          split(vers[n], arr, " ");
-          count=0; for (i in arr) if (arr[i]!="") count++;
-          if (count>1) {
-            if (!first) printf("\n");
-            print block[n];
-            first=0;
-          }
-        }
-      }' \
+filtered=$(RAW_OUTPUT="$raw_output" python3 - <<'PY'
+import os
+import re
+
+allow = re.compile(r"^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$")
+blocks = {}
+order = []
+
+for line in os.environ.get("RAW_OUTPUT", "").splitlines():
+    match = re.search(r"([A-Za-z0-9_-]+) v([0-9][^ ]*)", line)
+    if not match:
+        continue
+
+    name, version = match.groups()
+    if allow.match(name):
+        continue
+
+    block = blocks.get(name)
+    if block is None:
+        block = {"lines": [], "versions": []}
+        blocks[name] = block
+        order.append(name)
+
+    block["lines"].append(line)
+    if version not in block["versions"]:
+        block["versions"].append(version)
+
+out_lines = []
+for name in order:
+    block = blocks[name]
+    if len(block["versions"]) > 1:
+        if out_lines:
+            out_lines.append("")
+        out_lines.extend(block["lines"])
+
+if out_lines:
+    print("\n".join(out_lines))
+PY
 )
 
 if [ -n "$filtered" ]; then
