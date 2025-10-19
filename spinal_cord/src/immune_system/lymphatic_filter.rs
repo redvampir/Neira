@@ -9,7 +9,7 @@ intent: perf
 summary: Ограничен обход исходников и оптимизирован поиск дубликатов.
 */
 use sha2::{Digest, Sha256};
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::Path, path::PathBuf};
 use walkdir::WalkDir;
 
 use syn::{Item, ItemFn};
@@ -35,66 +35,50 @@ struct FunctionFingerprint {
 
 /// Сканирует исходники в поиске дубликатов функций.
 pub fn scan_workspace() -> Vec<DuplicationReport> {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let root = if cwd.join("spinal_cord/src").exists() {
-        cwd.join("spinal_cord/src")
-    } else if cwd.join("src").exists() {
-        cwd.join("src")
-    } else {
-        cwd
-    };
+    let repo_root = find_repo_root();
+    let source_roots = discover_source_roots(&repo_root);
 
-    let mut buckets: HashMap<String, Vec<FunctionFingerprint>> = HashMap::new();
+    let mut seen: HashMap<String, FunctionFingerprint> = HashMap::new();
     let mut reports = Vec::new();
 
-    let walker = WalkDir::new(root).into_iter().filter_entry(|e| {
-        let name = e.file_name().to_string_lossy();
-        if e.file_type().is_dir() {
-            !matches!(name.as_ref(), "target" | "node_modules" | ".git")
-        } else {
-            true
-        }
-    });
+    for root in source_roots {
+        let walker = WalkDir::new(root).into_iter().filter_entry(|entry| {
+            if entry.file_type().is_dir() {
+                let name = entry.file_name().to_string_lossy();
+                !matches!(name.as_ref(), "target" | "node_modules" | ".git" | "dist" | "vendor")
+            } else {
+                true
+            }
+        });
 
-    for entry in walker.filter_map(Result::ok) {
-        if !entry.file_type().is_file() {
-            continue;
-        }
-        if entry.path().extension().and_then(|s| s.to_str()) != Some("rs") {
-            continue;
-        }
-        if let Ok(content) = std::fs::read_to_string(entry.path()) {
-            if let Ok(file) = syn::parse_file(&content) {
-                for item in file.items {
-                    if let Item::Fn(func) = item {
-                        let fp = fingerprint(&func, entry.path().to_path_buf());
-                        let bucket = buckets.entry(fp.signature.clone()).or_default();
-                        for other in bucket.iter() {
-                            let mut matched = vec!["signature"];
-                            let mut score = 1.0;
-                            if fp.behavior == other.behavior {
-                                matched.push("behavior");
-                                score += 1.0;
-                            }
-                            if fp.semantic == other.semantic {
-                                matched.push("semantic");
-                                score += 1.0;
-                            }
-                            if fp.structure == other.structure {
-                                matched.push("structure");
-                                score += 1.0;
-                            }
-                            let similarity = score / 4.0;
-                            if similarity >= 0.8 {
+        for entry in walker.filter_map(Result::ok) {
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            if entry.path().extension().and_then(|s| s.to_str()) != Some("rs") {
+                continue;
+            }
+            if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                if let Ok(file) = syn::parse_file(&content) {
+                    for item in file.items {
+                        if let Item::Fn(func) = item {
+                            let fp = fingerprint(&func, entry.path().to_path_buf());
+                            let dedupe_key = format!(
+                                "{}:{}:{}:{}",
+                                fp.signature, fp.behavior, fp.semantic, fp.structure
+                            );
+                            if let Some(existing) = seen.get(&dedupe_key) {
                                 reports.push(DuplicationReport {
-                                    gene_id: other.gene_id.clone(),
-                                    file: other.file.clone(),
-                                    similarity,
-                                    rationale: format!("совпадения: {}", matched.join(", ")),
+                                    gene_id: existing.gene_id.clone(),
+                                    file: existing.file.clone(),
+                                    similarity: 1.0,
+                                    rationale:
+                                        "совпадения: signature, behavior, semantic, structure".to_string(),
                                 });
+                            } else {
+                                seen.insert(dedupe_key, fp);
                             }
                         }
-                        bucket.push(fp);
                     }
                 }
             }
@@ -102,6 +86,45 @@ pub fn scan_workspace() -> Vec<DuplicationReport> {
     }
 
     reports
+}
+
+fn find_repo_root() -> PathBuf {
+    if let Ok(dir) = std::env::var("CARGO_MANIFEST_DIR") {
+        let manifest_path = PathBuf::from(dir);
+        if let Some(parent) = manifest_path.parent() {
+            return parent.to_path_buf();
+        }
+        return manifest_path;
+    }
+
+    let mut dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    while !dir.join("Cargo.toml").exists() {
+        if !dir.pop() {
+            return PathBuf::from(".");
+        }
+    }
+    dir
+}
+
+fn discover_source_roots(repo_root: &Path) -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    let candidates = [
+        repo_root.join("spinal_cord/src"),
+        repo_root.join("sensory_organs/src"),
+        repo_root.join("src"),
+    ];
+
+    for candidate in candidates.iter() {
+        if candidate.exists() {
+            roots.push(candidate.clone());
+        }
+    }
+
+    if roots.is_empty() {
+        roots.push(repo_root.to_path_buf());
+    }
+
+    roots
 }
 
 fn fingerprint(func: &ItemFn, file: PathBuf) -> FunctionFingerprint {
