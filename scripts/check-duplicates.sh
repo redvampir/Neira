@@ -32,44 +32,39 @@ if [ "$raw_output" = "nothing to print" ]; then
   raw_output=""
 fi
 
-filtered=$(RAW_OUTPUT="$raw_output" python3 - <<'PY'
-import os
-import re
+filtered=$(printf "%s" "$raw_output" \
+  | awk '
+      function is_allowed(name) {
+        return name ~ /^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$/;
+      }
 
-allow = re.compile(r"^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$")
-blocks = {}
-order = []
+      {
+        if (match($0, /([[:alnum:]_.+-]+) v([0-9][^ ]*)/, m)) {
+          name=m[1]; ver=m[2];
+          if (is_allowed(name)) next;
 
-for line in os.environ.get("RAW_OUTPUT", "").splitlines():
-    match = re.search(r"([A-Za-z0-9_-]+) v([0-9][^ ]*)", line)
-    if not match:
-        continue
-
-    name, version = match.groups()
-    if allow.match(name):
-        continue
-
-    block = blocks.get(name)
-    if block is None:
-        block = {"lines": [], "versions": []}
-        blocks[name] = block
-        order.append(name)
-
-    block["lines"].append(line)
-    if version not in block["versions"]:
-        block["versions"].append(version)
-
-out_lines = []
-for name in order:
-    block = blocks[name]
-    if len(block["versions"]) > 1:
-        if out_lines:
-            out_lines.append("")
-        out_lines.extend(block["lines"])
-
-if out_lines:
-    print("\n".join(out_lines))
-PY
+          # Deduplicate identical version records for the same crate so we only
+          # keep one representative line per version.
+          if (!seen[name, ver]) {
+            seen[name, ver]=1;
+            versions[name]=versions[name] (versions[name]!=""?" ":"") ver;
+            block[name]=block[name] (block[name]!=""?"\n":"") $0;
+          }
+        }
+      }
+      END {
+        first=1;
+        for (name in versions) {
+          split(versions[name], arr, " ");
+          count=0;
+          for (i in arr) if (arr[i]!="") count++;
+          if (count>1) {
+            if (!first) printf("\n");
+            print block[name];
+            first=0;
+          }
+        }
+      }' \
 )
 
 if [ -n "$filtered" ]; then
