@@ -13,7 +13,7 @@ use std::{
     path::{Path, PathBuf},
     time::UNIX_EPOCH,
 };
-use syn::{visit::Visit, ImplItemMethod, Item, ItemFn};
+use syn::{visit::Visit, ImplItemMethod, Item, ItemFn, ItemMod};
 use walkdir::WalkDir;
 
 /// Отчёт о найденном дубликате функции.
@@ -69,6 +69,14 @@ impl<'ast> Visit<'ast> for FnCollector {
         self.functions
             .push(fingerprint(&item_fn, self.file.clone()));
         syn::visit::visit_impl_item_method(self, node);
+    }
+
+    fn visit_item_mod(&mut self, node: &'ast ItemMod) {
+        if let Some((_, items)) = &node.content {
+            for item in items {
+                self.visit_item(item);
+            }
+        }
     }
 }
 
