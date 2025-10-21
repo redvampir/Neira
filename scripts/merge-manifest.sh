@@ -33,6 +33,14 @@ merge_cargo() {
     mv "$ours_tmp" "$file"
     rm -f "$theirs_tmp"
   else
+    if ! command -v cargo >/dev/null 2>&1; then
+      echo "cargo executable not found; install Rust toolchain or provide tomlq for manifest merging" >&2
+      return 1
+    fi
+    if ! cargo add --version >/dev/null 2>&1; then
+      echo "cargo add (cargo-edit) is required for manifest merge fallback; install via 'cargo install cargo-edit --locked' or make tomlq available" >&2
+      return 1
+    fi
     local ours_dir theirs_dir
     ours_dir="$(mktemp -d)"
     theirs_dir="$(mktemp -d)"
