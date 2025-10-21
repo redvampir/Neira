@@ -39,15 +39,17 @@ filtered=$(printf "%s" "$raw_output" \
           name=m[1]; ver=m[2];
           if (name ~ /^(wasi|windows(|-sys|-core|-targets)|windows_[A-Za-z0-9_]+)$/) next;
           block[name]=block[name] (block[name]!=""?"\n":"") $0;
-          if (vers[name] !~ "(^| )" ver "( |$)") vers[name]=vers[name] " " ver;
+          key=name SUBSEP ver;
+          if (!(key in seen)) {
+            seen[key]=1;
+            version_count[name]++;
+          }
         }
       }
       END {
         first=1;
         for (n in block) {
-          split(vers[n], arr, " ");
-          count=0; for (i in arr) if (arr[i]!="") count++;
-          if (count>1) {
+          if (version_count[n]>1) {
             if (!first) printf("\n");
             print block[n];
             first=0;
