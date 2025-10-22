@@ -72,7 +72,7 @@ const groups = [
   },
   {
     title: "Reference",
-    entries: ["api", "backend-api.md", "pathways.md", "meta", "reference"],
+    entries: ["api", "api/spinal_cord.md", "pathways.md", "meta", "reference"],
   },
   {
     title: "Legacy",
