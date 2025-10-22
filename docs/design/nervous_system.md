@@ -1,6 +1,6 @@
 <!-- neira:meta
-id: NEI-20250923-nervous-system-docs
-intent: design
+id: NEI-20250904-120520-nervous-system-docs
+intent: docs
 summary: Описание Нервной системы Neira: цели, компоненты (пробы/метрики/живость/вотчдог), интеграции, ENV и диагностика.
 -->
 

@@ -1,6 +1,6 @@
 <!-- neira:meta
-id: NEI-20250923-state-recovery-design
-intent: design
+id: NEI-20250904-120540-state-recovery-docs
+intent: docs
 summary: Клетки без потери памяти: постоянное состояние, автоподхват на старте, upgrade hooks, runtime‑параметры и snapshot++.
 -->
 

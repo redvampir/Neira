@@ -5,6 +5,11 @@ summary: |-
   Вынесен модуль Anti-Idle: хранит состояние, считает idle_* и
   предоставляет REST-ручку `/api/neira/anti_idle/toggle`.
 */
+/* neira:meta
+id: NEI-20250220-env-flag-anti-idle
+intent: refactor
+summary: Флаг ANTI_IDLE_ENABLED читается через env_flag.
+*/
 use axum::extract::FromRef;
 use axum::{extract::State, routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
@@ -13,7 +18,7 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::synapse_hub::{SynapseHub, Scope};
+use crate::synapse_hub::{Scope, SynapseHub};
 
 #[derive(Clone, Copy)]
 pub struct IdleThresholds {
@@ -34,9 +39,7 @@ pub fn init() {
         .unwrap_or_default()
         .as_secs();
     LAST_ACTIVITY.store(now, Ordering::Relaxed);
-    let enabled = std::env::var("ANTI_IDLE_ENABLED")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(true);
+    let enabled = crate::config::env_flag("ANTI_IDLE_ENABLED", true);
     ENABLED.store(enabled, Ordering::Relaxed);
     let _ = thresholds();
     let _ = ema_alpha();

@@ -3,11 +3,11 @@ use std::sync::Arc;
 use backend::action::chat_cell::EchoChatCell;
 use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
+use backend::cell_registry::CellRegistry;
 use backend::config::Config;
 use backend::context::context_storage::FileContextStorage;
-use backend::synapse_hub::SynapseHub;
 use backend::memory_cell::MemoryCell;
-use backend::cell_registry::CellRegistry;
+use backend::synapse_hub::SynapseHub;
 
 #[tokio::test]
 async fn chat_hub_rejects_empty_message() {

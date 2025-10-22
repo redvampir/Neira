@@ -3,8 +3,15 @@ id: NEI-20250215-immune-export
 intent: code
 summary: Экспортирован модуль immune_system.
 */
+#![cfg_attr(test, allow(clippy::type_complexity))]
 pub mod action;
 pub mod action_cell;
+/* neira:meta
+id: NEI-20270520-lib-action-engine-export
+intent: code
+summary: Экспортирован модуль action_engine.
+*/
+pub mod action_engine;
 pub mod analysis_cell;
 pub mod cell_registry;
 pub mod cell_template;
@@ -18,9 +25,33 @@ intent: code
 summary: Экспортирован модуль event_bus.
 */
 pub mod event_bus;
+/* neira:meta
+id: NEI-20260614-brain-export
+intent: code
+summary: Экспортирован модуль brain.
+*/
+pub mod brain;
 pub mod immune_system;
 pub mod memory_cell;
+/* neira:meta
+id: NEI-20260530-digestive-export
+intent: code
+summary: Экспортирован модуль digestive_pipeline.
+*/
+pub mod digestive_pipeline;
+/* neira:meta
+id: NEI-20261005-time-metrics-export
+intent: code
+summary: Экспортирован модуль time_metrics.
+*/
 pub mod nervous_system;
+pub mod time_metrics;
+/* neira:meta
+id: NEI-20250226-circulatory-export
+intent: code
+summary: Экспортирован модуль circulatory_system.
+*/
+pub mod circulatory_system;
 pub mod queue_config;
 pub mod security;
 pub mod synapse_hub;
@@ -37,3 +68,15 @@ pub static GLOBAL_HUB: OnceLock<RwLock<Option<Arc<SynapseHub>>>> = OnceLock::new
 pub mod factory;
 pub mod organ_builder;
 pub mod policy;
+/* neira:meta
+id: NEI-20270310-120200-event-log-export
+intent: code
+summary: Экспортирован модуль event_log.
+*/
+pub mod event_log;
+
+/* neira:meta
+id: NEI-20240513-lib-test-allow
+intent: chore
+summary: Разрешён clippy::type_complexity для тестов через cfg_attr.
+*/

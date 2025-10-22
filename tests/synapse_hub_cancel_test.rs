@@ -5,11 +5,17 @@ use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::cell_registry::CellRegistry;
 use backend::config::Config;
+use backend::digestive_pipeline::ParsedInput;
 use backend::memory_cell::MemoryCell;
 use backend::synapse_hub::SynapseHub;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio_util::sync::CancellationToken;
 
+/* neira:meta
+id: NEI-20260530-cancel-digest
+intent: test
+summary: CancelCell использует ParsedInput и умеет обрабатывать отмену.
+*/
 struct CancelCell;
 
 impl AnalysisCell for CancelCell {
@@ -28,7 +34,7 @@ impl AnalysisCell for CancelCell {
     fn confidence_threshold(&self) -> f32 {
         0.0
     }
-    fn analyze(&self, _input: &str, cancel: &CancellationToken) -> AnalysisResult {
+    fn analyze_parsed(&self, _input: &ParsedInput, cancel: &CancellationToken) -> AnalysisResult {
         if cancel.is_cancelled() {
             let mut r = AnalysisResult::new(self.id(), "", vec![]);
             r.status = CellStatus::Error;

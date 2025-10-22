@@ -1,0 +1,8 @@
+# neira:meta
+# id: NEI-20260716-add-llvm-submodule
+# intent: build
+# summary: Добавлен субмодуль llvm-project.
+
+[submodule "llvm-project"]
+  path = llvm-project
+  url = https://github.com/rust-lang/llvm-project.git

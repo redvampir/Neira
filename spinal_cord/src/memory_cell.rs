@@ -4,6 +4,11 @@ intent: docs
 summary: |
   Хранит результаты анализа и метаданные, поддерживает предзагрузку и приоритизацию.
 */
+/* neira:meta
+id: NEI-20261124-parsed-input-store
+intent: feature
+summary: Добавлен приём распарсенного входа через store_parsed_input.
+*/
 
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
@@ -12,10 +17,11 @@ use std::sync::{Arc, RwLock};
 use lru::LruCache;
 
 use chrono::{DateTime, Utc};
-use tokio::spawn;
 use std::time::Instant;
+use tokio::spawn;
 
 use crate::analysis_cell::{AnalysisResult, QualityMetrics, ReasoningStep};
+use crate::digestive_pipeline::ParsedInput;
 use crate::task_scheduler::{compute_priority, Priority};
 
 #[derive(Debug, Clone, Default)]
@@ -50,6 +56,7 @@ pub struct MemoryCell {
     records: RwLock<Vec<MemoryRecord>>,
     checkpoints: RwLock<HashMap<String, AnalysisResult>>,
     preload_cache: RwLock<LruCache<String, Vec<MemoryRecord>>>,
+    parsed_inputs: RwLock<Vec<ParsedInput>>,
 }
 
 impl MemoryCell {
@@ -58,6 +65,7 @@ impl MemoryCell {
             records: RwLock::new(Vec::new()),
             checkpoints: RwLock::new(HashMap::new()),
             preload_cache: RwLock::new(LruCache::new(NonZeroUsize::new(128).unwrap())),
+            parsed_inputs: RwLock::new(Vec::new()),
         }
     }
 
@@ -93,6 +101,14 @@ impl MemoryCell {
         self.records.read().unwrap().clone()
     }
 
+    pub fn store_parsed_input(&self, input: ParsedInput) {
+        self.parsed_inputs.write().unwrap().push(input);
+    }
+
+    pub fn parsed_inputs(&self) -> Vec<ParsedInput> {
+        self.parsed_inputs.read().unwrap().clone()
+    }
+
     pub fn save_checkpoint(&self, id: &str, result: &AnalysisResult) {
         self.checkpoints
             .write()
@@ -114,13 +130,7 @@ impl MemoryCell {
         let mut key = triggers.to_vec();
         key.sort();
         let cache_key = key.join("|");
-        if let Some(records) = self
-            .preload_cache
-            .write()
-            .unwrap()
-            .get(&cache_key)
-            .cloned()
-        {
+        if let Some(records) = self.preload_cache.write().unwrap().get(&cache_key).cloned() {
             let elapsed = start.elapsed().as_secs_f64() * 1000.0;
             metrics::histogram!("memory_cell_preload_duration_ms").record(elapsed);
             metrics::histogram!("memory_cell_preload_duration_ms_p95").record(elapsed);

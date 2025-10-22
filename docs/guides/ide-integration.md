@@ -1,7 +1,7 @@
 # Интеграция IDE
 
 <!-- neira:meta
-id: NEI-20250305-ide-cell-runtime
+id: NEI-20250904-120830-ide-cell-runtime
 intent: docs
 summary: Уточнено, что используется Cell runtime (Node.js).
 -->
@@ -60,4 +60,3 @@ summary: Уточнено, что используется Cell runtime (Node.js
    - **Cargo Command** c `clippy` для проверки Rust-кода
    - **External Tool** с командой `npx eslint .` для линтинга TypeScript
 3. Запускайте конфигурации через панель *Run/Debug* IDE.
-

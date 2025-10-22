@@ -1,0 +1,7 @@
+error[E0560]: struct `DigestiveSettings` has no field named `extra`
+ --> tests/trybuild/digestive_settings_unknown_field.rs:9:79
+  |
+9 |     let _cfg = DigestiveSettings { schema_path: PathBuf::from("schema.json"), extra: 1 };
+  |                                                                               ^^^^^ `DigestiveSettings` does not have this field
+  |
+  = note: all struct fields are already assigned

@@ -11,6 +11,11 @@ id: NEI-20260413-commenting-rename
 intent: docs
 summary: Обновлён пример scope для каталога spinal_cord.
 -->
+<!-- neira:meta
+id: NEI-20250214-121000-commenting-lymph-filter-example
+intent: docs
+summary: Добавлен пример блока для lymphatic_filter.md.
+-->
 
 См. [META_COVERAGE.md](META_COVERAGE.md) для определения, когда использовать полный или упрощённый блок.
 
@@ -32,6 +37,25 @@ id: NEI-YYYYMMDD-HHMMSS-example
 intent: docs
 summary: |
   Короткое описание изменения.
+*/
+```
+
+Пример блока для документа `lymphatic_filter.md`
+```markdown
+<!-- neira:meta
+id: NEI-YYYYMMDD-HHMMSS-lymphatic-filter-doc
+intent: docs
+summary: |
+  Описание подсистемы «Лимфатический фильтр».
+-->
+```
+
+Пример блока для события `lymphatic.duplicate_found`
+```rust
+/* neira:meta
+id: NEI-YYYYMMDD-HHMMSS-lymphatic-duplicate-event
+intent: feature
+summary: Публикация события о найденном дубликате функции.
 */
 ```
 

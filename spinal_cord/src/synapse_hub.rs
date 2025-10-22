@@ -1,9 +1,19 @@
 /* neira:meta
-id: NEI-20250922-adaptive-queues
-intent: code
+id: NEI-20250922-000000-adaptive-queues
+intent: feature
 summary: |
   Очереди анализа выбирают адаптивные пороги на основе истории и
   переопределяются через переменные окружения.
+*/
+/* neira:meta
+id: NEI-20250220-env-flag-hub
+intent: refactor
+summary: Несколько флагов хаба парсятся через env_flag.
+*/
+/* neira:meta
+id: NEI-20270830-000000-env-flag-clean
+intent: refactor
+summary: Все булевые флаги SynapseHub читаются через env_flag.
 */
 /* neira:meta
 id: NEI-20250214-watchdog-refactor
@@ -30,12 +40,39 @@ id: NEI-20240607-probe-stop
 intent: feature
 summary: SynapseHub хранит токены проб и останавливает их при завершении работы.
 */
+/* neira:meta
+id: NEI-20250226-synapse-flow
+intent: feature
+summary: SynapseHub использует DataFlowController для маршрутизации задач и событий.
+*/
+/* neira:meta
+id: NEI-20260522-flow-consumer
+intent: fix
+summary: Подписчик DataFlowController сохраняет приёмник и выводит FlowMessage через tracing.
+*/
+/* neira:meta
+id: NEI-20260614-brain-loop-init
+intent: feature
+summary: Запуск brain_loop обрабатывает FlowMessage и активирует клетки.
+*/
+/* neira:meta
+id: NEI-20270310-local-analysis
+intent: refactor
+summary: Анализ выполняется локально без уведомления brain_loop.
+*/
+/* neira:meta
+id: NEI-20250224-blocking-analyze
+intent: fix
+summary: Анализ выполняется в отдельном блокирующем пуле tokio::task.
+*/
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use crate::action::diagnostics_cell::DiagnosticsCell;
 use crate::action::metrics_collector_cell::{MetricsCollectorCell, MetricsRecord};
-use crate::config::Config;
+use crate::analysis_cell::QualityMetrics;
+use crate::circulatory_system::DataFlowController;
+use crate::config::{env_flag, Config};
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::event_bus::{CellCreated, EventBus, OrganBuilt};
 use crate::factory::{FabricatorCell, SelectorCell, StemCellFactory};
@@ -55,11 +92,12 @@ use lru::LruCache;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::sync::broadcast;
-use tokio::task::{spawn_blocking, JoinHandle};
+use tokio::task::JoinHandle;
 use tokio::time::{interval, sleep};
 use tokio_util::sync::CancellationToken;
 
-use crate::analysis_cell::{AnalysisResult, CellStatus};
+use crate::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
+use crate::brain::{Brain, BrainSubscriber};
 use crate::cell_registry::CellRegistry;
 use crate::memory_cell::MemoryCell;
 use crate::queue_config::QueueConfig;
@@ -89,7 +127,7 @@ pub struct SynapseHub {
     pub memory: Arc<MemoryCell>,
     metrics: Arc<MetricsCollectorCell>,
     trigger_detector: Arc<TriggerDetector>,
-    pub(crate) scheduler: RwLock<TaskScheduler>,
+    pub(crate) scheduler: Arc<RwLock<TaskScheduler>>,
     queue_cfg: RwLock<QueueConfig>,
     allowed_tokens: RwLock<std::collections::HashMap<String, TokenInfo>>,
     rate: RwLock<std::collections::HashMap<String, (u64, u32)>>,
@@ -113,6 +151,8 @@ pub struct SynapseHub {
     factory: Arc<StemCellFactory>,
     organ_builder: Arc<OrganBuilder>,
     event_bus: Arc<EventBus>,
+    flow: Arc<DataFlowController>,
+    brain: Arc<Brain>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -147,9 +187,7 @@ impl SynapseHub {
             "session" => RateKeyMode::Session,
             _ => RateKeyMode::Auth,
         };
-        let idem_persist = std::env::var("IDEMPOTENT_PERSIST")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let idem_persist = env_flag("IDEMPOTENT_PERSIST", false);
         let idem = if idem_persist {
             let dir = std::env::var("IDEMPOTENT_STORE_DIR").unwrap_or_else(|_| "context".into());
             let ttl = std::env::var("IDEMPOTENT_TTL_SECS")
@@ -160,18 +198,13 @@ impl SynapseHub {
         } else {
             None
         };
-        let persist_require_session_id = std::env::var("PERSIST_REQUIRE_SESSION_ID")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let persist_require_session_id = env_flag("PERSIST_REQUIRE_SESSION_ID", false);
         let io_watcher_threshold_ms = std::env::var("IO_WATCHER_THRESHOLD_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(100);
-        let host_metrics_enabled = config
-            .probes
-            .get("host_metrics")
-            .map_or(true, |p| p.enabled);
-        let io_watcher_enabled = config.probes.get("io_watcher").map_or(false, |p| p.enabled);
+        let host_metrics_enabled = config.probes.get("host_metrics").is_none_or(|p| p.enabled);
+        let io_watcher_enabled = config.probes.get("io_watcher").is_some_and(|p| p.enabled);
 
         registry.register_action_cell(metrics.clone());
         registry.register_action_cell(diagnostics.clone());
@@ -185,16 +218,49 @@ impl SynapseHub {
 
         let queue_cfg = QueueConfig::new(&memory);
 
+        let (data_flow, df_rx) = DataFlowController::new();
         let event_bus = EventBus::new();
+        event_bus.attach_flow_controller(data_flow.clone());
+        /* neira:meta
+        id: NEI-20240930-brain-subscriber-hook
+        intent: feat
+        summary: Подписывает BrainSubscriber на события EventBus.
+        */
+        event_bus.subscribe(Arc::new(BrainSubscriber::new(data_flow.clone())));
         event_bus.subscribe(Arc::new(NervousSystemSubscriber));
-        event_bus.subscribe(Arc::new(ImmuneSystemSubscriber));
+        /* neira:meta
+        id: NEI-20270615-immune-bus-pass
+        intent: refactor
+        summary: Передаёт ссылку на EventBus в ImmuneSystemSubscriber.
+        */
+        event_bus.subscribe(Arc::new(ImmuneSystemSubscriber::new(event_bus.clone())));
+
+        let scheduler = Arc::new(RwLock::new(TaskScheduler::default()));
+        scheduler
+            .write()
+            .unwrap()
+            .set_flow_controller(data_flow.clone());
+
+        /* neira:meta
+        id: NEI-20240821-brain-metrics-call
+        intent: refactor
+        summary: Передаёт MetricsCollectorCell в Brain для публикации метрик.
+        */
+        let brain = Arc::new(Brain::new(
+            df_rx,
+            data_flow.clone(),
+            registry.clone(),
+            scheduler.clone(),
+            event_bus.clone(),
+            metrics.clone(),
+        ));
 
         let hub = Self {
             registry,
             memory,
             metrics: metrics.clone(),
             trigger_detector: Arc::new(TriggerDetector::default()),
-            scheduler: RwLock::new(TaskScheduler::default()),
+            scheduler: scheduler.clone(),
             queue_cfg: RwLock::new(queue_cfg),
             allowed_tokens: RwLock::new(std::collections::HashMap::new()),
             rate: RwLock::new(std::collections::HashMap::new()),
@@ -209,19 +275,48 @@ impl SynapseHub {
             cancels: RwLock::new(std::collections::HashMap::new()),
             analysis_cancels: RwLock::new(std::collections::HashMap::new()),
             traces: RwLock::new(std::collections::HashMap::new()),
-            trace_enabled: AtomicBool::new(
-                std::env::var("TRACE_ENABLED")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false),
-            ),
+            trace_enabled: AtomicBool::new(env_flag("TRACE_ENABLED", false)),
             trace_max_events: std::env::var("TRACE_MAX_EVENTS")
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(200),
             factory: StemCellFactory::new(),
             organ_builder: OrganBuilder::new(),
-            event_bus,
+            event_bus: event_bus.clone(),
+            flow: data_flow.clone(),
+            brain: brain.clone(),
         };
+
+        brain.clone().spawn();
+
+        let flow_metrics = hub.flow.clone();
+        let metrics_cell = hub.metrics.clone();
+        tokio::spawn(async move {
+            loop {
+                let ms = metrics_cell.get_interval_ms();
+                sleep(Duration::from_millis(ms)).await;
+                let sent = flow_metrics.sent_count();
+                let received = flow_metrics.received_count();
+                metrics::gauge!("flow_messages_sent_total").set(sent as f64);
+                metrics::gauge!("flow_messages_received_total").set(received as f64);
+                metrics_cell.record(MetricsRecord {
+                    id: "hub.flow.sent".to_string(),
+                    metrics: QualityMetrics {
+                        credibility: None,
+                        recency_days: None,
+                        demand: Some(sent as u32),
+                    },
+                });
+                metrics_cell.record(MetricsRecord {
+                    id: "hub.flow.received".to_string(),
+                    metrics: QualityMetrics {
+                        credibility: None,
+                        recency_days: None,
+                        demand: Some(received as u32),
+                    },
+                });
+            }
+        });
 
         // Spawn host metrics polling loop
         if host_metrics_enabled {
@@ -252,8 +347,7 @@ impl SynapseHub {
         }
 
         // Register factory helper cells (Adapter + Selector)
-        hub.registry
-            .register_action_cell(Arc::new(FabricatorCell::default()));
+        hub.registry.register_action_cell(Arc::new(FabricatorCell));
         hub.registry
             .register_analysis_cell(Arc::new(SelectorCell::new(hub.registry.clone())));
 
@@ -306,6 +400,7 @@ impl SynapseHub {
     intent: code
     summary: Возвращает Result с ошибкой валидации при создании записи.
     */
+    #[allow(clippy::result_large_err)]
     pub fn factory_create(
         &self,
         backend: &str,
@@ -442,7 +537,7 @@ impl SynapseHub {
             "data": data,
         });
         let mut store = self.traces.write().unwrap();
-        let list = store.entry(id).or_insert_with(Vec::new);
+        let list = store.entry(id).or_default();
         if list.len() >= self.trace_max_events {
             list.remove(0);
         }
@@ -483,6 +578,7 @@ impl SynapseHub {
         self.trigger_detector.add_keyword(keyword.into());
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn chat(
         &self,
         cell_id: &str,
@@ -565,7 +661,7 @@ impl SynapseHub {
                         }
                         key.push(ch);
                         // read until '='
-                        while let Some(c2) = it.next() {
+                        for c2 in it.by_ref() {
                             if c2 == '=' {
                                 in_key = false;
                                 in_val = true;
@@ -587,7 +683,7 @@ impl SynapseHub {
                                 it.next();
                             }
                         }
-                        while let Some(c2) = it.next() {
+                        for c2 in it.by_ref() {
                             if let Some(q) = quote {
                                 if c2 == q {
                                     break;
@@ -611,14 +707,11 @@ impl SynapseHub {
                 // after 'train'
                 match k.to_lowercase().as_str() {
                     "script" => std::env::set_var("TRAINING_SCRIPT", v),
-                    "dry_run" | "dry" => std::env::set_var(
-                        "TRAINING_DRY_RUN",
-                        if v.eq_ignore_ascii_case("true") || v == "1" {
-                            "true"
-                        } else {
-                            "false"
-                        },
-                    ),
+                    "dry_run" | "dry" => {
+                        std::env::set_var("TRAINING_DRY_RUN", &v);
+                        let flag = env_flag("TRAINING_DRY_RUN", false);
+                        std::env::set_var("TRAINING_DRY_RUN", if flag { "true" } else { "false" });
+                    }
                     _ => {}
                 }
             }
@@ -781,20 +874,18 @@ impl SynapseHub {
             .write()
             .unwrap()
             .classify(avg_time, &self.memory);
-        self.scheduler.write().unwrap().enqueue(
+        let (task_id, task_input) = self.scheduler.write().unwrap().enqueue_local(
             queue,
             id.to_string(),
             input.to_string(),
             priority,
             None,
             vec![id.to_string()],
-        );
-
-        let (task_id, task_input) = self.scheduler.write().unwrap().next()?;
+        )?;
         let cell = self.registry.get_analysis_cell(&task_id)?;
         let cancel = cancel_token.clone();
 
-        let mut handle = spawn_blocking(move || cell.analyze(&task_input, &cancel));
+        let mut handle = tokio::task::spawn_blocking(move || cell.analyze(&task_input, &cancel));
 
         let start = Instant::now();
         let checkpoint_mem = self.memory.clone();
@@ -881,7 +972,7 @@ impl SynapseHub {
                     _ = sleep(Duration::from_millis(soft_ms)) => {
                         soft_fired = true;
                         wd.soft_timeout();
-                        let auto_requeue = std::env::var("AUTO_REQUEUE_ON_SOFT").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false);
+                        let auto_requeue = env_flag("AUTO_REQUEUE_ON_SOFT", false);
                         if auto_requeue {
                             // Re-enqueue into Long queue with lower priority and return draft result now
                             self.scheduler.write().unwrap().enqueue(
@@ -985,10 +1076,15 @@ impl SynapseHub {
             }
         } else {
             0
-        } as u32;
+        };
         let limit = self.rate_limit_per_min;
         let remaining = limit.saturating_sub(used);
         (limit, remaining, used, key)
+    }
+
+    /// Регистрация нейрона в мозге
+    pub fn register_neuron(&self, cell: Arc<dyn AnalysisCell + Send + Sync>) {
+        self.brain.register_neuron(cell);
     }
 
     // SSE cancellation registry
@@ -1038,6 +1134,12 @@ impl SynapseHub {
     }
 }
 
+/* neira:meta
+id: NEI-20241003-hub-flow-metrics
+intent: feat
+summary: SynapseHub периодически публикует счётчики кровотока в MetricsCollectorCell и gauge метрики.
+*/
+
 impl Drop for SynapseHub {
     fn drop(&mut self) {
         let mut probes = self.probe_handles.write().unwrap();
@@ -1052,7 +1154,7 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 /* neira:meta
 id: NEI-20250829-setup-meta-hub
 intent: docs
-scope: backend/hub
+scope: spinal_cord/hub
 summary: |
   Политики чата: скоупы read/write/admin, idempotency (LRU+file TTL), rate-limit с ключом,
   safe-mode (write=admin), сохранение входящего user-сообщения с метаданными (source/thread_id).
@@ -1079,6 +1181,11 @@ safe_mode:
   affects_write: true
   requires_admin: true
 i18n:
-  reviewer_note: |
+    reviewer_note: |
     Центр координации политик и лимитов. Следить за скоупами и idempotency.
+*/
+/* neira:meta
+id: NEI-20240513-synapse-lints
+intent: chore
+summary: Убраны предупреждения Clippy: is_none_or/is_some_and, устранены while-let на итераторах, добавлены allow для больших ошибок и количества аргументов.
 */

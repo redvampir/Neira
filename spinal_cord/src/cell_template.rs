@@ -1,7 +1,7 @@
 /* neira:meta
 id: NEI-20250829-175425-cell-template
 intent: docs
-scope: backend/core
+scope: spinal_cord/core
 summary: |
   Загружает и валидирует шаблоны ячеек по JSON‑схеме.
 env:

@@ -1,6 +1,6 @@
 <!-- neira:meta
-id: NEI-20250923-system-lifecycle
-intent: design
+id: NEI-20250904-120550-system-lifecycle-docs
+intent: docs
 summary: Согласованная схема слоёв и жизненный цикл «отращивания органа» (от запроса до эксплуатации/отката).
 -->
 

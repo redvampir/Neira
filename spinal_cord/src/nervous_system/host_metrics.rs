@@ -64,7 +64,7 @@ impl HostMetrics {
         shutdown: CancellationToken,
     ) -> Self {
         let sys = System::new_with_specifics(
-            RefreshKind::new()
+            RefreshKind::nothing()
                 .with_cpu(CpuRefreshKind::everything())
                 .with_memory(MemoryRefreshKind::everything()),
         );
@@ -92,10 +92,10 @@ impl SystemProbe for HostMetrics {
 
     /// Refresh metrics and publish them via `metrics::gauge!` and `MetricsCollectorCell`.
     fn collect(&mut self) {
-        self.sys.refresh_cpu();
+        self.sys.refresh_cpu_all();
         self.sys.refresh_memory();
 
-        let cpu = self.sys.global_cpu_info().cpu_usage() as f64;
+        let cpu = self.sys.global_cpu_usage() as f64;
         let total_mem = self.sys.total_memory() as f64;
         let used_mem = self.sys.used_memory() as f64;
         let mem_percent = if total_mem > 0.0 {
@@ -108,11 +108,7 @@ impl SystemProbe for HostMetrics {
         let (total_cells, active_cells) = self.factory.counts();
         metrics::gauge!("factory_cells_total").set(total_cells as f64);
         metrics::gauge!("factory_cells_active").set(active_cells as f64);
-        let new_cells = if total_cells > self.last_total_cells {
-            total_cells - self.last_total_cells
-        } else {
-            0
-        };
+        let new_cells = total_cells.saturating_sub(self.last_total_cells);
         if new_cells > 0 {
             metrics::counter!("factory_new_cells_total").increment(new_cells as u64);
         }
@@ -150,3 +146,9 @@ impl SystemProbe for HostMetrics {
         self.shutdown.cancel();
     }
 }
+
+/* neira:meta
+id: NEI-20240513-hostmetrics-lint
+intent: chore
+summary: Использован saturating_sub для корректного подсчёта новых клеток.
+*/

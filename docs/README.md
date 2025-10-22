@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250830-Docs-Readme-Redirect
+id: NEI-20250904-120840-docs-readme-redirect
 intent: docs
 summary: |
   Упрощён вход в документацию: README указывает на docs/index.md. Добавлен процесс обновления оглавления.

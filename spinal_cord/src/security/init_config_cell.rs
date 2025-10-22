@@ -1,7 +1,7 @@
 /* neira:meta
 id: NEI-20250829-175425-init-config
 intent: docs
-scope: backend/security
+scope: spinal_cord/security
 summary: |
   Инициализирует переменные конфигурации, устанавливая INTEGRITY_ROOT.
 env:
@@ -47,3 +47,15 @@ impl ActionCell for InitConfigCell {
         self.ensure_integrity_root(memory);
     }
 }
+
+impl Default for InitConfigCell {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/* neira:meta
+id: NEI-20240513-initconfig-default
+intent: chore
+summary: Добавлен Default для InitConfigCell во избежание lint new_without_default.
+*/

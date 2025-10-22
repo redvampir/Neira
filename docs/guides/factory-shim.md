@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250831-factory-shim-guide
+id: NEI-20250904-120900-factory-shim-guide
 intent: docs
 summary: Внешний оркестратор (Shim) для фабрики: CLI, LLM-агент, безопасные команды dry-run/create/approve без прямой связи с ядром Нейры.
 -->

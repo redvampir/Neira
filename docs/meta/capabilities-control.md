@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250830-Capabilities-Control
+id: NEI-20250904-120820-capabilities-control
 intent: docs
 summary: |
   Контрольный контур и гомеостаз: capability‑флаги для паузы/остановки, срезов/трасс и автотюнинга бюджетов. Дополнение к CAPABILITIES.md.

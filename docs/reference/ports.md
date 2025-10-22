@@ -1,5 +1,5 @@
 <!-- neira:meta
-id: NEI-20250831-ports
+id: NEI-20250904-120700-ports
 intent: docs
 summary: Сводка стандартных портов и переменных окружения для сервисов Neira.
 -->

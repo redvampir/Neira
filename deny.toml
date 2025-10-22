@@ -1,0 +1,39 @@
+# neira:meta
+# id: NEI-20250904-cargo-deny-bans
+# intent: ci
+# summary: Включён cargo-deny: запрет множественных версий, исключения для Windows/WASI семейств до их выравнивания апстримом.
+
+[bans]
+# Запрещаем множественные версии одного и того же crate
+multiple-versions = "deny"
+# Не блокируем wildcard-зависимости, просто предупреждаем при необходимости
+wildcards = "warn"
+deny = []
+allow = []
+
+# Разрешаем множественные версии для семейств Windows/WASI
+# (транзитивные и пока неизбежные разночтения в экосистеме)
+skip = [
+    { name = "wasi" },
+    { name = "windows" },
+    { name = "windows-sys" },
+    { name = "windows-core" },
+    { name = "windows-targets" },
+    # Архитектурно-специфичные пакеты windows_*
+    { name = "windows_aarch64_gnullvm" },
+    { name = "windows_aarch64_msvc" },
+    { name = "windows_i686_gnu" },
+    { name = "windows_i686_gnullvm" },
+    { name = "windows_i686_msvc" },
+    { name = "windows_x86_64_gnu" },
+    { name = "windows_x86_64_gnullvm" },
+    { name = "windows_x86_64_msvc" },
+]
+
+# Игнорируем дубликаты во всём поддереве Windows-пакетов
+skip-tree = [
+    { name = "windows" },
+    { name = "windows-sys" },
+    { name = "windows-targets" },
+]
+

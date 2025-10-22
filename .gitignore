@@ -1,5 +1,26 @@
+# neira:meta
+# id: NEI-20260716-unignore-gitmodules
+# intent: build
+# summary: Разрешён отслеживаемый файл .gitmodules.
+
+# neira:meta
+# id: NEI-20270330-ignore-sensory-node-modules
+# intent: build
+# summary: Игнорируется sensory_organs/node_modules.
+
+# neira:meta
+# id: NEI-20270610-120500-logs-example
+# intent: docs
+# summary: Разрешён пример журнала logs/events.ndjson.
+
 node_modules/
+sensory_organs/node_modules/
 target/
 logs/*
 !logs/.keep
+!logs/events.ndjson
 **/.git*
+!.gitmodules
+!/.github/
+!/.github/workflows/
+!/.github/workflows/**

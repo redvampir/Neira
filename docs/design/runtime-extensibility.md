@@ -1,3 +1,10 @@
+﻿<!-- neira:meta
+id: NEI-20250904-121040-runtime-extensibility-doc
+intent: docs
+summary: |
+  Добавлен первичный neira:meta блок (без изменения содержания документа).
+-->
+
 # Runtime Extensibility (Без перекомпиляции)
 
 Цель: позволить Нейре развиваться и менять функционал без пересборки ядра. Две ступени расширений:
@@ -113,4 +120,5 @@ abi:
   - `runtime_wasm_plugins` остаётся locked до стабильности скриптового слоя.
 
 - Критерии продвижения: см. docs/roadmap.md (Stage 1) и CAPABILITIES.md (сигналы/статусы).
+
 

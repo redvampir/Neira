@@ -1,10 +1,18 @@
+/* neira:meta
+id: NEI-20260531-120000-test-analyze-parsed
+intent: fix
+summary: |
+  Реализован analyze_parsed в тестовой клетке для успешной компиляции тестов.
+*/
+
 use backend::action::diagnostics_cell::DiagnosticsCell;
 use backend::action::metrics_collector_cell::MetricsCollectorCell;
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
-use backend::synapse_hub::SynapseHub;
-use backend::config::Config;
-use backend::memory_cell::MemoryCell;
 use backend::cell_registry::CellRegistry;
+use backend::config::Config;
+use backend::digestive_pipeline::ParsedInput;
+use backend::memory_cell::MemoryCell;
+use backend::synapse_hub::SynapseHub;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 
@@ -29,8 +37,11 @@ impl AnalysisCell for TestAnalysisCell {
     fn confidence_threshold(&self) -> f32 {
         0.0
     }
-    fn analyze(&self, input: &str, _cancel: &CancellationToken) -> AnalysisResult {
-        AnalysisResult::new(self.id(), input, vec![])
+    fn analyze_parsed(&self, input: &ParsedInput, _cancel: &CancellationToken) -> AnalysisResult {
+        match input {
+            ParsedInput::Json(value) => AnalysisResult::new(self.id(), value.to_string(), vec![]),
+            ParsedInput::Text(text) => AnalysisResult::new(self.id(), text, vec![]),
+        }
     }
     fn explain(&self) -> String {
         "test".into()

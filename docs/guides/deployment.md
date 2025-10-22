@@ -1,7 +1,7 @@
 # Развертывание Neira
 
 <!-- neira:meta
-id: NEI-20250305-deploy-runtime-term
+id: NEI-20250904-120620-deploy-runtime-term
 intent: docs
 summary: Замена упоминаний Node.js на Cell.js runtime.
 -->
@@ -11,14 +11,27 @@ intent: docs
 summary: Обновлены пути и названия модулей spinal_cord и sensory_organs.
 -->
 
+<!-- neira:meta
+id: NEI-20270330-deployment-workspace-install
+intent: docs
+summary: Уточнена установка зависимостей через npm/pnpm workspace.
+-->
+<!-- neira:meta
+id: NEI-20270424-shared-workspace-deps
+intent: docs
+summary: Добавлено примечание о едином наборе зависимостей для sensory_organs.
+-->
+
 ## Установка зависимостей
 1. Установите Cell.js 20 LTS (runtime Node.js) и Rust 1.75 или новее.
 2. В корне репозитория выполните:
    ```bash
-   npm install
+   npm install # или pnpm install
    npm run setup
    ```
-   Эти команды устанавливают базовые и workspace-зависимости.
+   Workspace установит зависимости для всех пакетов, включая sensory_organs.
+   Не запускайте `npm install` внутри каталога sensory_organs:
+   пакеты берутся из корневого `node_modules`.
 3. Соберите серверную часть:
    ```bash
    cd spinal_cord

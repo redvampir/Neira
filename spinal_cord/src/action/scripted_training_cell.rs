@@ -1,7 +1,7 @@
 /* neira:meta
 id: NEI-20250829-175425-scripted-training
 intent: docs
-scope: backend/action
+scope: spinal_cord/action
 summary: |
   Выполняет сценарии обучения; пути и режим задаются через переменные окружения.
 env:
@@ -9,17 +9,30 @@ env:
   - TRAINING_PROGRESS
   - TRAINING_DRY_RUN
 */
+/* neira:meta
+id: NEI-20250220-env-flag-training
+intent: refactor
+summary: Читает TRAINING_* флаги через env_flag.
+*/
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::action_cell::ActionCell;
+/* neira:meta
+id: NEI-20250101-000003-scripted-training-context
+intent: refactor
+summary: Сценарный узел обучения пишет результаты через context_dir().
+*/
+use crate::context::context_dir;
 use crate::context::context_storage::ContextStorage;
 use crate::memory_cell::MemoryCell;
 use serde::{Deserialize, Serialize};
 use tokio::time::{timeout, Duration};
 use tracing::{error, info};
 // metrics integration can be wired via `metrics` crate if desired
+
+type TrainingResult = (usize, String, String, bool, u128, Option<String>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ScriptStep {
@@ -113,9 +126,7 @@ impl ScriptedTrainingCell {
             .unwrap_or_else(|_| "examples/training_script.yaml".into());
         let progress = std::env::var("TRAINING_PROGRESS")
             .unwrap_or_else(|_| "context/training/progress.json".into());
-        let dry_run = std::env::var("TRAINING_DRY_RUN")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let dry_run = crate::config::env_flag("TRAINING_DRY_RUN", false);
         Self {
             id: "scripted.training".into(),
             script_path: script.into(),
@@ -339,8 +350,7 @@ impl ScriptedTrainingCell {
     }
 
     fn err_with_attachment(msg: &str, body: &str) -> String {
-        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-        let dir = std::path::Path::new(&base).join("training");
+        let dir = context_dir().join("training");
         let _ = std::fs::create_dir_all(&dir);
         let ts = chrono::Utc::now().timestamp_millis();
         let path_rel = format!("training/failure_{}.txt", ts);
@@ -414,9 +424,7 @@ impl ScriptedTrainingCell {
                 }
             }
             Hook::Shell { cmd } => {
-                let allow = std::env::var("TRAINING_ALLOW_SHELL")
-                    .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false);
+                let allow = crate::config::env_flag("TRAINING_ALLOW_SHELL", false);
                 if !allow {
                     return;
                 }
@@ -526,12 +534,8 @@ impl ScriptedTrainingCell {
         Ok(())
     }
 
-    fn write_reports(
-        name: &str,
-        results: &[(usize, String, String, bool, u128, Option<String>)],
-    ) -> Result<(), String> {
-        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-        let dir = std::path::Path::new(&base).join("training");
+    fn write_reports(name: &str, results: &[TrainingResult]) -> Result<(), String> {
+        let dir = context_dir().join("training");
         let _ = std::fs::create_dir_all(&dir);
         let tests = results.len();
         let failures = results.iter().filter(|r| !r.3).count();
@@ -652,3 +656,9 @@ impl Default for ScriptedTrainingCell {
         Self::from_env()
     }
 }
+
+/* neira:meta
+id: NEI-20240513-training-result-alias
+intent: chore
+summary: Добавлен type alias TrainingResult для уменьшения сложности типа в отчётах.
+*/

@@ -1,7 +1,7 @@
 /* neira:meta
 id: NEI-20250829-175425-integrity-checker
 intent: docs
-scope: backend/security
+scope: spinal_cord/security
 summary: |
   Проверяет контрольные суммы файлов и отправляет подозрительные в карантин.
 env:

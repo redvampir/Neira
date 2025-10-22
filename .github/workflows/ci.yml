@@ -15,6 +15,25 @@ name: CI
 # intent: ci
 # summary: Обновлены пути на spinal_cord и sensory_organs.
 
+# neira:meta
+# id: NEI-20260610-ci-github-output
+# intent: ci
+# summary: Обновлены actions для вывода через $GITHUB_OUTPUT.
+
+# neira:meta
+# id: NEI-20270407-ci-cargo-metadata-format
+# intent: ci
+# summary: Добавлен параметр --format-version=1 для вызова cargo metadata.
+# neira:meta
+# id: NEI-20250909-ci-context-cleanup
+# intent: ci
+# summary: Удалено повторное объявление переменной context в шаге github-script, устранён SyntaxError.
+
+# neira:meta
+# id: NEI-20250215-ci-cache-deps
+# intent: ci
+# summary: Добавлено кэширование npm и Cargo зависимостей для ускорения CI.
+
 on:
   push:
     branches: [ main ]
@@ -27,20 +46,57 @@ jobs:
     env:
       CELL_TEMPLATES_DIR: ./templates
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - name: Fetch main for diff
+        run: git fetch --no-tags --depth=50 origin +refs/heads/main:refs/remotes/origin/main
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
         with:
-          toolchain: stable
-          override: true
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
       - name: Validate Cargo files
-        run: cargo metadata --locked
+        run: cargo metadata --locked --format-version 1
+      # neira:meta
+      # id: NEI-20250904-ci-cargo-deny-bans
+      # intent: ci
+      # summary: Добавлен шаг cargo-deny (bans) для запрета множественных версий с allowlist Windows/WASI.
+      - name: Cargo deny (bans)
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json', 'sensory_organs/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+      # neira:meta
+      # id: NEI-20250220-ci-workspaces-install
+      # intent: ci
+      # summary: Установка зависимостей через npm workspaces; тесты sensory_organs выполняются через npm script.
       - name: Install dependencies
+        run: npm ci --workspaces --include-workspace-root
+      # neira:meta
+      # id: NEI-20251024-ci-python-pre-commit
+      # intent: ci
+      # summary: Добавлены шаги setup-python и pre-commit для проверки workflow файлов.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Run pre-commit
         run: |
-          npm ci
-          npm ci --prefix sensory_organs
+          pip install pre-commit
+          pre-commit run --files .github/workflows/auto-resolve-conflicts.yml .github/workflows/ci.yml
+      - name: Check neira:meta coverage (strict)
+        run: |
+          node scripts/check-meta.mjs --since origin/main --strict --report github --out meta-report.json
       - name: Check duplicate crates
         run: scripts/check-duplicates.sh
       - name: Lint
@@ -54,6 +110,111 @@ jobs:
       - name: Test spinal cord
         run: cargo test --manifest-path spinal_cord/Cargo.toml
       - name: Test sensory organs
-        run: npm test --prefix sensory_organs
+        run: npm run sensory_organs:test
       - name: Test root
         run: npm test
+      - name: Comment neira:meta coverage on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Guard: run only for pull_request events (robust to missing context)
+            const ev = process.env.GITHUB_EVENT_NAME || '';
+            if (ev !== 'pull_request') {
+              core.info(`Skip commenting: event=${ev || 'unknown'}`);
+              return;
+            }
+            const fs = require('fs');
+            const path = 'meta-report.json';
+            if (!fs.existsSync(path)) {
+              core.info('No meta-report.json found');
+              return;
+            }
+            const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const header = '### neira:meta coverage report';
+            const body = [
+              header,
+              '',
+              `Checked files: ${report.total}`,
+              `Missing: ${report.missing.length} | Invalid: ${report.invalid.length}`,
+              '',
+              report.missing.length ? ('Missing blocks:\n' + report.missing.map(f => `- ${f}`).join('\n')) : '',
+              report.invalid.length ? ('Invalid blocks:\n' + report.invalid.map(it => `- ${it.file}: ${it.errors.join(', ')}`).join('\n')) : '',
+            ].filter(Boolean).join('\n');
+
+            // Try to read PR number from context if available; otherwise skip gracefully
+            const owner = (context && context.repo && context.repo.owner) || process.env.GITHUB_REPOSITORY?.split('/')[0];
+            const repo = (context && context.repo && context.repo.repo) || process.env.GITHUB_REPOSITORY?.split('/')[1];
+            const issue_number = (context && context.issue && context.issue.number) || (context && context.payload && context.payload.pull_request && context.payload.pull_request.number);
+            if (!issue_number) {
+              core.info('No PR number found in context; skipping comment.');
+              return;
+            }
+            const existing = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const prev = existing.data.find(c => c.user && c.user.type === 'Bot' && c.body && c.body.startsWith(header));
+            if (prev) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  # neira:meta
+  # id: NEI-20250904-ci-dependency-hygiene
+  # intent: ci
+  # summary: Добавлен отдельный job Dependency Hygiene: cargo tree -d, скрипты дублей (Linux/Windows), cargo-deny.
+  dependency-hygiene:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - name: Cargo metadata (locked)
+        run: cargo metadata --locked --format-version 1
+      - name: Cargo tree (duplicates overview)
+        run: cargo tree -d --target all || true
+      - name: Check duplicate crates (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: scripts/check-duplicates.sh
+      - name: Check duplicate crates (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: ./scripts/check-duplicates.ps1
+      # neira:meta
+      # id: NEI-20250905-ci-cargo-deny-linux
+      # intent: ci
+      # summary: Шаг cargo-deny (bans) выполняется только на Linux.
+      - name: Cargo deny (bans)
+        if: matrix.os == 'ubuntu-latest'
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans
+
+  # neira:meta
+  # id: NEI-20250904-ci-required-gateway
+  # intent: ci
+  # summary: Агрегирующий job "required" склеивает статусы build и dependency-hygiene в один обязательный чек для правил веток.
+  required:
+    name: required
+    runs-on: ubuntu-latest
+    needs: [build, dependency-hygiene]
+    if: ${{ always() }}
+    steps:
+      - name: Print upstream results
+        run: |
+          echo "build: ${{ needs.build.result }}"
+          echo "dependency-hygiene: ${{ needs.dependency-hygiene.result }}"
+      - name: Ensure all upstream jobs succeeded
+        run: |
+          [[ "${{ needs.build.result }}" == "success" ]] || exit 1
+          [[ "${{ needs.dependency-hygiene.result }}" == "success" ]] || exit 1

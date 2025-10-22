@@ -1,3 +1,8 @@
+/* neira:meta
+id: NEI-20250220-context-env-flag
+intent: refactor
+summary: Флаги контекста читаются через общую функцию env_flag.
+*/
 use crate::nervous_system::anti_idle;
 use chrono::{Datelike, Utc};
 use flate2::write::GzEncoder;
@@ -209,8 +214,8 @@ fn load_or_init_metrics(root: &Path) -> StorageMetrics {
     fs::create_dir_all(root).ok();
     let total = total_space(root).unwrap_or(0);
     let free = available_space(root).unwrap_or(0);
-    let avg_msg_bytes = 1024; // initial guess, updated later
-    let max_bytes = (free / 100).max(avg_msg_bytes as u64);
+    let avg_msg_bytes: u64 = 1024; // initial guess, updated later
+    let max_bytes = (free / 100).max(avg_msg_bytes);
     let max_lines = (max_bytes / avg_msg_bytes.max(1)) as usize;
     let metrics = StorageMetrics {
         disk_total: total,
@@ -250,10 +255,16 @@ fn update_storage_metrics(cfg: &Config, added_bytes: u64, lines: usize) {
 
 impl FileContextStorage {
     pub fn new(root: impl Into<PathBuf>) -> Self {
-        let root = std::env::var("CONTEXT_DIR")
-            .ok()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| root.into());
+        /* neira:meta
+        id: NEI-20250101-000001-context-storage-env
+        intent: refactor
+        summary: new() использует context_dir() при наличии CONTEXT_DIR.
+        */
+        let root = if std::env::var_os("CONTEXT_DIR").is_some() {
+            crate::context::context_dir()
+        } else {
+            root.into()
+        };
         let cfg = Config::from_env(&root);
         if cfg.flush_interval_ms > 0 {
             let (tx, mut rx) = mpsc::channel::<(String, String, ChatMessage)>(1024);
@@ -370,14 +381,12 @@ impl ContextStorage for FileContextStorage {
             } else if p.extension().and_then(|s| s.to_str()) == Some("ndjson") {
                 let file = fs::File::open(&p).map_err(|e| e.to_string())?;
                 let reader = std::io::BufReader::new(file);
-                for line in reader.lines() {
-                    if let Ok(l) = line {
-                        if l.trim().is_empty() {
-                            continue;
-                        }
-                        if let Ok(msg) = serde_json::from_str::<ChatMessage>(&l) {
-                            out.push(msg);
-                        }
+                for l in reader.lines().map_while(Result::ok) {
+                    if l.trim().is_empty() {
+                        continue;
+                    }
+                    if let Ok(msg) = serde_json::from_str::<ChatMessage>(&l) {
+                        out.push(msg);
                     }
                 }
             }
@@ -446,23 +455,17 @@ impl Config {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(metrics.max_bytes);
-        let daily_rotation = std::env::var("CONTEXT_DAILY_ROTATION")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
-        let archive_gz = std::env::var("CONTEXT_ARCHIVE_GZ")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let daily_rotation = crate::config::env_flag("CONTEXT_DAILY_ROTATION", true);
+        let archive_gz = crate::config::env_flag("CONTEXT_ARCHIVE_GZ", true);
         let flush_interval_ms = std::env::var("CONTEXT_FLUSH_MS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(0);
-        let mask_enabled = std::env::var("MASK_PII")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let mask_enabled = crate::config::env_flag("MASK_PII", true);
         let mask_regex = std::env::var("MASK_REGEX")
             .ok()
             .map(|s| s.split(';').filter_map(|p| Regex::new(p).ok()).collect())
-            .unwrap_or_else(Vec::new);
+            .unwrap_or_default();
         let mask_roles = std::env::var("MASK_ROLES")
             .ok()
             .map(|s| {
@@ -587,7 +590,7 @@ fn append_messages_and_update_index(
         .append(true)
         .open(path)
         .map_err(|e| e.to_string())?;
-    let _lock = f.lock_exclusive().map_err(|e| e.to_string())?;
+    f.lock_exclusive().map_err(|e| e.to_string())?;
     let mut approx_bytes = entry
         .get("approx_bytes")
         .and_then(|v| v.as_u64())
@@ -625,7 +628,7 @@ fn append_messages_and_update_index(
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(90);
-    let ttl_ms = ttl_days.max(0) as i64 * 86_400_000;
+    let ttl_ms = ttl_days.max(0) * 86_400_000;
     if let Some(kw_ts) = entry.get("kw_updated_ms").and_then(|v| v.as_i64()) {
         if ttl_ms > 0 && now_ms.saturating_sub(kw_ts) > ttl_ms {
             entry.insert("keywords".into(), serde_json::Value::Array(Vec::new()));
@@ -637,7 +640,7 @@ fn append_messages_and_update_index(
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
-    let new_kws = super_keywords(&msgs.last().map(|m| m.content.as_str()).unwrap_or(""));
+    let new_kws = super_keywords(msgs.last().map(|m| m.content.as_str()).unwrap_or(""));
     for k in new_kws {
         if !kws.contains(&serde_json::json!(k)) && kws.len() < 32 {
             kws.push(serde_json::json!(k));
@@ -656,7 +659,7 @@ fn append_messages_and_update_index(
             if meta.len() > cfg.max_bytes {
                 let file = fs::File::open(path).map_err(|e| e.to_string())?;
                 let reader = std::io::BufReader::new(file);
-                let mut lines: Vec<String> = reader.lines().flatten().collect();
+                let mut lines: Vec<String> = reader.lines().map_while(Result::ok).collect();
                 if lines.len() > cfg.max_lines {
                     lines = lines.split_off(lines.len().saturating_sub(cfg.max_lines));
                 }
@@ -727,7 +730,7 @@ fn super_keywords(content: &str) -> Vec<String> {
 /* neira:meta
 id: NEI-20250829-setup-meta-storage
 intent: docs
-scope: backend/storage
+scope: spinal_cord/storage
 summary: |
   Файловое хранилище контекста (ndjson + дневная ротация + gzip), индекс index.json,
   TTL ключевых слов, адаптивные лимиты по диску (storage_metrics.json), маскирование
@@ -760,4 +763,9 @@ safe_mode:
 i18n:
   reviewer_note: |
     Важные файлы и индекс. Не забывай обновлять ENV‑референс при добавлении флагов.
+*/
+/* neira:meta
+id: NEI-20240513-storage-lints
+intent: chore
+summary: Убраны предупреждения Clippy в файловом хранилище контекста: лишние приведения, manual_flatten и др.
 */

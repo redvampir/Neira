@@ -1,3 +1,16 @@
+/* neira:meta
+id: NEI-20250101-000004-main-context-dir
+intent: refactor
+summary: Основной сервис использует context_dir() вместо прямого чтения CONTEXT_DIR.
+*/
+/* neira:meta
+id: NEI-20250220-env-flag-main
+intent: refactor
+summary: Булевы переменные в main читаются через config::env_flag.
+*/
+use backend::config;
+use backend::context::context_dir;
+use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
@@ -30,6 +43,21 @@ id: NEI-20250215-immune-import-main
 intent: refactor
 summary: Добавлен импорт immune_system.
 */
+/* neira:meta
+id: NEI-20260528-import-backend-parsed-input
+intent: refactor
+summary: Явное обращение к ParsedInput через crate backend.
+*/
+/* neira:meta
+id: NEI-20260725-digestive-init-main
+intent: chore
+summary: Конфигурация DigestivePipeline загружается при старте.
+*/
+/* neira:meta
+id: NEI-20261124-digestive-memory-hook
+intent: chore
+summary: DigestivePipeline получает ссылку на MemoryCell для сохранения входов.
+*/
 use async_stream::stream;
 use axum::{
     extract::{
@@ -37,11 +65,15 @@ use axum::{
         Path, State,
     },
     http::HeaderMap,
-    response::sse::{Event, Sse},
+    response::{
+        sse::{Event, Sse},
+        IntoResponse,
+    },
     routing::{delete, get, post},
     Json, Router,
 };
 use backend::context::context_storage::set_runtime_mask_config;
+use backend::event_log;
 use backend::hearing;
 #[allow(unused_imports)]
 use backend::immune_system;
@@ -54,12 +86,17 @@ use dotenvy::dotenv;
 use futures_core::stream::Stream;
 use metrics_exporter_prometheus::PrometheusBuilder;
 use regex::Regex;
+use reqwest::header::LAST_MODIFIED;
+use reqwest::Client;
 use std::convert::Infallible;
-use std::io::Write;
+use std::fs;
+use std::io::{Cursor, Write};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::time::Duration;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing::error;
+use zip::ZipArchive;
 
 use backend::action::chat_cell::EchoChatCell;
 use backend::action::diagnostics_cell::DiagnosticsCell;
@@ -677,10 +714,7 @@ async fn chat_request(
 async fn get_chat_index(
     Path(chat_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let path = std::path::Path::new(&base)
-        .join(&chat_id)
-        .join("index.json");
+    let path = context_dir().join(&chat_id).join("index.json");
     if !path.exists() {
         return Ok(Json(serde_json::json!({})));
     }
@@ -691,6 +725,11 @@ async fn get_chat_index(
     Ok(Json(v))
 }
 
+/* neira:meta
+id: NEI-20270415-rotate-filter-ms
+intent: fix
+summary: Фильтрация ротаций контекста использует миллисекундную метку вместо счётчика.
+*/
 #[derive(serde::Deserialize)]
 struct SessionQuery {
     from: Option<String>,
@@ -705,8 +744,7 @@ async fn get_chat_session(
     Path((chat_id, session_id)): Path<(String, String)>,
     axum::extract::Query(q): axum::extract::Query<SessionQuery>,
 ) -> impl axum::response::IntoResponse {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     let mut body = String::new();
     if let Ok(rd) = std::fs::read_dir(&dir) {
         let mut files: Vec<std::path::PathBuf> = rd.flatten().map(|e| e.path()).collect();
@@ -718,14 +756,18 @@ async fn get_chat_session(
                     && (name.ends_with(".ndjson") || name.ends_with(".ndjson.gz")))
             {
                 if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
-                    // filter by YYYYMMDD window for rotated files
+                    // filter rotated files by timestamp_ms segment
                     let parts: Vec<&str> = name
                         .trim_end_matches(".gz")
                         .trim_end_matches(".ndjson")
                         .split('-')
                         .collect();
                     if parts.len() >= 2 {
-                        let date = parts[parts.len() - 1];
+                        let date = if parts.len() >= 3 {
+                            parts[parts.len() - 2]
+                        } else {
+                            parts[parts.len() - 1]
+                        };
                         if date < from.as_str() || date > to.as_str() {
                             continue;
                         }
@@ -876,8 +918,7 @@ async fn delete_session(
     {
         return Err((axum::http::StatusCode::FORBIDDEN, "forbidden".into()));
     }
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     if let Ok(rd) = std::fs::read_dir(&dir) {
         for e in rd.flatten() {
             let p = e.path();
@@ -945,21 +986,15 @@ async fn rename_session(
             "empty new_session_id".into(),
         ));
     }
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     if let Ok(rd) = std::fs::read_dir(&dir) {
         for e in rd.flatten() {
             let p = e.path();
             if let Some(name) = p.file_name().and_then(|s| s.to_str()) {
                 if name == format!("{}.ndjson", session_id) {
                     let _ = std::fs::rename(&p, dir.join(format!("{}.ndjson", req.new_session_id)));
-                } else if name.starts_with(&format!("{}-", session_id)) && name.ends_with(".ndjson")
-                {
-                    let suffix = &name[(session_id.len() + 1)..];
-                    let _ =
-                        std::fs::rename(&p, dir.join(format!("{}-{}", req.new_session_id, suffix)));
                 } else if name.starts_with(&format!("{}-", session_id))
-                    && name.ends_with(".ndjson.gz")
+                    && (name.ends_with(".ndjson") || name.ends_with(".ndjson.gz"))
                 {
                     let suffix = &name[(session_id.len() + 1)..];
                     let _ =
@@ -1056,9 +1091,7 @@ async fn chat_stream(
         let mut chars = 0usize;
         let start = Instant::now();
         let dev_delay_ms = std::env::var("SSE_DEV_DELAY_MS").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
-        let loop_enabled = std::env::var("LOOP_DETECT_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let loop_enabled = config::env_flag("LOOP_DETECT_ENABLED", true);
         let loop_win: usize = std::env::var("LOOP_WINDOW_TOKENS")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -1076,7 +1109,7 @@ async fn chat_stream(
         for w in out.response.split_whitespace() {
             if cancel.is_cancelled() { break; }
             anti_idle::mark_activity();
-            yield Ok(Event::default().event("message").data(w.to_string()));
+            yield Ok(Event::default().event("message").data(w));
             sent += 1;
             chars += w.len();
             if dev_delay_ms > 0 { tokio::time::sleep(std::time::Duration::from_millis(dev_delay_ms)).await; }
@@ -1180,8 +1213,7 @@ async fn search_chat(
     Path((chat_id, session_id)): Path<(String, String)>,
     axum::extract::Query(params): axum::extract::Query<SearchQuery>,
 ) -> Result<(axum::http::HeaderMap, String), (axum::http::StatusCode, String)> {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     let mut out = String::new();
     let mut matches: Vec<(i64, String)> = Vec::new();
     let q = params.q.clone();
@@ -1312,15 +1344,14 @@ async fn export_chat(
     Path(chat_id): Path<String>,
     axum::extract::Query(q): axum::extract::Query<ExportQuery>,
 ) -> impl axum::response::IntoResponse {
-    let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-    let dir = std::path::Path::new(&base).join(&chat_id);
+    let dir = context_dir().join(&chat_id);
     let mut body = String::new();
     if let Ok(rd) = std::fs::read_dir(&dir) {
         let mut files: Vec<std::path::PathBuf> = rd.flatten().map(|e| e.path()).collect();
         files.sort();
         for p in files {
             let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            // filter by date window if provided
+            // filter by timestamp_ms window if provided
             if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
                 let parts: Vec<&str> = name
                     .trim_end_matches(".gz")
@@ -1328,7 +1359,11 @@ async fn export_chat(
                     .split('-')
                     .collect();
                 if parts.len() >= 2 {
-                    let date = parts[parts.len() - 1];
+                    let date = if parts.len() >= 3 {
+                        parts[parts.len() - 2]
+                    } else {
+                        parts[parts.len() - 1]
+                    };
                     if date < from.as_str() || date > to.as_str() {
                         continue;
                     }
@@ -1498,18 +1533,89 @@ async fn toggle_probe(
     Ok(Json(serde_json::json!({ "enabled": enabled })))
 }
 
+/* neira:meta
+id: NEI-20270210-schema-sync
+intent: feat
+summary: Автоматическая проверка даты архива схем и их синхронизация при старте.
+*/
+/* neira:meta
+id: NEI-20270305-schema-sync-timeout
+intent: chore
+summary: Синхронизация схем выполняется асинхронно и использует reqwest с таймаутом.
+env:
+  - SCHEMAS_SYNC_TIMEOUT_SECS
+*/
+async fn sync_schemas() -> Result<(), Box<dyn std::error::Error>> {
+    let url = match std::env::var("SCHEMAS_ARCHIVE_URL") {
+        Ok(v) => v,
+        Err(_) => return Ok(()),
+    };
+    let dir = std::env::var("SCHEMAS_DIR").unwrap_or_else(|_| "schemas".into());
+    let meta = std::path::Path::new(&dir).join(".last_schema_sync");
+    let timeout = std::env::var("SCHEMAS_SYNC_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(10);
+    let client = Client::builder()
+        .timeout(Duration::from_secs(timeout))
+        .build()?;
+    let head = client.head(&url).send().await?;
+    let remote_ts = head
+        .headers()
+        .get(LAST_MODIFIED)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| chrono::DateTime::parse_from_rfc2822(s).ok())
+        .map(|dt| dt.timestamp());
+    let local_ts = fs::read_to_string(&meta)
+        .ok()
+        .and_then(|s| s.trim().parse::<i64>().ok());
+    let need = match (remote_ts, local_ts) {
+        (Some(r), Some(l)) => r > l,
+        _ => true,
+    };
+    if need {
+        let bytes = client.get(&url).send().await?.bytes().await?;
+        let reader = Cursor::new(bytes);
+        let mut zip = ZipArchive::new(reader)?;
+        fs::create_dir_all(&dir)?;
+        for i in 0..zip.len() {
+            let mut file = zip.by_index(i)?;
+            if let Some(path) = file.enclosed_name() {
+                let outpath = std::path::Path::new(&dir).join(path);
+                if file.name().ends_with('/') {
+                    fs::create_dir_all(&outpath)?;
+                } else {
+                    if let Some(p) = outpath.parent() {
+                        fs::create_dir_all(p)?;
+                    }
+                    let mut out = fs::File::create(&outpath)?;
+                    std::io::copy(&mut file, &mut out)?;
+                }
+            }
+        }
+        if let Some(r) = remote_ts {
+            fs::write(meta, r.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let _ = dotenv();
+    tokio::spawn(async {
+        if let Err(e) = sync_schemas().await {
+            hearing::warn(&format!("schema sync failed: {e}"));
+        }
+    });
+    DigestivePipeline::init().expect("digestive config");
     let cfg = Config::from_env();
     let logs_dir = "logs";
     let _ = std::fs::create_dir_all(logs_dir);
 
     let file_appender = tracing_appender::rolling::daily(logs_dir, "backend.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
-    let json_logs = std::env::var("NERVOUS_SYSTEM_JSON_LOGS")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false);
+    let json_logs = config::env_flag("NERVOUS_SYSTEM_JSON_LOGS", false);
     let fmt_builder = tracing_subscriber::fmt()
         .with_writer(non_blocking)
         .with_ansi(false)
@@ -1532,6 +1638,7 @@ async fn main() {
     let _ = std::fs::create_dir_all(&templates_dir);
     let registry = Arc::new(CellRegistry::new(&templates_dir).expect("registry"));
     let memory = Arc::new(MemoryCell::new());
+    DigestivePipeline::set_memory(memory.clone());
     registry.register_init_cell(Arc::new(InitConfigCell::new()), &memory);
     let (metrics, metrics_rx) = MetricsCollectorCell::channel();
     let (diagnostics, _dev_rx, _alert_rx) = DiagnosticsCell::new(metrics_rx, 5, metrics.clone());
@@ -1552,7 +1659,7 @@ async fn main() {
     }
     hub.add_auth_token("secret");
     hub.add_trigger_keyword("echo");
-    registry.register_action_cell(Arc::new(PreloadAction::default()));
+    registry.register_action_cell(Arc::new(PreloadAction));
     registry.register_scripted_training_cell();
     // Register a default chat cell
     registry.register_chat_cell(Arc::new(EchoChatCell::default()));
@@ -1561,7 +1668,7 @@ async fn main() {
     let storage = Arc::new(FileContextStorage::new("context"));
     // Initialize sessions_active gauge by reading index.json files
     {
-        let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+        let base = context_dir();
         let mut total = 0u64;
         if let Ok(rd) = std::fs::read_dir(&base) {
             for e in rd.flatten() {
@@ -1597,17 +1704,26 @@ async fn main() {
         fn confidence_threshold(&self) -> f32 {
             0.0
         }
-        fn analyze(
+        /* neira:meta
+        id: NEI-20260530-echo-digest
+        intent: refactor
+        summary: EchoCell анализирует ParsedInput вместо строки.
+        */
+        fn analyze_parsed(
             &self,
-            input: &str,
+            input: &ParsedInput,
             cancel_token: &tokio_util::sync::CancellationToken,
         ) -> AnalysisResult {
+            let content = match input {
+                ParsedInput::Json(v) => v.to_string(),
+                ParsedInput::Text(t) => t.clone(),
+            };
             if cancel_token.is_cancelled() {
-                let mut r = AnalysisResult::new(self.id(), input, vec![]);
+                let mut r = AnalysisResult::new(self.id(), &content, vec![]);
                 r.status = CellStatus::Error;
                 return r;
             }
-            AnalysisResult::new(self.id(), input, vec!["echo".into()])
+            AnalysisResult::new(self.id(), &content, vec!["echo".into()])
         }
         fn explain(&self) -> String {
             "Echoes input".into()
@@ -1666,9 +1782,7 @@ async fn main() {
             let _deep_secs = t.deep_secs;
             let alpha = anti_idle::ema_alpha();
             let dry_depth_env = anti_idle::dryrun_queue_depth();
-            let dryrun_enabled = std::env::var("LEARNING_MICROTASKS_DRYRUN")
-                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-                .unwrap_or(false);
+            let dryrun_enabled = config::env_flag("LEARNING_MICROTASKS_DRYRUN", false);
             let mut accum_idle_secs: u64 = 0;
             let mut idle_ema: f64 = 0.0;
             loop {
@@ -1701,7 +1815,7 @@ async fn main() {
                     if accum_idle_secs >= 60 {
                         let mins = accum_idle_secs / 60;
                         accum_idle_secs %= 60;
-                        metrics::counter!("idle_minutes_today").increment(mins as u64);
+                        metrics::counter!("idle_minutes_today").increment(mins);
                     }
                 } else {
                     accum_idle_secs = 0;
@@ -1801,8 +1915,7 @@ async fn main() {
         .route(
             "/context/{*path}",
             get(|Path(path): Path<String>| async move {
-                let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
-                let full = std::path::Path::new(&base).join(path);
+                let full = context_dir().join(path);
                 match std::fs::read(&full) {
                     Ok(bytes) => {
                         let ct = if full.extension().and_then(|s| s.to_str()) == Some("html") {
@@ -1854,9 +1967,7 @@ async fn main() {
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
-        let allow = std::env::var("CONTROL_ALLOW_PAUSE")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let allow = config::env_flag("CONTROL_ALLOW_PAUSE", true);
         if !allow {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -1921,9 +2032,7 @@ async fn main() {
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
-        let allow = std::env::var("CONTROL_ALLOW_PAUSE")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let allow = config::env_flag("CONTROL_ALLOW_PAUSE", true);
         if !allow {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -1985,9 +2094,7 @@ async fn main() {
         {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
-        let allow = std::env::var("CONTROL_ALLOW_KILL")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(true);
+        let allow = config::env_flag("CONTROL_ALLOW_KILL", true);
         if !allow {
             return Err(axum::http::StatusCode::FORBIDDEN);
         }
@@ -2039,7 +2146,7 @@ async fn main() {
             .map(|s| s.contains("context"))
             .unwrap_or(false)
         {
-            let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+            let base = context_dir();
             let mut index: std::collections::HashMap<String, Vec<String>> =
                 std::collections::HashMap::new();
             if let Ok(rd) = std::fs::read_dir(&base) {
@@ -2137,19 +2244,19 @@ async fn main() {
             let opts = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
             // add JSON
             let json_str = std::fs::read_to_string(&path).unwrap_or("{}".into());
-            let _ = zip.start_file("snapshot.json", opts.clone());
+            let _ = zip.start_file("snapshot.json", opts);
             let _ = zip.write_all(json_str.as_bytes());
             // add logs tail
             if let Some(lf) = logs_file_out.as_ref() {
-                if let Ok(data) = std::fs::read(&lf) {
-                    let _ = zip.start_file("logs-tail.log", opts.clone());
+                if let Ok(data) = std::fs::read(lf) {
+                    let _ = zip.start_file("logs-tail.log", opts);
                     let _ = zip.write_all(&data);
                 }
             }
             // add trace
             if let Some(tfv) = obj.get("trace_file").and_then(|v| v.as_str()) {
                 if let Ok(data) = std::fs::read(tfv) {
-                    let _ = zip.start_file("trace.json", opts.clone());
+                    let _ = zip.start_file("trace.json", opts);
                     let _ = zip.write_all(&data);
                 }
             }
@@ -2220,6 +2327,50 @@ async fn main() {
         Ok(Json(serde_json::json!({"cancelled": ok})))
     }
     app = app.route("/api/neira/analysis/cancel", post(analysis_cancel));
+
+    /* neira:meta
+    id: NEI-20270310-120300-events-endpoint
+    intent: feature
+    summary: REST-ручка для чтения EventLog.
+    */
+    /* neira:meta
+    id: NEI-20270501-000000-events-name-filter
+    intent: feature
+    summary: Эндпоинт поддерживает фильтр по имени события.
+    */
+    async fn events_get(
+        axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
+    ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+        let start_id = q.get("start_id").and_then(|v| v.parse::<u64>().ok());
+        let end_id = q.get("end_id").and_then(|v| v.parse::<u64>().ok());
+        let start_ts_ms = q.get("start_ts_ms").and_then(|v| v.parse::<i64>().ok());
+        let end_ts_ms = q.get("end_ts_ms").and_then(|v| v.parse::<i64>().ok());
+        let name = q.get("name").map(|s| s.as_str());
+        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms, name);
+        Ok(Json(serde_json::json!({"events": events})))
+    }
+    app = app.route("/api/neira/events", get(events_get));
+
+    /* neira:meta
+    id: NEI-20270505-events-ws
+    intent: feature
+    summary: WebSocket-поток EventLog для живых подписок.
+    */
+    async fn events_ws(ws: WebSocketUpgrade) -> impl IntoResponse {
+        ws.on_upgrade(|mut socket| async move {
+            let mut rx = event_log::subscribe();
+            while let Ok(ev) = rx.recv().await {
+                if socket
+                    .send(Message::Text(serde_json::to_string(&ev).unwrap().into()))
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        })
+    }
+    app = app.route("/api/neira/events/ws", get(events_ws));
 
     // Logs tail endpoint with filters: /api/neira/logs/tail?lines=&level=&since_ts_ms=
     async fn logs_tail(
@@ -2484,12 +2635,17 @@ async fn main() {
         let (idle_state, since) = anti_idle::idle_state(active);
         let t = *anti_idle::thresholds();
         metrics::gauge!("time_since_activity_seconds").set(since as f64);
+        /* neira:meta
+        id: NEI-20250220-env-flag-main-caps
+        intent: refactor
+        summary: Сводка возможностей использует env_flag.
+        */
         let caps = serde_json::json!({
             "trace_requests": state.hub.is_trace_enabled(),
             "inspect_snapshot": true,
-            "control_pause_resume": std::env::var("CONTROL_ALLOW_PAUSE").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true),
-            "control_kill_switch": std::env::var("CONTROL_ALLOW_KILL").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(true),
-            "dev_routes": std::env::var("DEV_ROUTES_ENABLED").map(|v| v=="1"||v.eq_ignore_ascii_case("true")).unwrap_or(false),
+            "control_pause_resume": config::env_flag("CONTROL_ALLOW_PAUSE", true),
+            "control_kill_switch": config::env_flag("CONTROL_ALLOW_KILL", true),
+            "dev_routes": config::env_flag("DEV_ROUTES_ENABLED", false),
             "factory_adapter": state.hub.factory_is_adapter_enabled(),
             "organs_builder": state.hub.organ_builder_enabled()
         });
@@ -2565,10 +2721,7 @@ async fn main() {
         .route("/api/neira/plugins", get(list_plugins))
         .route("/api/neira/ui/tools", get(list_ui_tools));
 
-    if std::env::var("DEV_ROUTES_ENABLED")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false)
-    {
+    if config::env_flag("DEV_ROUTES_ENABLED", false) {
         // register dev slow analysis cell
         struct DevSlowCell;
         impl AnalysisCell for DevSlowCell {
@@ -2587,12 +2740,21 @@ async fn main() {
             fn confidence_threshold(&self) -> f32 {
                 0.0
             }
-            fn analyze(
+            /* neira:meta
+            id: NEI-20260530-devslow-digest
+            intent: refactor
+            summary: DevSlowCell принимает ParsedInput для обработки задержки.
+            */
+            fn analyze_parsed(
                 &self,
-                input: &str,
+                input: &ParsedInput,
                 cancel_token: &tokio_util::sync::CancellationToken,
             ) -> AnalysisResult {
-                let ms: u64 = input.trim().parse().ok().unwrap_or(5_000);
+                let content = match input {
+                    ParsedInput::Json(v) => v.to_string(),
+                    ParsedInput::Text(t) => t.clone(),
+                };
+                let ms: u64 = content.trim().parse().ok().unwrap_or(5_000);
                 let start = std::time::Instant::now();
                 while start.elapsed().as_millis() < ms as u128 {
                     if cancel_token.is_cancelled() {
@@ -2657,7 +2819,7 @@ async fn main() {
             }
             let ms: u64 = q.get("ms").and_then(|v| v.parse().ok()).unwrap_or(5000);
             let token = tokio_util::sync::CancellationToken::new();
-            let id = format!("dev.slow");
+            let id = "dev.slow".to_string();
             match state
                 .hub
                 .analyze(&id, &format!("{}", ms), &auth, &token)
@@ -2689,10 +2851,10 @@ async fn main() {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(90);
-            let ttl_ms = ttl_days.max(0) as i64 * 86_400_000;
+            let ttl_ms = ttl_days.max(0) * 86_400_000;
             loop {
                 tokio::time::sleep(std::time::Duration::from_millis(compact_every_ms)).await;
-                let base = std::env::var("CONTEXT_DIR").unwrap_or_else(|_| "context".into());
+                let base = context_dir();
                 if let Ok(rd) = std::fs::read_dir(&base) {
                     for e in rd.flatten() {
                         let idx = e.path().join("index.json");
@@ -2816,4 +2978,9 @@ safe_mode:
 i18n:
   reviewer_note: |
     Основной API и политики. При изменениях обновляй референсы и список метрик/флагов.
+*/
+/* neira:meta
+id: NEI-20240513-main-lints
+intent: chore
+summary: Исправлены предупреждения Clippy в main.rs: объединены ветки if, убраны ненужные to_string и cast, и т.д.
 */

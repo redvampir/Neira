@@ -1,6 +1,6 @@
 <!-- neira:meta
-id: NEI-20250923-policy-engine-docs
-intent: design
+id: NEI-20250904-120530-policy-engine-docs
+intent: docs
 summary: Единый слой политик/гейтинга: фич-флаги, safe-mode, approvals, матрица прав и форматы отказов.
 -->
 

@@ -1,7 +1,13 @@
+/* neira:meta
+id: NEI-20260530-test-digest
+intent: test
+summary: Обновлён DummyCell под DigestivePipeline.
+*/
 use std::sync::Arc;
 
 use backend::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use backend::cell_registry::CellRegistry;
+use backend::digestive_pipeline::ParsedInput;
 use tokio_util::sync::CancellationToken;
 
 struct DummyCell;
@@ -22,7 +28,7 @@ impl AnalysisCell for DummyCell {
     fn confidence_threshold(&self) -> f32 {
         0.0
     }
-    fn analyze(&self, _input: &str, _cancel: &CancellationToken) -> AnalysisResult {
+    fn analyze_parsed(&self, _input: &ParsedInput, _cancel: &CancellationToken) -> AnalysisResult {
         AnalysisResult::new(self.id(), "out", vec![])
     }
     fn explain(&self) -> String {

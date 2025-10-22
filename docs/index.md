@@ -1,14 +1,18 @@
 <!-- neira:meta
-id: NEI-20250902-211015-doc-map
+id: NEI-20250903-012100-doc-map
 intent: docs
 summary: |
   Автогенерированный список файлов документации.
+-->
+<!-- neira:meta
+id: NEI-20240918-doc-index-brain
+intent: docs
+summary: Добавлена ссылка на описание модуля brain.
 -->
 
 # Документация — оглавление
 
 ## Системы (органы)
-
 - [README](README.md)
 - [immune_system](immune_system.md)
 - design/
@@ -23,6 +27,7 @@ summary: |
   - [system-lifecycle](design/system-lifecycle.md)
 - system/
   - [analysis-architecture](system/analysis-architecture.md)
+  - [brain](system/brain.md)
   - [governance-structure](system/governance-structure.md)
   - [low-level-toolchain](system/low-level-toolchain.md)
   - [mvp-modules](system/mvp-modules.md)
@@ -32,7 +37,6 @@ summary: |
 - [roadmap](roadmap.md)
 
 ## Клеточные уровни
-
 - [cell-ids](cell-ids.md)
 - [metrics_cells](metrics_cells.md)
 - cells/
@@ -45,7 +49,6 @@ summary: |
   - [memory-cells](cells/memory-cells.md)
 
 ## Guides
-
 - examples/
   - [curl](examples/curl.md)
 - guides/
@@ -60,13 +63,10 @@ summary: |
   - [web-interface](guides/web-interface.md)
 
 ## Reference
-
 - api/
-  - [backend](api/backend.md)
   - [chat](api/chat.md)
   - [factory](api/factory.md)
   - [spinal_cord](api/spinal_cord.md)
-- [api/spinal_cord](api/spinal_cord.md)
 - [pathways](pathways.md)
 - meta/
   - [biology-glossary](meta/biology-glossary.md)
@@ -88,7 +88,6 @@ summary: |
   - [ports](reference/ports.md)
 
 ## Legacy
-
 - legacy/
   - [deployment](legacy/deployment.md)
   - [testing](legacy/testing.md)

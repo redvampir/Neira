@@ -9,6 +9,21 @@ id: NEI-20260413-rename-components
 intent: docs
 summary: Обновлены названия каталогов на spinal_cord и sensory_organs.
 -->
+<!-- neira:meta
+id: NEI-20260601-digestive-formats-doc
+intent: docs
+summary: Уточнены поддерживаемые форматы входа: JSON, YAML и XML.
+-->
+<!-- neira:meta
+id: NEI-20260725-digestive-config-doc
+intent: docs
+summary: Описан конфиг DigestivePipeline и переменная DIGESTIVE_CONFIG.
+-->
+<!-- neira:meta
+id: NEI-20261124-memory-storage-doc
+intent: docs
+summary: Указано сохранение распарсенного входа в MemoryCell.
+-->
 
 # Neira Assistant Operating Guide — START HERE
 
@@ -62,6 +77,10 @@ Default Behaviors
 - Use ripgrep/rg to discover code; use apply_patch for edits.
 - Validate with cargo/test/lint where available.
 - Never delete data or secrets; never hard-code secrets.
+- DigestivePipeline принимает вход в форматах JSON, YAML и XML.
+- Путь к JSON Schema для DigestivePipeline задаётся в `spinal_cord/config/digestive.toml` (ключ `schema_path`),
+  можно переопределить переменной `DIGESTIVE_CONFIG`.
+- После успешного парсинга вход сохраняется в MemoryCell через `store_parsed_input`.
 
 Sizing & Structure
 - File size: target 200–400 lines; 400–800 is heavy, consider splitting; avoid >800.

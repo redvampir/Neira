@@ -19,6 +19,11 @@ id: NEI-20251227-factory-event-bus
 intent: refactor
 summary: Прямые вызовы watch/observe убраны в пользу событий.
 */
+/* neira:meta
+id: NEI-20250220-env-flag-factory
+intent: refactor
+summary: Переменная FACTORY_ADAPTER_ENABLED парсится через env_flag.
+*/
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -31,6 +36,7 @@ use crate::action_cell::ActionCell;
 use crate::analysis_cell::{AnalysisCell, AnalysisResult, CellStatus};
 use crate::cell_registry::CellRegistry;
 use crate::cell_template::CellTemplate;
+use crate::digestive_pipeline::ParsedInput;
 use crate::factory::format_state_local as _format_state_local_import;
 use jsonschema_valid::ValidationError;
 use tokio_util::sync::CancellationToken;
@@ -62,9 +68,7 @@ pub struct StemCellFactory {
 
 impl StemCellFactory {
     pub fn new() -> Arc<Self> {
-        let adapter_enabled = std::env::var("FACTORY_ADAPTER_ENABLED")
-            .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-            .unwrap_or(false);
+        let adapter_enabled = crate::config::env_flag("FACTORY_ADAPTER_ENABLED", false);
         Arc::new(Self {
             records: RwLock::new(HashMap::new()),
             adapter_enabled,
@@ -93,6 +97,7 @@ impl StemCellFactory {
     intent: code
     summary: Добавлен вызов immune_system::preflight_check при создании записи.
     */
+    #[allow(clippy::result_large_err)]
     pub fn create_record(
         &self,
         backend: &str,
@@ -241,7 +246,7 @@ impl StemCellFactory {
     pub fn auto_heal(&self, id: &str) -> Option<StemCellState> {
         let start = Instant::now();
         let res = self.disable(id);
-        if let Some(_) = res {
+        if res.is_some() {
             metrics::counter!("factory_auto_heals_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -263,7 +268,7 @@ impl StemCellFactory {
     pub fn auto_rollback(&self, id: &str) -> Option<StemCellState> {
         let start = Instant::now();
         let res = self.rollback(id);
-        if let Some(_) = res {
+        if res.is_some() {
             metrics::counter!("factory_auto_rollbacks_total").increment(1);
             let _ = Self::audit_log(&serde_json::json!({
                 "ts": Utc::now().to_rfc3339(),
@@ -308,7 +313,7 @@ impl StemCellFactory {
             .create(true)
             .append(true)
             .open(path)?;
-        writeln!(f, "{}", value.to_string())
+        writeln!(f, "{}", value)
     }
 }
 
@@ -355,10 +360,21 @@ impl AnalysisCell for SelectorCell {
     fn confidence_threshold(&self) -> f32 {
         0.0
     }
-    fn analyze(&self, input: &str, _cancel_token: &CancellationToken) -> AnalysisResult {
+    /* neira:meta
+    id: NEI-20260530-selector-digest
+    intent: refactor
+    summary: SelectorCell принимает ParsedInput вместо сырой строки.
+    */
+    fn analyze_parsed(
+        &self,
+        input: &ParsedInput,
+        _cancel_token: &CancellationToken,
+    ) -> AnalysisResult {
         // Расширенные правила (минимум): prefer_id, allowed_types, blocked_types, prefer_version
-        let parsed: serde_json::Value =
-            serde_json::from_str(input).unwrap_or(serde_json::json!({}));
+        let parsed: serde_json::Value = match input {
+            ParsedInput::Json(v) => v.clone(),
+            ParsedInput::Text(t) => serde_json::from_str(t).unwrap_or(serde_json::json!({})),
+        };
         let want_id = parsed
             .get("prefer_id")
             .and_then(|v| v.as_str())
@@ -461,3 +477,9 @@ impl<'a> AdapterBackend for CellTemplateAdapter<'a> {
         Ok(())
     }
 }
+
+/* neira:meta
+id: NEI-20240513-factory-lints
+intent: chore
+summary: Устранены предупреждения Clippy: заменены `if let Some(_)` на `is_some`, убрана лишняя `to_string` и подавлен result_large_err.
+*/

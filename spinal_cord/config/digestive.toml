@@ -1,0 +1,5 @@
+# neira:meta
+# id: NEI-20260725-digestive-config
+# intent: config
+# summary: Указан путь до JSON Schema для DigestivePipeline.
+schema_path = "../schemas/analysis-result.schema.json"

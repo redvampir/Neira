@@ -1,0 +1,56 @@
+@'
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Moscow",
+
+  "rebaseWhen": "conflicted",
+
+  "prConcurrentLimit": 5,
+  "branchConcurrentLimit": 1,
+
+  "packageRules": [
+    {
+      "description": "Автослияние patch для npm и cargo (одним PR)",
+      "matchManagers": ["npm", "cargo"],
+      "matchUpdateTypes": ["patch"],
+      "groupName": "Patch deps (automerge)",
+      "automerge": true,
+      "automergeType": "pr",
+      "postUpdateOptions": ["npmDedupe", "yarnDedupeHighest", "pnpmDedupe"]
+    },
+    {
+      "description": "Группируем minor для npm",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "NPM minor (daily)"
+    },
+    {
+      "description": "Группируем minor для cargo",
+      "matchManagers": ["cargo"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "Rust minor (daily)"
+    }
+  ],
+
+  "labels": ["dependencies", "renovate"],
+  "dependencyDashboard": true,
+
+  "lockFileMaintenance": { "enabled": true, "automerge": true },
+
+  "assignees": ["redvampir"],
+  "reviewers": ["redvampir"],
+
+  "platformAutomerge": true,
+  "rangeStrategy": "auto",
+
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+
+  "pruneStaleBranches": true,
+  "pruneStaleAutomerge": true
+}
+'@ | Out-File -Encoding utf8 -NoNewline renovate.json
+
