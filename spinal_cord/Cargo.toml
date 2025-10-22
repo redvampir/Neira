@@ -78,10 +78,9 @@ zip = { version = "0.6", default-features = false, features = ["deflate"] }
 tower-http = { version = "0.6", features = ["cors"] }
 
 # neira:meta
-# id: NEI-20270920-lymphatic-quote-dep
+# id: NEI-20271005-quote-dedupe
 # intent: chore
-# summary: Добавлена зависимость quote для токенизации AST в лимфатическом фильтре.
-quote = "1"
+# summary: Удалён дублирующийся dependency quote = "1".
 
 # neira:meta
 # id: NEI-20270904-windows-wasi-patch
