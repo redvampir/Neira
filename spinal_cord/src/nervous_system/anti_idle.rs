@@ -1,4 +1,11 @@
 /* neira:meta
+id: NEI-20270318-120060-anti-idle-microtask-loop
+intent: feature
+summary: |
+  Интегрирован сервис микрозадач: глубина очереди, снимки и управление
+  запуском из основного цикла Anti-Idle.
+*/
+/* neira:meta
 id: NEI-20260301-anti-idle-module
 intent: code
 summary: |-
@@ -18,6 +25,12 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::nervous_system::anti_idle_microtasks::{
+    drive_microtasks as drive_microtasks_inner,
+    microtask_depth,
+    microtask_snapshot,
+    MicrotaskSnapshot,
+};
 use crate::synapse_hub::{Scope, SynapseHub};
 
 #[derive(Clone, Copy)]
@@ -105,12 +118,14 @@ pub fn ema_alpha() -> f64 {
 }
 
 pub fn dryrun_queue_depth() -> u64 {
-    *DRYRUN_DEPTH.get_or_init(|| {
+    let env_default = *DRYRUN_DEPTH.get_or_init(|| {
         std::env::var("IDLE_DRYRUN_QUEUE_DEPTH")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(0)
-    })
+    });
+    let dynamic = microtask_depth() as u64;
+    if dynamic > 0 { dynamic } else { env_default }
 }
 
 pub fn idle_state(active_streams: usize) -> (u32, u64) {
@@ -163,4 +178,12 @@ where
     Arc<SynapseHub>: FromRef<S>,
 {
     Router::new().route("/api/neira/anti_idle/toggle", post(toggle::<S>))
+}
+
+pub async fn drive_microtasks(idle_state: u32) -> usize {
+    drive_microtasks_inner(idle_state).await
+}
+
+pub async fn microtasks_snapshot() -> Vec<MicrotaskSnapshot> {
+    microtask_snapshot().await
 }

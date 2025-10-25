@@ -1,4 +1,9 @@
 /* neira:meta
+id: NEI-20270318-120130-anti-idle-microtasks-export
+intent: feature
+summary: Экспортирован модуль anti_idle_microtasks для очереди микрозадач.
+*/
+/* neira:meta
 id: NEI-20250215-ns-watch
 intent: code
 summary: Добавлен заглушечный watch для мониторинга записей фабрики.
@@ -51,6 +56,7 @@ impl Subscriber for NervousSystemSubscriber {
 }
 
 pub mod anti_idle;
+pub mod anti_idle_microtasks;
 pub mod backpressure_probe;
 pub mod base_path_resolver;
 pub mod heartbeat;

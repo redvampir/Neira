@@ -18,6 +18,13 @@ id: NEI-20270615-lymphatic-capability-update
 intent: docs
 summary: Уточнён статус и метрики события duplicate_found.
 -->
+<!-- neira:meta
+id: NEI-20270318-120000-capabilities-training
+intent: docs
+summary: |-
+  Переведены training_pipeline и learning_microtasks в experimental, описана
+  роль TrainingOrchestrator и очереди микрозадач.
+-->
 
 # Neira Capabilities & Feature Gates
 
@@ -238,8 +245,8 @@ capabilities:
     notes: каркас под политиками; не включать
 
   training_pipeline:
-    state: locked
-    notes: оффлайн scripted training, только вручную
+    state: experimental
+    notes: scripted training (ручной запуск + TrainingOrchestrator под флагами)
 
   homeostasis_budgets:
     state: locked
@@ -252,7 +259,7 @@ capabilities:
 
   learning_microtasks:
     state: experimental
-    notes: локальные учебные микрозадачи с квотами, без внешней сети
+    notes: локальные учебные микрозадачи (AntiIdleMicrotaskService + автообучение)
     signals: [auto_tasks_started, auto_tasks_completed]
 
   reflection_journal:
