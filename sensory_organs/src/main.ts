@@ -44,7 +44,7 @@ const statusPanel = createStatusPanel(API_URL);
 layout.append(chatPanel.container, statusPanel.container);
 appRoot.append(hero.container, layout);
 
-let chatFacade: ChatPanel | null = chatPanel;
+const chatFacade: ChatPanel | null = chatPanel;
 
 const pollingOptions: PollingOptions = {
   apiUrl: API_URL,
