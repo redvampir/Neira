@@ -9,6 +9,11 @@ id: NEI-20270408-000000-event-log-doc
 intent: docs
 summary: Описан формат именования архивов EventLog с миллисекундами и счётчиком.
 -->
+<!-- neira:meta
+id: NEI-20270416-legacy-rotate-doc
+intent: docs
+summary: Уточнена совместимость фильтрации со старыми архивами `{session_id}-{YYYYMMDDHHMMSS}.ndjson.gz`.
+-->
 
 # Инструкции для spinal_cord
 
@@ -34,4 +39,6 @@ schema_path = "schemas/input.json"
 
 - Ротация создаёт gzip-файлы вида `{stem}-{timestamp_ms}-{seq}.ndjson.gz`,
   где `timestamp_ms` — время в миллисекундах, `seq` — счётчик `AtomicU64`.
+- Фильтрация истории и экспорта учитывает старый формат архивов
+  `{session_id}-{YYYYMMDDHHMMSS}.ndjson.gz`.
 

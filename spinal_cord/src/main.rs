@@ -11,14 +11,10 @@ summary: Булевы переменные в main читаются через c
 use backend::config;
 use backend::context::context_dir;
 use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
-use backend::voice::{
-    VoiceBackendMode, VoiceConfig, VoiceError, VoiceOrgan, VoiceSynthesis, VoiceTranscription,
-};
-use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
-id: NEI-20250603-axum-ws-api
+id: NEI-20250603-000000-axum-ws-api
 intent: refactor
 summary: обновлена интеграция WebSocket для axum 0.8.
 */
@@ -82,7 +78,6 @@ use backend::hearing;
 #[allow(unused_imports)]
 use backend::immune_system;
 use backend::nervous_system::anti_idle;
-use backend::training::orchestrator::TrainingOrchestrator;
 use backend::nervous_system::backpressure_probe::BackpressureProbe;
 use backend::nervous_system::heartbeat;
 use backend::nervous_system::loop_detector;
@@ -129,18 +124,11 @@ pub struct AppState {
     paused: Arc<AtomicBool>,
     pause_info: Arc<Mutex<Option<(std::time::Instant, String)>>>,
     shutdown: tokio_util::sync::CancellationToken,
-    voice: Arc<VoiceOrgan>,
 }
 
 impl axum::extract::FromRef<AppState> for Arc<SynapseHub> {
     fn from_ref(state: &AppState) -> Arc<SynapseHub> {
         state.hub.clone()
-    }
-}
-
-impl axum::extract::FromRef<AppState> for Arc<VoiceOrgan> {
-    fn from_ref(state: &AppState) -> Arc<VoiceOrgan> {
-        state.voice.clone()
     }
 }
 
@@ -202,142 +190,6 @@ struct FactoryBody {
     backend: Option<String>,
     #[serde(flatten)]
     tpl: CellTemplate,
-}
-
-/* neira:meta
-id: NEI-20280105-voice-api-main
-intent: feature
-summary: Добавлены обработчики /voice/speak и /voice/transcribe, инициализация VoiceOrgan.
-*/
-#[derive(Deserialize)]
-struct VoiceSpeakRequest {
-    #[serde(default)]
-    text: Option<String>,
-    #[serde(default)]
-    normalized: Option<String>,
-    #[serde(default)]
-    phonemes: Option<String>,
-    #[serde(default)]
-    request_id: Option<String>,
-}
-
-#[derive(Serialize)]
-struct VoiceSpeakResponse {
-    request_id: String,
-    file: String,
-    audio_base64: String,
-    text: String,
-    phonemes: String,
-}
-
-impl From<VoiceSynthesis> for VoiceSpeakResponse {
-    fn from(value: VoiceSynthesis) -> Self {
-        Self {
-            request_id: value.request_id,
-            file: value.file_path.to_string_lossy().to_string(),
-            audio_base64: value.audio_base64,
-            text: value.text,
-            phonemes: value.phonemes,
-        }
-    }
-}
-
-#[derive(Deserialize)]
-struct VoiceTranscribeRequest {
-    #[serde(default)]
-    audio_base64: Option<String>,
-    #[serde(default)]
-    file_path: Option<String>,
-}
-
-#[derive(Serialize)]
-struct VoiceTranscribeResponse {
-    request_id: String,
-    text: String,
-}
-
-fn voice_error_to_status(err: VoiceError) -> (axum::http::StatusCode, String) {
-    use axum::http::StatusCode;
-    let status = match err {
-        VoiceError::InvalidInput(_) | VoiceError::Validation(_) | VoiceError::Base64(_) => {
-            StatusCode::BAD_REQUEST
-        }
-        VoiceError::HubUnavailable => StatusCode::SERVICE_UNAVAILABLE,
-        VoiceError::Io(_) | VoiceError::Command(_) | VoiceError::Utf8(_) => {
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
-        VoiceError::Json(_) => StatusCode::BAD_REQUEST,
-    };
-    (status, err.to_string())
-}
-
-async fn voice_speak(
-    State(state): State<AppState>,
-    Json(payload): Json<VoiceSpeakRequest>,
-) -> Result<Json<VoiceSpeakResponse>, (axum::http::StatusCode, String)> {
-    let text = payload
-        .normalized
-        .clone()
-        .or(payload.text.clone())
-        .ok_or_else(|| {
-            (
-                axum::http::StatusCode::BAD_REQUEST,
-                "нужно поле text или normalized".to_string(),
-            )
-        })?;
-    let request_id = payload.request_id.clone();
-    let phonemes = payload.phonemes.clone();
-    let voice = state.voice.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        voice.synthesize(request_id.as_deref(), &text, phonemes.as_deref())
-    })
-    .await
-    .map_err(|err| {
-        (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            format!("voice task join error: {err}"),
-        )
-    })?
-    .map_err(voice_error_to_status)?;
-    hearing::info(&format!("voice speak завершён; id={}", result.request_id));
-    Ok(Json(VoiceSpeakResponse::from(result)))
-}
-
-async fn voice_transcribe(
-    State(state): State<AppState>,
-    Json(payload): Json<VoiceTranscribeRequest>,
-) -> Result<Json<VoiceTranscribeResponse>, (axum::http::StatusCode, String)> {
-    let voice = state.voice.clone();
-    let base64 = payload.audio_base64.clone();
-    let file_path = payload.file_path.clone();
-    let transcription =
-        tokio::task::spawn_blocking(move || -> Result<VoiceTranscription, VoiceError> {
-            if let Some(data) = base64 {
-                voice.transcribe_base64(&data)
-            } else if let Some(path) = file_path {
-                voice.transcribe_file(std::path::Path::new(&path))
-            } else {
-                Err(VoiceError::with_context(
-                    "нужно указать audio_base64 или file_path",
-                ))
-            }
-        })
-        .await
-        .map_err(|err| {
-            (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                format!("voice task join error: {err}"),
-            )
-        })?
-        .map_err(voice_error_to_status)?;
-    hearing::info(&format!(
-        "voice transcribe завершён; id={}",
-        transcription.request_id
-    ));
-    Ok(Json(VoiceTranscribeResponse {
-        request_id: transcription.request_id,
-        text: transcription.text,
-    }))
 }
 
 async fn factory_dryrun(
@@ -878,6 +730,18 @@ id: NEI-20270415-rotate-filter-ms
 intent: fix
 summary: Фильтрация ротаций контекста использует миллисекундную метку вместо счётчика.
 */
+/* neira:meta
+id: NEI-20270416-legacy-rotate-filter
+intent: fix
+summary: |-
+  Фильтрация истории и экспорта учитывает архивы старого формата
+  `{session_id}-{YYYYMMDDHHMMSS}.ndjson.gz`.
+*/
+/* neira:meta
+id: NEI-20270419-000000-legacy-numeric-id-filter
+intent: fix
+summary: Уточнена фильтрация для архивов с числовыми суффиксами session_id.
+*/
 #[derive(serde::Deserialize)]
 struct SessionQuery {
     from: Option<String>,
@@ -886,6 +750,30 @@ struct SessionQuery {
     limit: Option<usize>,
     since_id: Option<u64>,
     after_ts: Option<i64>,
+}
+
+fn extract_timestamp_segment(name: &str) -> Option<&str> {
+    let parts: Vec<&str> = name
+        .trim_end_matches(".gz")
+        .trim_end_matches(".ndjson")
+        .split('-')
+        .collect();
+    if parts.len() >= 3 {
+        let last = parts[parts.len() - 1];
+        let penult = parts[parts.len() - 2];
+        if last.chars().all(|c| c.is_ascii_digit())
+            && penult.chars().all(|c| c.is_ascii_digit())
+            && penult.len() == 13
+            && last.len() < penult.len()
+        {
+            return Some(penult);
+        }
+    }
+    parts
+        .iter()
+        .rev()
+        .find(|seg| seg.chars().all(|c| c.is_ascii_digit()) && seg.len() >= 13)
+        .copied()
 }
 
 async fn get_chat_session(
@@ -904,18 +792,7 @@ async fn get_chat_session(
                     && (name.ends_with(".ndjson") || name.ends_with(".ndjson.gz")))
             {
                 if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
-                    // filter rotated files by timestamp_ms segment
-                    let parts: Vec<&str> = name
-                        .trim_end_matches(".gz")
-                        .trim_end_matches(".ndjson")
-                        .split('-')
-                        .collect();
-                    if parts.len() >= 2 {
-                        let date = if parts.len() >= 3 {
-                            parts[parts.len() - 2]
-                        } else {
-                            parts[parts.len() - 1]
-                        };
+                    if let Some(date) = extract_timestamp_segment(name) {
                         if date < from.as_str() || date > to.as_str() {
                             continue;
                         }
@@ -1499,19 +1376,9 @@ async fn export_chat(
         files.sort();
         for p in files {
             let name = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            // filter by timestamp_ms window if provided
+            // filter by timestamp window if provided
             if let (Some(ref from), Some(ref to)) = (&q.from, &q.to) {
-                let parts: Vec<&str> = name
-                    .trim_end_matches(".gz")
-                    .trim_end_matches(".ndjson")
-                    .split('-')
-                    .collect();
-                if parts.len() >= 2 {
-                    let date = if parts.len() >= 3 {
-                        parts[parts.len() - 2]
-                    } else {
-                        parts[parts.len() - 1]
-                    };
+                if let Some(date) = extract_timestamp_segment(name) {
                     if date < from.as_str() || date > to.as_str() {
                         continue;
                     }
@@ -1651,6 +1518,107 @@ struct MaskingDryRun {
 #[derive(serde::Serialize)]
 struct MaskingDryRunResult {
     masked: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::to_bytes,
+        extract::{Path, Query},
+        response::IntoResponse,
+    };
+    use flate2::{write::GzEncoder, Compression};
+    use std::{fs, io::Write};
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn filters_legacy_and_new_archives() {
+        let dir = tempdir().unwrap();
+        std::env::set_var("CONTEXT_DIR", dir.path());
+        let chat = "c1";
+        let session = "sess-20240412010203-1";
+        let chat_dir = dir.path().join(chat);
+        fs::create_dir_all(&chat_dir).unwrap();
+
+        // legacy rotated file
+        let legacy_ts = "20240413123456";
+        let legacy_name = format!("{session}-{legacy_ts}.ndjson.gz");
+        let legacy_path = chat_dir.join(&legacy_name);
+        let mut gz = GzEncoder::new(
+            fs::File::create(&legacy_path).unwrap(),
+            Compression::default(),
+        );
+        writeln!(gz, "{{\"role\":\"user\",\"content\":\"old\"}}").unwrap();
+        gz.finish().unwrap();
+
+        // new rotated file
+        let new_ts = "1715000000000";
+        let new_name = format!("{session}-{new_ts}-1.ndjson.gz");
+        let new_path = chat_dir.join(&new_name);
+        let mut gz = GzEncoder::new(fs::File::create(&new_path).unwrap(), Compression::default());
+        writeln!(gz, "{{\"role\":\"user\",\"content\":\"new\"}}").unwrap();
+        gz.finish().unwrap();
+
+        // query legacy window for get_chat_session
+        let q = SessionQuery {
+            from: Some("20240413000000".into()),
+            to: Some("20240414000000".into()),
+            offset: None,
+            limit: None,
+            since_id: None,
+            after_ts: None,
+        };
+        let resp = get_chat_session(Path((chat.to_string(), session.to_string())), Query(q))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("old"));
+        assert!(!text.contains("new"));
+
+        // query legacy window for export_chat
+        let eq = ExportQuery {
+            from: Some("20240413000000".into()),
+            to: Some("20240414000000".into()),
+        };
+        let resp = export_chat(Path(chat.to_string()), Query(eq))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("old"));
+        assert!(!text.contains("new"));
+
+        // query new window ensures new file found
+        let qn = SessionQuery {
+            from: Some(new_ts.into()),
+            to: Some(format!("{}1", new_ts)),
+            offset: None,
+            limit: None,
+            since_id: None,
+            after_ts: None,
+        };
+        let resp = get_chat_session(Path((chat.to_string(), session.to_string())), Query(qn))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("new"));
+        assert!(!text.contains("old"));
+
+        let eqn = ExportQuery {
+            from: Some(new_ts.into()),
+            to: Some(format!("{}1", new_ts)),
+        };
+        let resp = export_chat(Path(chat.to_string()), Query(eqn))
+            .await
+            .into_response();
+        let body = to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+        let text = String::from_utf8(body.to_vec()).unwrap();
+        assert!(text.contains("new"));
+        assert!(!text.contains("old"));
+    }
 }
 
 async fn masking_dry_run(
@@ -1812,32 +1780,6 @@ async fn main() {
     // Register a default chat cell
     registry.register_chat_cell(Arc::new(EchoChatCell::default()));
 
-    let voice_config = VoiceConfig::from_env();
-    let voice = match VoiceOrgan::new(Some(hub.clone()), registry.clone(), voice_config.clone()) {
-        Ok(org) => org,
-        Err(err) => {
-            hearing::warn(&format!(
-                "voice organ init failed ({err}); переключаемся на codec",
-            ));
-            let mut fallback = voice_config.clone();
-            fallback.backend_mode = VoiceBackendMode::Codec;
-            fallback.tts_command = None;
-            fallback.stt_command = None;
-            match VoiceOrgan::new(Some(hub.clone()), registry.clone(), fallback) {
-                Ok(org) => org,
-                Err(second) => {
-                    hearing::warn(&format!(
-                        "voice organ fallback init failed ({second}); завершаем",
-                    ));
-                    return;
-                }
-            }
-        }
-    };
-    if let Err(err) = voice.bootstrap() {
-        hearing::warn(&format!("voice organ bootstrap предупреждение: {err}"));
-    }
-
     // Context storage
     let storage = Arc::new(FileContextStorage::new("context"));
     // Initialize sessions_active gauge by reading index.json files
@@ -1924,17 +1866,9 @@ async fn main() {
         paused: Arc::new(AtomicBool::new(false)),
         pause_info: Arc::new(Mutex::new(None)),
         shutdown: shutdown_token.clone(),
-        voice: voice.clone(),
     };
 
     anti_idle::init();
-    let orchestrator = TrainingOrchestrator::new(hub.clone());
-    if let Err(err) = orchestrator.register() {
-        hearing::warn(&format!(
-            "не удалось зарегистрировать оркестратор обучения: {}",
-            err
-        ));
-    }
 
     // Register auth tokens from environment for development/admin access
     if let Ok(admin) = std::env::var("NEIRA_ADMIN_TOKEN") {
@@ -1963,6 +1897,8 @@ async fn main() {
             let _long_secs = t.long_secs;
             let _deep_secs = t.deep_secs;
             let alpha = anti_idle::ema_alpha();
+            let dry_depth_env = anti_idle::dryrun_queue_depth();
+            let dryrun_enabled = config::env_flag("LEARNING_MICROTASKS_DRYRUN", false);
             let mut accum_idle_secs: u64 = 0;
             let mut idle_ema: f64 = 0.0;
             loop {
@@ -1975,9 +1911,13 @@ async fn main() {
                     continue;
                 }
                 let (state_idx, since) = anti_idle::idle_state(hub_for_idle.active_streams());
-                let queue_depth = anti_idle::drive_microtasks(state_idx).await;
                 metrics::gauge!("idle_state").set(state_idx as f64);
-                metrics::gauge!("microtask_queue_depth").set(queue_depth as f64);
+                let dry_depth = if dryrun_enabled && state_idx > 0 {
+                    dry_depth_env
+                } else {
+                    0
+                };
+                metrics::gauge!("microtask_queue_depth").set(dry_depth as f64);
                 metrics::gauge!("time_since_activity_seconds").set(since as f64);
                 metrics::counter!("autonomous_time_spent_seconds").increment(0);
                 idle_ema = if idle_ema == 0.0 {
@@ -2046,8 +1986,6 @@ async fn main() {
         .route("/factory/cells/{fid}/approve", post(factory_approve))
         .route("/factory/cells/{fid}/disable", post(factory_disable))
         .route("/factory/cells/{fid}/rollback", post(factory_rollback))
-        .route("/voice/speak", post(voice_speak))
-        .route("/voice/transcribe", post(voice_transcribe))
         // Organ builder
         .route("/organs", get(organs_list))
         .route("/organs/build", post(organ_build))
@@ -2511,11 +2449,6 @@ async fn main() {
     intent: feature
     summary: REST-ручка для чтения EventLog.
     */
-    /* neira:meta
-    id: NEI-20270501-000000-events-name-filter
-    intent: feature
-    summary: Эндпоинт поддерживает фильтр по имени события.
-    */
     async fn events_get(
         axum::extract::Query(q): axum::extract::Query<std::collections::HashMap<String, String>>,
     ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
@@ -2523,8 +2456,7 @@ async fn main() {
         let end_id = q.get("end_id").and_then(|v| v.parse::<u64>().ok());
         let start_ts_ms = q.get("start_ts_ms").and_then(|v| v.parse::<i64>().ok());
         let end_ts_ms = q.get("end_ts_ms").and_then(|v| v.parse::<i64>().ok());
-        let name = q.get("name").map(|s| s.as_str());
-        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms, name);
+        let events = event_log::query(start_id, end_id, start_ts_ms, end_ts_ms);
         Ok(Json(serde_json::json!({"events": events})))
     }
     app = app.route("/api/neira/events", get(events_get));
@@ -2825,28 +2757,9 @@ async fn main() {
             "control_kill_switch": config::env_flag("CONTROL_ALLOW_KILL", true),
             "dev_routes": config::env_flag("DEV_ROUTES_ENABLED", false),
             "factory_adapter": state.hub.factory_is_adapter_enabled(),
-            "organs_builder": state.hub.organ_builder_enabled(),
-            "learning_microtasks": state.hub.learning_microtasks_enabled(),
-            "training_pipeline": state.hub.training_pipeline_enabled(),
-            "training_autorun": state.hub.training_autorun_enabled()
+            "organs_builder": state.hub.organ_builder_enabled()
         });
         let (factory_total, factory_active) = state.hub.factory_counts();
-        let microtask_depth = anti_idle::dryrun_queue_depth();
-        let microtasks = anti_idle::microtasks_snapshot().await;
-        let microtask_list: Vec<serde_json::Value> = microtasks
-            .into_iter()
-            .map(|m| {
-                serde_json::json!({
-                    "id": m.id,
-                    "name": m.display_name,
-                    "enabled": m.enabled,
-                    "running": m.running,
-                    "min_idle_state": m.min_idle_state,
-                    "cooldown_seconds": m.cooldown_seconds,
-                    "cooldown_remaining_seconds": m.cooldown_remaining_seconds,
-                })
-            })
-            .collect();
         Ok(Json(serde_json::json!({
             "version": env!("CARGO_PKG_VERSION"),
             "paused": state.paused.load(std::sync::atomic::Ordering::Relaxed),
@@ -2856,7 +2769,7 @@ async fn main() {
             "queues": {"fast": qf, "standard": qs, "long": ql},
             "backpressure": bp,
             "watchdogs": {"soft_ms": soft_ms, "hard_ms": hard_ms},
-            "anti_idle": {"enabled": anti_idle_enabled, "idle_state": idle_state, "idle_label": match idle_state {0=>"active",1=>"short",2=>"long",_=>"deep"}, "since_seconds": since, "thresholds": {"idle": t.idle_secs, "long": t.long_secs, "deep": t.deep_secs}, "microtasks": {"depth": microtask_depth, "dryrun_depth": microtask_depth, "tasks": microtask_list }}
+            "anti_idle": {"enabled": anti_idle_enabled, "idle_state": idle_state, "idle_label": match idle_state {0=>"active",1=>"short",2=>"long",_=>"deep"}, "since_seconds": since, "thresholds": {"idle": t.idle_secs, "long": t.long_secs, "deep": t.deep_secs}, "microtasks": {"dryrun_depth": anti_idle::dryrun_queue_depth() }}
             ,"factory": {"records_total": factory_total, "active": factory_active}
         })))
     }
