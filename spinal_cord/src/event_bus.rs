@@ -167,32 +167,6 @@ impl Event for CurriculumLoaded {
     }
 }
 
-pub struct CurriculumVocabularySeeded {
-    pub curriculum_id: String,
-    pub purpose: String,
-    pub word_count: usize,
-    pub words: Vec<String>,
-}
-
-impl Event for CurriculumVocabularySeeded {
-    fn name(&self) -> &str {
-        "training.curriculum.vocabulary_seeded"
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn data(&self) -> Option<Value> {
-        Some(json!({
-            "curriculum_id": self.curriculum_id,
-            "purpose": self.purpose,
-            "count": self.word_count,
-            "words": self.words,
-        }))
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LymphaticDecision {
     Keep,

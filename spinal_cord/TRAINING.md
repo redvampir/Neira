@@ -12,11 +12,6 @@ id: NEI-20280401-120010-russian-curriculum-doc
 intent: docs
 summary: Описан учебный курс по русскому алфавиту и способ его загрузки.
 -->
-<!-- neira:meta
-id: NEI-20280402-120000-russian-vocabulary-seed-doc
-intent: docs
-summary: Добавлено описание базового словаря вопросов и события vocabulary_seeded.
--->
 
 <!-- neira:meta
 id: NEI-20260413-training-rename
@@ -135,13 +130,6 @@ summary: |-
 - **События**: после загрузки публикуется событие `training.curriculum.loaded`
   с количеством букв, слогов и слов. Его можно отследить через EventBus или
   `logs/events.ndjson`.
-- **Базовый словарь вопросов**: `SynapseHub::train_russian_literacy` формирует
-  отдельный JSON с 10–30 простыми словами (темы «семья», «жильё», «еда»,
-  «город», «природа») и сохраняет его в `MemoryCell` с полем
-  `"purpose": "inquiry_vocabulary"`. Это позволяет Нейре быстро задавать
-  уточняющие вопросы вроде «Что это такое?» или «Где это находится?».
-- **Дополнительное событие**: при активации базового словаря публикуется
-  `training.curriculum.vocabulary_seeded` с перечнем слов и назначением.
 - **Проверка**: для автоматического теста см. `spinal_cord/tests/training_curriculum_test.rs`.
 
 ## Лучшие практики

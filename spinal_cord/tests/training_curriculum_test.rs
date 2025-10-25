@@ -15,24 +15,17 @@ use backend::memory_cell::MemoryCell;
 use backend::training::curriculum::RUSSIAN_CURRICULUM_ID;
 use backend::synapse_hub::SynapseHub;
 
-#[derive(Clone, Debug)]
-struct CapturedEvent {
-    name: String,
-    data: serde_json::Value,
-}
-
 struct CaptureSubscriber {
-    events: Arc<Mutex<Vec<CapturedEvent>>>,
+    events: Arc<Mutex<Vec<serde_json::Value>>>,
 }
 
 impl Subscriber for CaptureSubscriber {
     fn on_event(&self, event: &dyn Event) {
-        if let Some(data) = event.data() {
-            if let Ok(mut guard) = self.events.lock() {
-                guard.push(CapturedEvent {
-                    name: event.name().to_string(),
-                    data,
-                });
+        if event.name() == "training.curriculum.loaded" {
+            if let Some(data) = event.data() {
+                if let Ok(mut guard) = self.events.lock() {
+                    guard.push(data);
+                }
             }
         }
     }
@@ -62,91 +55,19 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     assert_eq!(curriculum.summary().letters, 33);
 
     let parsed = memory.parsed_inputs();
-    assert!(parsed.len() >= 2, "ожидаем курс и словарь в памяти");
-    let curriculum_payload = parsed.iter().find_map(|input| match input {
-        ParsedInput::Json(value)
-            if value.get("id")
-                == Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into())) =>
-        {
-            Some(value)
+    let last = parsed.last().expect("parsed input stored");
+    match last {
+        ParsedInput::Json(value) => {
+            assert_eq!(value.get("id"), Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into())));
         }
-        _ => None,
-    })
-    .expect("curriculum payload stored");
-    assert_eq!(
-        curriculum_payload.get("language"),
-        Some(&serde_json::Value::String(String::from("ru")))
-    );
-
-    let seed_payload = parsed
-        .iter()
-        .find_map(|input| match input {
-            ParsedInput::Json(value)
-                if value.get("purpose")
-                    == Some(&serde_json::Value::String(String::from("inquiry_vocabulary"))) =>
-            {
-                Some(value)
-            }
-            _ => None,
-        })
-        .expect("inquiry vocabulary stored");
-    let words_array = seed_payload
-        .get("words")
-        .and_then(|value| value.as_array())
-        .expect("seed words array");
-    assert!(
-        (10..=30).contains(&words_array.len()),
-        "ожидаем от 10 до 30 слов"
-    );
-    assert!(words_array.iter().any(|entry| {
-        entry
-            .get("word")
-            .and_then(|value| value.as_str())
-            .map(|word| word == "мама")
-            .unwrap_or(false)
-    }));
+        ParsedInput::Text(_) => panic!("expected json payload"),
+    }
 
     let events = captured.lock().expect("event lock");
-    assert_eq!(events.len(), 2);
-    let loaded = events
-        .iter()
-        .find(|event| event.name == "training.curriculum.loaded")
-        .expect("loaded event");
-    assert_eq!(
-        loaded
-            .data
-            .get("curriculum_id")
-            .and_then(|value| value.as_str()),
-        Some(RUSSIAN_CURRICULUM_ID)
-    );
-    assert_eq!(
-        loaded.data.get("letters").and_then(|value| value.as_u64()),
-        Some(33)
-    );
-    assert_eq!(
-        loaded.data.get("words").and_then(|value| value.as_u64()),
-        Some(100)
-    );
-
-    let seeded = events
-        .iter()
-        .find(|event| event.name == "training.curriculum.vocabulary_seeded")
-        .expect("seeded event");
-    assert_eq!(
-        seeded
-            .data
-            .get("purpose")
-            .and_then(|value| value.as_str()),
-        Some("inquiry_vocabulary")
-    );
-    let seeded_words = seeded
-        .data
-        .get("words")
-        .and_then(|value| value.as_array())
-        .expect("words list in event");
-    assert!(
-        (10..=30).contains(&seeded_words.len()),
-        "event word count mismatch"
-    );
+    assert_eq!(events.len(), 1);
+    let data = &events[0];
+    assert_eq!(data.get("curriculum_id"), Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into())));
+    assert_eq!(data.get("letters"), Some(&serde_json::Value::from(33)));  
+    assert_eq!(data.get("words"), Some(&serde_json::Value::from(100)));
 }
 

@@ -83,9 +83,7 @@ use crate::circulatory_system::DataFlowController;
 use crate::config::{env_flag, Config};
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
 use crate::digestive_pipeline::ParsedInput;
-use crate::event_bus::{
-    CellCreated, CurriculumLoaded, CurriculumVocabularySeeded, EventBus, OrganBuilt, Subscriber,
-};
+use crate::event_bus::{CellCreated, CurriculumLoaded, EventBus, OrganBuilt, Subscriber};
 use crate::factory::{FabricatorCell, SelectorCell, StemCellFactory};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
@@ -507,14 +505,8 @@ impl SynapseHub {
         let curriculum = RussianLiteracyCurriculum::load_from_path(&path)?;
         let summary = curriculum.summary();
         let payload = curriculum.to_json_value()?;
-        let seed = curriculum.build_inquiry_seed()?;
-        let seed_payload = seed.to_json_value()?;
-        let seed_purpose = seed.purpose.clone();
-        let seed_word_count = seed.word_count();
         self.memory
             .store_parsed_input(ParsedInput::Json(payload));
-        self.memory
-            .store_parsed_input(ParsedInput::Json(seed_payload));
         hearing::info(&format!(
             "учебный курс загружен: id={} letters={} syllables={} words={} source={}",
             curriculum.id(),
@@ -523,24 +515,12 @@ impl SynapseHub {
             summary.words,
             path.display()
         ));
-        hearing::info(&format!(
-            "базовый словарь вопросов активирован: curriculum_id={} purpose={} words={}",
-            curriculum.id(),
-            seed_purpose.as_str(),
-            seed_word_count
-        ));
         self.event_bus.publish(&CurriculumLoaded {
             curriculum_id: curriculum.id().to_string(),
             letters: summary.letters,
             syllables: summary.syllables,
             words: summary.words,
             source_path: Some(path),
-        });
-        self.event_bus.publish(&CurriculumVocabularySeeded {
-            curriculum_id: curriculum.id().to_string(),
-            purpose: seed_purpose.clone(),
-            word_count: seed_word_count,
-            words: seed.word_list(),
         });
         Ok(curriculum)
     }

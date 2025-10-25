@@ -15,10 +15,6 @@ use thiserror::Error;
 
 pub const DEFAULT_RUSSIAN_CURRICULUM_PATH: &str = "static/training/russian_literacy.json";
 pub const RUSSIAN_CURRICULUM_ID: &str = "russian_literacy_v1";
-pub const MIN_INQUIRY_VOCABULARY_WORDS: usize = 10;
-pub const MAX_INQUIRY_VOCABULARY_WORDS: usize = 30;
-const INQUIRY_VOCABULARY_PURPOSE: &str = "inquiry_vocabulary";
-const INQUIRY_THEMES: &[&str] = &["семья", "жильё", "еда", "город", "природа"];
 
 #[derive(Debug, Error)]
 pub enum CurriculumError {
@@ -56,14 +52,6 @@ pub struct WordEntry {
     pub meaning: String,
     pub theme: String,
     pub level: u8,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InquiryVocabularySeed {
-    pub id: String,
-    pub language: String,
-    pub purpose: String,
-    pub words: Vec<WordEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -219,83 +207,6 @@ impl RussianLiteracyCurriculum {
             ))
         })
     }
-
-    pub fn build_inquiry_seed(&self) -> Result<InquiryVocabularySeed, CurriculumError> {
-        let mut selected = self
-            .words
-            .iter()
-            .filter(|word| is_inquiry_theme(&word.theme) && has_meaning(word))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        sort_seed_words(&mut selected);
-        let mut known = selected
-            .iter()
-            .map(|entry| entry.word.clone())
-            .collect::<HashSet<_>>();
-
-        if selected.len() < MIN_INQUIRY_VOCABULARY_WORDS {
-            let mut fallback = self.words.clone();
-            sort_seed_words(&mut fallback);
-            for word in fallback {
-                if known.contains(&word.word) || !has_meaning(&word) {
-                    continue;
-                }
-                known.insert(word.word.clone());
-                selected.push(word);
-                if selected.len() >= MIN_INQUIRY_VOCABULARY_WORDS {
-                    break;
-                }
-            }
-        }
-
-        if selected.len() < MIN_INQUIRY_VOCABULARY_WORDS {
-            return Err(CurriculumError::Validation(format!(
-                "недостаточно слов для базового словаря вопросов: найдено {}, требуется минимум {}",
-                selected.len(),
-                MIN_INQUIRY_VOCABULARY_WORDS
-            )));
-        }
-
-        selected.truncate(MAX_INQUIRY_VOCABULARY_WORDS);
-
-        Ok(InquiryVocabularySeed {
-            id: format!("{}/inquiry_seed", self.id),
-            language: self.language.clone(),
-            purpose: INQUIRY_VOCABULARY_PURPOSE.to_string(),
-            words: selected,
-        })
-    }
-}
-
-impl InquiryVocabularySeed {
-    pub fn to_json_value(&self) -> Result<Value, CurriculumError> {
-        serde_json::to_value(self).map_err(|err| {
-            CurriculumError::Validation(format!(
-                "не удалось сериализовать словарь вопросов: {err}"
-            ))
-        })
-    }
-
-    pub fn word_count(&self) -> usize {
-        self.words.len()
-    }
-
-    pub fn word_list(&self) -> Vec<String> {
-        self.words.iter().map(|entry| entry.word.clone()).collect()
-    }
-}
-
-fn is_inquiry_theme(theme: &str) -> bool {
-    INQUIRY_THEMES.iter().any(|candidate| candidate == &theme)
-}
-
-fn has_meaning(word: &WordEntry) -> bool {
-    !word.meaning.trim().is_empty()
-}
-
-fn sort_seed_words(words: &mut Vec<WordEntry>) {
-    words.sort_by(|a, b| a.level.cmp(&b.level).then_with(|| a.word.cmp(&b.word)));
 }
 
 pub fn default_curriculum_path() -> PathBuf {
