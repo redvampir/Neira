@@ -8,7 +8,7 @@ use backend::factory::{StemCellRecord, StemCellState};
 use backend::immune_system::{lymphatic_filter, ImmuneSystemSubscriber};
 use chrono::Utc;
 use serial_test::serial;
-use std::sync::{Arc, Mutex};
+use std::{path::Path, sync::{Arc, Mutex}};
 
 struct Capture {
     count: Mutex<usize>,
@@ -26,20 +26,44 @@ impl Subscriber for Capture {
     }
 }
 
+struct EnvVarGuard {
+    key: &'static str,
+    previous: Option<std::ffi::OsString>,
+}
+
+impl EnvVarGuard {
+    fn set_path(key: &'static str, path: &Path) -> Self {
+        let previous = std::env::var_os(key);
+        std::env::set_var(key, path);
+        Self { key, previous }
+    }
+}
+
+impl Drop for EnvVarGuard {
+    fn drop(&mut self) {
+        if let Some(ref previous) = self.previous {
+            std::env::set_var(self.key, previous);
+        } else {
+            std::env::remove_var(self.key);
+        }
+    }
+}
+
 #[test]
+#[serial]
 fn detects_identical_functions() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("a.rs"), "/// add\nfn foo() -> i32 {1}\n").unwrap();
     std::fs::write(dir.path().join("b.rs"), "/// add\nfn foo() -> i32 {1}\n").unwrap();
-    let prev = std::env::current_dir().unwrap();
-    std::env::set_current_dir(dir.path()).unwrap();
+    let scan_guard = EnvVarGuard::set_path("LYMPHATIC_SCAN_DIR", dir.path());
     let reports = lymphatic_filter::scan_workspace();
-    std::env::set_current_dir(prev).unwrap();
+    drop(scan_guard);
     assert!(!reports.is_empty());
     assert!(reports.iter().any(|r| r.gene_id == "foo"));
 }
 
 #[test]
+#[serial]
 fn ignores_low_semantic_similarity() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("a.rs"), "/// add\nfn calc() -> i32 {1}\n").unwrap();
@@ -48,10 +72,9 @@ fn ignores_low_semantic_similarity() {
         "/// subtract\nfn calc() -> i32 {1}\n",
     )
     .unwrap();
-    let prev = std::env::current_dir().unwrap();
-    std::env::set_current_dir(dir.path()).unwrap();
+    let scan_guard = EnvVarGuard::set_path("LYMPHATIC_SCAN_DIR", dir.path());
     let reports = lymphatic_filter::scan_workspace();
-    std::env::set_current_dir(prev).unwrap();
+    drop(scan_guard);
     assert!(reports.is_empty());
 }
 
@@ -61,9 +84,7 @@ fn respects_env_flag() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("a.rs"), "fn foo() -> i32 {1}\n").unwrap();
     std::fs::write(dir.path().join("b.rs"), "fn foo() -> i32 {1}\n").unwrap();
-    let prev = std::env::current_dir().unwrap();
-    std::env::set_current_dir(dir.path()).unwrap();
-
+    let scan_guard = EnvVarGuard::set_path("LYMPHATIC_SCAN_DIR", dir.path());
     std::env::set_var("LYMPHATIC_FILTER_ENABLED", "false");
     let bus = EventBus::new();
     let cap = Arc::new(Capture {
@@ -81,12 +102,13 @@ fn respects_env_flag() {
     };
     bus.publish(&CellCreated { record });
 
-    std::env::set_current_dir(prev).unwrap();
+    drop(scan_guard);
     std::env::remove_var("LYMPHATIC_FILTER_ENABLED");
     assert_eq!(*cap.count.lock().unwrap(), 0);
 }
 
 #[test]
+#[serial]
 fn scan_dir_and_ignore_and_patch() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("a.rs"), "fn foo() {}\n").unwrap();
@@ -94,9 +116,9 @@ fn scan_dir_and_ignore_and_patch() {
     std::fs::create_dir(dir.path().join("ignored")).unwrap();
     std::fs::write(dir.path().join("ignored/c.rs"), "fn foo() {}\n").unwrap();
     std::fs::write(dir.path().join(".lymphaticignore"), "ignored\n").unwrap();
-    std::env::set_var("LYMPHATIC_SCAN_DIR", dir.path());
+    let scan_guard = EnvVarGuard::set_path("LYMPHATIC_SCAN_DIR", dir.path());
     let reports = lymphatic_filter::scan_workspace();
-    std::env::remove_var("LYMPHATIC_SCAN_DIR");
+    drop(scan_guard);
     assert_eq!(reports.len(), 1);
     assert!(reports[0]
         .patch
