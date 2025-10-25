@@ -1,0 +1,3046 @@
+{
+  "id": "russian_literacy_v1",
+  "language": "ru",
+  "alphabet": [
+    {
+      "upper": "А",
+      "lower": "а",
+      "name": "а",
+      "type": "гласный",
+      "sound": "[a]",
+      "example": "арбуз"
+    },
+    {
+      "upper": "Б",
+      "lower": "б",
+      "name": "бэ",
+      "type": "согласный",
+      "sound": "[b]",
+      "example": "барабан"
+    },
+    {
+      "upper": "В",
+      "lower": "в",
+      "name": "вэ",
+      "type": "согласный",
+      "sound": "[v]",
+      "example": "ветер"
+    },
+    {
+      "upper": "Г",
+      "lower": "г",
+      "name": "гэ",
+      "type": "согласный",
+      "sound": "[g]",
+      "example": "гора"
+    },
+    {
+      "upper": "Д",
+      "lower": "д",
+      "name": "дэ",
+      "type": "согласный",
+      "sound": "[d]",
+      "example": "дом"
+    },
+    {
+      "upper": "Е",
+      "lower": "е",
+      "name": "е",
+      "type": "гласный",
+      "sound": "[je]/[e]",
+      "example": "еда"
+    },
+    {
+      "upper": "Ё",
+      "lower": "ё",
+      "name": "ё",
+      "type": "гласный",
+      "sound": "[jo]/[o]",
+      "example": "ёлка"
+    },
+    {
+      "upper": "Ж",
+      "lower": "ж",
+      "name": "жэ",
+      "type": "согласный",
+      "sound": "[ʐ]",
+      "example": "жираф"
+    },
+    {
+      "upper": "З",
+      "lower": "з",
+      "name": "зэ",
+      "type": "согласный",
+      "sound": "[z]",
+      "example": "заяц"
+    },
+    {
+      "upper": "И",
+      "lower": "и",
+      "name": "и",
+      "type": "гласный",
+      "sound": "[i]",
+      "example": "игра"
+    },
+    {
+      "upper": "Й",
+      "lower": "й",
+      "name": "и краткое",
+      "type": "согласный",
+      "sound": "[j]",
+      "example": "йогурт"
+    },
+    {
+      "upper": "К",
+      "lower": "к",
+      "name": "ка",
+      "type": "согласный",
+      "sound": "[k]",
+      "example": "кошка"
+    },
+    {
+      "upper": "Л",
+      "lower": "л",
+      "name": "эл",
+      "type": "согласный",
+      "sound": "[l]",
+      "example": "лиса"
+    },
+    {
+      "upper": "М",
+      "lower": "м",
+      "name": "эм",
+      "type": "согласный",
+      "sound": "[m]",
+      "example": "мама"
+    },
+    {
+      "upper": "Н",
+      "lower": "н",
+      "name": "эн",
+      "type": "согласный",
+      "sound": "[n]",
+      "example": "ночь"
+    },
+    {
+      "upper": "О",
+      "lower": "о",
+      "name": "о",
+      "type": "гласный",
+      "sound": "[o]",
+      "example": "окно"
+    },
+    {
+      "upper": "П",
+      "lower": "п",
+      "name": "пэ",
+      "type": "согласный",
+      "sound": "[p]",
+      "example": "папа"
+    },
+    {
+      "upper": "Р",
+      "lower": "р",
+      "name": "эр",
+      "type": "согласный",
+      "sound": "[r]",
+      "example": "рыба"
+    },
+    {
+      "upper": "С",
+      "lower": "с",
+      "name": "эс",
+      "type": "согласный",
+      "sound": "[s]",
+      "example": "соль"
+    },
+    {
+      "upper": "Т",
+      "lower": "т",
+      "name": "тэ",
+      "type": "согласный",
+      "sound": "[t]",
+      "example": "трава"
+    },
+    {
+      "upper": "У",
+      "lower": "у",
+      "name": "у",
+      "type": "гласный",
+      "sound": "[u]",
+      "example": "утка"
+    },
+    {
+      "upper": "Ф",
+      "lower": "ф",
+      "name": "эф",
+      "type": "согласный",
+      "sound": "[f]",
+      "example": "фонарь"
+    },
+    {
+      "upper": "Х",
+      "lower": "х",
+      "name": "ха",
+      "type": "согласный",
+      "sound": "[x]",
+      "example": "хлеб"
+    },
+    {
+      "upper": "Ц",
+      "lower": "ц",
+      "name": "цэ",
+      "type": "согласный",
+      "sound": "[ts]",
+      "example": "цена"
+    },
+    {
+      "upper": "Ч",
+      "lower": "ч",
+      "name": "че",
+      "type": "согласный",
+      "sound": "[tɕ]",
+      "example": "чай"
+    },
+    {
+      "upper": "Ш",
+      "lower": "ш",
+      "name": "ша",
+      "type": "согласный",
+      "sound": "[ʂ]",
+      "example": "шапка"
+    },
+    {
+      "upper": "Щ",
+      "lower": "щ",
+      "name": "ща",
+      "type": "согласный",
+      "sound": "[ɕː]",
+      "example": "щенок"
+    },
+    {
+      "upper": "Ъ",
+      "lower": "ъ",
+      "name": "твёрдый знак",
+      "type": "служебный",
+      "sound": "разделительный",
+      "example": "объём"
+    },
+    {
+      "upper": "Ы",
+      "lower": "ы",
+      "name": "ы",
+      "type": "гласный",
+      "sound": "[ɨ]",
+      "example": "сын"
+    },
+    {
+      "upper": "Ь",
+      "lower": "ь",
+      "name": "мягкий знак",
+      "type": "служебный",
+      "sound": "смягчение",
+      "example": "мать"
+    },
+    {
+      "upper": "Э",
+      "lower": "э",
+      "name": "э",
+      "type": "гласный",
+      "sound": "[e]",
+      "example": "этаж"
+    },
+    {
+      "upper": "Ю",
+      "lower": "ю",
+      "name": "ю",
+      "type": "гласный",
+      "sound": "[ju]/[u]",
+      "example": "индюк"
+    },
+    {
+      "upper": "Я",
+      "lower": "я",
+      "name": "я",
+      "type": "гласный",
+      "sound": "[ja]/[a]",
+      "example": "ягода"
+    }
+  ],
+  "syllables": [
+    {
+      "syllable": "ав",
+      "letters": [
+        "а",
+        "в"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "автобус"
+      ]
+    },
+    {
+      "syllable": "ар",
+      "letters": [
+        "а",
+        "р"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "тротуар"
+      ]
+    },
+    {
+      "syllable": "ба",
+      "letters": [
+        "б",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "баба",
+        "баба",
+        "рыба"
+      ]
+    },
+    {
+      "syllable": "бе",
+      "letters": [
+        "б",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "берег",
+        "обезьяна"
+      ]
+    },
+    {
+      "syllable": "бла",
+      "letters": [
+        "б",
+        "л",
+        "а"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "облако"
+      ]
+    },
+    {
+      "syllable": "бо",
+      "letters": [
+        "б",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "небо"
+      ]
+    },
+    {
+      "syllable": "бра",
+      "letters": [
+        "б",
+        "р",
+        "а"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "зебра"
+      ]
+    },
+    {
+      "syllable": "бус",
+      "letters": [
+        "б",
+        "у",
+        "с"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "глобус",
+        "автобус"
+      ]
+    },
+    {
+      "syllable": "ва",
+      "letters": [
+        "в",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "вагон"
+      ]
+    },
+    {
+      "syllable": "ван",
+      "letters": [
+        "в",
+        "а",
+        "н"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "диван"
+      ]
+    },
+    {
+      "syllable": "вать",
+      "letters": [
+        "в",
+        "а",
+        "т",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "кровать"
+      ]
+    },
+    {
+      "syllable": "ве",
+      "letters": [
+        "в",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "ветер",
+        "велосипед"
+      ]
+    },
+    {
+      "syllable": "ведь",
+      "letters": [
+        "в",
+        "е",
+        "д",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "медведь"
+      ]
+    },
+    {
+      "syllable": "во",
+      "letters": [
+        "в",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "волна"
+      ]
+    },
+    {
+      "syllable": "волк",
+      "letters": [
+        "в",
+        "о",
+        "л",
+        "к"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "волк"
+      ]
+    },
+    {
+      "syllable": "га",
+      "letters": [
+        "г",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "книга",
+        "дорога",
+        "радуга"
+      ]
+    },
+    {
+      "syllable": "гло",
+      "letters": [
+        "г",
+        "л",
+        "о"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "глобус"
+      ]
+    },
+    {
+      "syllable": "го",
+      "letters": [
+        "г",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "город",
+        "гора"
+      ]
+    },
+    {
+      "syllable": "гон",
+      "letters": [
+        "г",
+        "о",
+        "н"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "вагон"
+      ]
+    },
+    {
+      "syllable": "гусь",
+      "letters": [
+        "г",
+        "у",
+        "с",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "гусь"
+      ]
+    },
+    {
+      "syllable": "да",
+      "letters": [
+        "д",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "деда"
+      ]
+    },
+    {
+      "syllable": "даш",
+      "letters": [
+        "д",
+        "а",
+        "ш"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "карандаш"
+      ]
+    },
+    {
+      "syllable": "дверь",
+      "letters": [
+        "д",
+        "в",
+        "е",
+        "р",
+        "ь"
+      ],
+      "structure": "ССГСС",
+      "examples": [
+        "дверь"
+      ]
+    },
+    {
+      "syllable": "де",
+      "letters": [
+        "д",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "деда"
+      ]
+    },
+    {
+      "syllable": "ди",
+      "letters": [
+        "д",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "диван"
+      ]
+    },
+    {
+      "syllable": "до",
+      "letters": [
+        "д",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "доска",
+        "дорога"
+      ]
+    },
+    {
+      "syllable": "дождь",
+      "letters": [
+        "д",
+        "о",
+        "ж",
+        "д",
+        "ь"
+      ],
+      "structure": "СГССС",
+      "examples": [
+        "дождь"
+      ]
+    },
+    {
+      "syllable": "дом",
+      "letters": [
+        "д",
+        "о",
+        "м"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "дом"
+      ]
+    },
+    {
+      "syllable": "дочь",
+      "letters": [
+        "д",
+        "о",
+        "ч",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "дочь"
+      ]
+    },
+    {
+      "syllable": "ду",
+      "letters": [
+        "д",
+        "у"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "радуга"
+      ]
+    },
+    {
+      "syllable": "дюк",
+      "letters": [
+        "д",
+        "ю",
+        "к"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "индюк"
+      ]
+    },
+    {
+      "syllable": "езд",
+      "letters": [
+        "е",
+        "з",
+        "д"
+      ],
+      "structure": "ГСС",
+      "examples": [
+        "поезд"
+      ]
+    },
+    {
+      "syllable": "жи",
+      "letters": [
+        "ж",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "жираф"
+      ]
+    },
+    {
+      "syllable": "за",
+      "letters": [
+        "з",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "заяц"
+      ]
+    },
+    {
+      "syllable": "зве",
+      "letters": [
+        "з",
+        "в",
+        "е"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "звезда"
+      ]
+    },
+    {
+      "syllable": "зво",
+      "letters": [
+        "з",
+        "в",
+        "о"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "звонок"
+      ]
+    },
+    {
+      "syllable": "зда",
+      "letters": [
+        "з",
+        "д",
+        "а"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "звезда"
+      ]
+    },
+    {
+      "syllable": "зе",
+      "letters": [
+        "з",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "озеро",
+        "зебра"
+      ]
+    },
+    {
+      "syllable": "зья",
+      "letters": [
+        "з",
+        "ь",
+        "я"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "обезьяна"
+      ]
+    },
+    {
+      "syllable": "ик",
+      "letters": [
+        "и",
+        "к"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "ёжик"
+      ]
+    },
+    {
+      "syllable": "ин",
+      "letters": [
+        "и",
+        "н"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "индюк"
+      ]
+    },
+    {
+      "syllable": "ка",
+      "letters": [
+        "к",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "ручка",
+        "карандаш",
+        "линейка"
+      ]
+    },
+    {
+      "syllable": "кар",
+      "letters": [
+        "к",
+        "а",
+        "р"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "карта"
+      ]
+    },
+    {
+      "syllable": "ке",
+      "letters": [
+        "к",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "ракета"
+      ]
+    },
+    {
+      "syllable": "ки",
+      "letters": [
+        "к",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "ученики"
+      ]
+    },
+    {
+      "syllable": "класс",
+      "letters": [
+        "к",
+        "л",
+        "а",
+        "с",
+        "с"
+      ],
+      "structure": "ССГСС",
+      "examples": [
+        "класс"
+      ]
+    },
+    {
+      "syllable": "кни",
+      "letters": [
+        "к",
+        "н",
+        "и"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "книга"
+      ]
+    },
+    {
+      "syllable": "ко",
+      "letters": [
+        "к",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "облако",
+        "космос",
+        "колесо"
+      ]
+    },
+    {
+      "syllable": "кош",
+      "letters": [
+        "к",
+        "о",
+        "ш"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "кошка"
+      ]
+    },
+    {
+      "syllable": "кро",
+      "letters": [
+        "к",
+        "р",
+        "о"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "кровать"
+      ]
+    },
+    {
+      "syllable": "кры",
+      "letters": [
+        "к",
+        "р",
+        "ы"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "крыша"
+      ]
+    },
+    {
+      "syllable": "ку",
+      "letters": [
+        "к",
+        "у"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "курица"
+      ]
+    },
+    {
+      "syllable": "лам",
+      "letters": [
+        "л",
+        "а",
+        "м"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "лампа"
+      ]
+    },
+    {
+      "syllable": "ле",
+      "letters": [
+        "л",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "поле",
+        "колесо"
+      ]
+    },
+    {
+      "syllable": "лев",
+      "letters": [
+        "л",
+        "е",
+        "в"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "лев"
+      ]
+    },
+    {
+      "syllable": "лес",
+      "letters": [
+        "л",
+        "е",
+        "с"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "лес"
+      ]
+    },
+    {
+      "syllable": "ли",
+      "letters": [
+        "л",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "линейка",
+        "улица",
+        "лиса"
+      ]
+    },
+    {
+      "syllable": "лна",
+      "letters": [
+        "л",
+        "н",
+        "а"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "волна"
+      ]
+    },
+    {
+      "syllable": "ло",
+      "letters": [
+        "л",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "велосипед"
+      ]
+    },
+    {
+      "syllable": "лу",
+      "letters": [
+        "л",
+        "у"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "луна"
+      ]
+    },
+    {
+      "syllable": "лёт",
+      "letters": [
+        "л",
+        "ё",
+        "т"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "самолёт"
+      ]
+    },
+    {
+      "syllable": "ма",
+      "letters": [
+        "м",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "мама",
+        "мама",
+        "машина"
+      ]
+    },
+    {
+      "syllable": "ман",
+      "letters": [
+        "м",
+        "а",
+        "н"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "туман"
+      ]
+    },
+    {
+      "syllable": "мед",
+      "letters": [
+        "м",
+        "е",
+        "д"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "медведь"
+      ]
+    },
+    {
+      "syllable": "мел",
+      "letters": [
+        "м",
+        "е",
+        "л"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "мел"
+      ]
+    },
+    {
+      "syllable": "мир",
+      "letters": [
+        "м",
+        "и",
+        "р"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "мир"
+      ]
+    },
+    {
+      "syllable": "мо",
+      "letters": [
+        "м",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "море",
+        "самолёт"
+      ]
+    },
+    {
+      "syllable": "мост",
+      "letters": [
+        "м",
+        "о",
+        "с",
+        "т"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "мост"
+      ]
+    },
+    {
+      "syllable": "на",
+      "letters": [
+        "н",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "стена",
+        "страна",
+        "луна"
+      ]
+    },
+    {
+      "syllable": "не",
+      "letters": [
+        "н",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "небо",
+        "планета"
+      ]
+    },
+    {
+      "syllable": "ней",
+      "letters": [
+        "н",
+        "е",
+        "й"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "линейка"
+      ]
+    },
+    {
+      "syllable": "ни",
+      "letters": [
+        "н",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "ученики"
+      ]
+    },
+    {
+      "syllable": "но",
+      "letters": [
+        "н",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "окно"
+      ]
+    },
+    {
+      "syllable": "нок",
+      "letters": [
+        "н",
+        "о",
+        "к"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "звонок",
+        "щенок",
+        "котёнок"
+      ]
+    },
+    {
+      "syllable": "о",
+      "letters": [
+        "о"
+      ],
+      "structure": "Г",
+      "examples": [
+        "озеро",
+        "облако",
+        "обезьяна"
+      ]
+    },
+    {
+      "syllable": "об",
+      "letters": [
+        "о",
+        "б"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "объём"
+      ]
+    },
+    {
+      "syllable": "ок",
+      "letters": [
+        "о",
+        "к"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "окно"
+      ]
+    },
+    {
+      "syllable": "па",
+      "letters": [
+        "п",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "папа",
+        "папа",
+        "лампа"
+      ]
+    },
+    {
+      "syllable": "пар",
+      "letters": [
+        "п",
+        "а",
+        "р"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "парта"
+      ]
+    },
+    {
+      "syllable": "парк",
+      "letters": [
+        "п",
+        "а",
+        "р",
+        "к"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "парк"
+      ]
+    },
+    {
+      "syllable": "пе",
+      "letters": [
+        "п",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "песок",
+        "пешеход"
+      ]
+    },
+    {
+      "syllable": "пед",
+      "letters": [
+        "п",
+        "е",
+        "д"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "велосипед"
+      ]
+    },
+    {
+      "syllable": "пин",
+      "letters": [
+        "п",
+        "и",
+        "н"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "тропинка"
+      ]
+    },
+    {
+      "syllable": "пла",
+      "letters": [
+        "п",
+        "л",
+        "а"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "планета"
+      ]
+    },
+    {
+      "syllable": "пло",
+      "letters": [
+        "п",
+        "л",
+        "о"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "площадь"
+      ]
+    },
+    {
+      "syllable": "по",
+      "letters": [
+        "п",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "поле",
+        "поезд"
+      ]
+    },
+    {
+      "syllable": "пол",
+      "letters": [
+        "п",
+        "о",
+        "л"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "пол"
+      ]
+    },
+    {
+      "syllable": "порт",
+      "letters": [
+        "п",
+        "о",
+        "р",
+        "т"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "портфель"
+      ]
+    },
+    {
+      "syllable": "ра",
+      "letters": [
+        "р",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "гора",
+        "радуга",
+        "ракета"
+      ]
+    },
+    {
+      "syllable": "ран",
+      "letters": [
+        "р",
+        "а",
+        "н"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "карандаш"
+      ]
+    },
+    {
+      "syllable": "раф",
+      "letters": [
+        "р",
+        "а",
+        "ф"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "жираф"
+      ]
+    },
+    {
+      "syllable": "ре",
+      "letters": [
+        "р",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "река",
+        "море"
+      ]
+    },
+    {
+      "syllable": "рег",
+      "letters": [
+        "р",
+        "е",
+        "г"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "берег"
+      ]
+    },
+    {
+      "syllable": "ри",
+      "letters": [
+        "р",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "курица"
+      ]
+    },
+    {
+      "syllable": "ро",
+      "letters": [
+        "р",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "дорога",
+        "озеро"
+      ]
+    },
+    {
+      "syllable": "род",
+      "letters": [
+        "р",
+        "о",
+        "д"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "город"
+      ]
+    },
+    {
+      "syllable": "рок",
+      "letters": [
+        "р",
+        "о",
+        "к"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "урок"
+      ]
+    },
+    {
+      "syllable": "руч",
+      "letters": [
+        "р",
+        "у",
+        "ч"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "ручка"
+      ]
+    },
+    {
+      "syllable": "ры",
+      "letters": [
+        "р",
+        "ы"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "рыба"
+      ]
+    },
+    {
+      "syllable": "са",
+      "letters": [
+        "с",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "самолёт",
+        "лиса"
+      ]
+    },
+    {
+      "syllable": "све",
+      "letters": [
+        "с",
+        "в",
+        "е"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "светофор"
+      ]
+    },
+    {
+      "syllable": "си",
+      "letters": [
+        "с",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "велосипед"
+      ]
+    },
+    {
+      "syllable": "ска",
+      "letters": [
+        "с",
+        "к",
+        "а"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "доска"
+      ]
+    },
+    {
+      "syllable": "слон",
+      "letters": [
+        "с",
+        "л",
+        "о",
+        "н"
+      ],
+      "structure": "ССГС",
+      "examples": [
+        "слон"
+      ]
+    },
+    {
+      "syllable": "смос",
+      "letters": [
+        "с",
+        "м",
+        "о",
+        "с"
+      ],
+      "structure": "ССГС",
+      "examples": [
+        "космос"
+      ]
+    },
+    {
+      "syllable": "снег",
+      "letters": [
+        "с",
+        "н",
+        "е",
+        "г"
+      ],
+      "structure": "ССГС",
+      "examples": [
+        "снег"
+      ]
+    },
+    {
+      "syllable": "со",
+      "letters": [
+        "с",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "колесо",
+        "собака"
+      ]
+    },
+    {
+      "syllable": "сок",
+      "letters": [
+        "с",
+        "о",
+        "к"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "песок"
+      ]
+    },
+    {
+      "syllable": "солн",
+      "letters": [
+        "с",
+        "о",
+        "л",
+        "н"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "солнце"
+      ]
+    },
+    {
+      "syllable": "соль",
+      "letters": [
+        "с",
+        "о",
+        "л",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "соль"
+      ]
+    },
+    {
+      "syllable": "сте",
+      "letters": [
+        "с",
+        "т",
+        "е"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "стена"
+      ]
+    },
+    {
+      "syllable": "стол",
+      "letters": [
+        "с",
+        "т",
+        "о",
+        "л"
+      ],
+      "structure": "ССГС",
+      "examples": [
+        "стол"
+      ]
+    },
+    {
+      "syllable": "стра",
+      "letters": [
+        "с",
+        "т",
+        "р",
+        "а"
+      ],
+      "structure": "СССГ",
+      "examples": [
+        "страна"
+      ]
+    },
+    {
+      "syllable": "стул",
+      "letters": [
+        "с",
+        "т",
+        "у",
+        "л"
+      ],
+      "structure": "ССГС",
+      "examples": [
+        "стул"
+      ]
+    },
+    {
+      "syllable": "сын",
+      "letters": [
+        "с",
+        "ы",
+        "н"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "сын"
+      ]
+    },
+    {
+      "syllable": "та",
+      "letters": [
+        "т",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "парта",
+        "карта",
+        "планета"
+      ]
+    },
+    {
+      "syllable": "таж",
+      "letters": [
+        "т",
+        "а",
+        "ж"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "этаж"
+      ]
+    },
+    {
+      "syllable": "те",
+      "letters": [
+        "т",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "тетрадь"
+      ]
+    },
+    {
+      "syllable": "тель",
+      "letters": [
+        "т",
+        "е",
+        "л",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "учитель"
+      ]
+    },
+    {
+      "syllable": "тер",
+      "letters": [
+        "т",
+        "е",
+        "р"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "ветер"
+      ]
+    },
+    {
+      "syllable": "тигр",
+      "letters": [
+        "т",
+        "и",
+        "г",
+        "р"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "тигр"
+      ]
+    },
+    {
+      "syllable": "то",
+      "letters": [
+        "т",
+        "о"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "автобус",
+        "светофор"
+      ]
+    },
+    {
+      "syllable": "традь",
+      "letters": [
+        "т",
+        "р",
+        "а",
+        "д",
+        "ь"
+      ],
+      "structure": "ССГСС",
+      "examples": [
+        "тетрадь"
+      ]
+    },
+    {
+      "syllable": "тро",
+      "letters": [
+        "т",
+        "р",
+        "о"
+      ],
+      "structure": "ССГ",
+      "examples": [
+        "тропинка",
+        "тротуар"
+      ]
+    },
+    {
+      "syllable": "ту",
+      "letters": [
+        "т",
+        "у"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "туман",
+        "тротуар"
+      ]
+    },
+    {
+      "syllable": "тё",
+      "letters": [
+        "т",
+        "ё"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "котёнок"
+      ]
+    },
+    {
+      "syllable": "у",
+      "letters": [
+        "у"
+      ],
+      "structure": "Г",
+      "examples": [
+        "урок",
+        "учитель",
+        "ученики"
+      ]
+    },
+    {
+      "syllable": "ут",
+      "letters": [
+        "у",
+        "т"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "утка"
+      ]
+    },
+    {
+      "syllable": "фель",
+      "letters": [
+        "ф",
+        "е",
+        "л",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "портфель"
+      ]
+    },
+    {
+      "syllable": "фор",
+      "letters": [
+        "ф",
+        "о",
+        "р"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "светофор"
+      ]
+    },
+    {
+      "syllable": "хлеб",
+      "letters": [
+        "х",
+        "л",
+        "е",
+        "б"
+      ],
+      "structure": "ССГС",
+      "examples": [
+        "хлеб"
+      ]
+    },
+    {
+      "syllable": "ход",
+      "letters": [
+        "х",
+        "о",
+        "д"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "пешеход"
+      ]
+    },
+    {
+      "syllable": "ца",
+      "letters": [
+        "ц",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "улица",
+        "курица"
+      ]
+    },
+    {
+      "syllable": "це",
+      "letters": [
+        "ц",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "солнце"
+      ]
+    },
+    {
+      "syllable": "чай",
+      "letters": [
+        "ч",
+        "а",
+        "й"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "чай"
+      ]
+    },
+    {
+      "syllable": "че",
+      "letters": [
+        "ч",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "ученики"
+      ]
+    },
+    {
+      "syllable": "чи",
+      "letters": [
+        "ч",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "учитель"
+      ]
+    },
+    {
+      "syllable": "ша",
+      "letters": [
+        "ш",
+        "а"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "крыша"
+      ]
+    },
+    {
+      "syllable": "шап",
+      "letters": [
+        "ш",
+        "а",
+        "п"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "шапка"
+      ]
+    },
+    {
+      "syllable": "ше",
+      "letters": [
+        "ш",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "пешеход"
+      ]
+    },
+    {
+      "syllable": "ши",
+      "letters": [
+        "ш",
+        "и"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "машина"
+      ]
+    },
+    {
+      "syllable": "щадь",
+      "letters": [
+        "щ",
+        "а",
+        "д",
+        "ь"
+      ],
+      "structure": "СГСС",
+      "examples": [
+        "площадь"
+      ]
+    },
+    {
+      "syllable": "ще",
+      "letters": [
+        "щ",
+        "е"
+      ],
+      "structure": "СГ",
+      "examples": [
+        "щенок"
+      ]
+    },
+    {
+      "syllable": "ъём",
+      "letters": [
+        "ъ",
+        "ё",
+        "м"
+      ],
+      "structure": "СГС",
+      "examples": [
+        "объём"
+      ]
+    },
+    {
+      "syllable": "э",
+      "letters": [
+        "э"
+      ],
+      "structure": "Г",
+      "examples": [
+        "этаж"
+      ]
+    },
+    {
+      "syllable": "яц",
+      "letters": [
+        "я",
+        "ц"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "заяц"
+      ]
+    },
+    {
+      "syllable": "ёж",
+      "letters": [
+        "ё",
+        "ж"
+      ],
+      "structure": "ГС",
+      "examples": [
+        "ёжик"
+      ]
+    }
+  ],
+  "words": [
+    {
+      "word": "мама",
+      "syllables": [
+        "ма",
+        "ма"
+      ],
+      "meaning": "мать",
+      "theme": "семья",
+      "level": 1
+    },
+    {
+      "word": "папа",
+      "syllables": [
+        "па",
+        "па"
+      ],
+      "meaning": "отец",
+      "theme": "семья",
+      "level": 1
+    },
+    {
+      "word": "деда",
+      "syllables": [
+        "де",
+        "да"
+      ],
+      "meaning": "дедушка",
+      "theme": "семья",
+      "level": 1
+    },
+    {
+      "word": "баба",
+      "syllables": [
+        "ба",
+        "ба"
+      ],
+      "meaning": "бабушка",
+      "theme": "семья",
+      "level": 1
+    },
+    {
+      "word": "сын",
+      "syllables": [
+        "сын"
+      ],
+      "meaning": "сын",
+      "theme": "семья",
+      "level": 1
+    },
+    {
+      "word": "дочь",
+      "syllables": [
+        "дочь"
+      ],
+      "meaning": "дочь",
+      "theme": "семья",
+      "level": 1
+    },
+    {
+      "word": "дом",
+      "syllables": [
+        "дом"
+      ],
+      "meaning": "дом",
+      "theme": "жильё",
+      "level": 1
+    },
+    {
+      "word": "окно",
+      "syllables": [
+        "ок",
+        "но"
+      ],
+      "meaning": "окно",
+      "theme": "жильё",
+      "level": 1
+    },
+    {
+      "word": "дверь",
+      "syllables": [
+        "дверь"
+      ],
+      "meaning": "дверь",
+      "theme": "жильё",
+      "level": 1
+    },
+    {
+      "word": "крыша",
+      "syllables": [
+        "кры",
+        "ша"
+      ],
+      "meaning": "крыша",
+      "theme": "жильё",
+      "level": 1
+    },
+    {
+      "word": "стена",
+      "syllables": [
+        "сте",
+        "на"
+      ],
+      "meaning": "стена",
+      "theme": "жильё",
+      "level": 1
+    },
+    {
+      "word": "пол",
+      "syllables": [
+        "пол"
+      ],
+      "meaning": "пол",
+      "theme": "жильё",
+      "level": 1
+    },
+    {
+      "word": "стул",
+      "syllables": [
+        "стул"
+      ],
+      "meaning": "стул",
+      "theme": "мебель",
+      "level": 1
+    },
+    {
+      "word": "стол",
+      "syllables": [
+        "стол"
+      ],
+      "meaning": "стол",
+      "theme": "мебель",
+      "level": 1
+    },
+    {
+      "word": "кровать",
+      "syllables": [
+        "кро",
+        "вать"
+      ],
+      "meaning": "кровать",
+      "theme": "мебель",
+      "level": 1
+    },
+    {
+      "word": "диван",
+      "syllables": [
+        "ди",
+        "ван"
+      ],
+      "meaning": "диван",
+      "theme": "мебель",
+      "level": 1
+    },
+    {
+      "word": "лампа",
+      "syllables": [
+        "лам",
+        "па"
+      ],
+      "meaning": "лампа",
+      "theme": "мебель",
+      "level": 1
+    },
+    {
+      "word": "книга",
+      "syllables": [
+        "кни",
+        "га"
+      ],
+      "meaning": "книга",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "тетрадь",
+      "syllables": [
+        "те",
+        "традь"
+      ],
+      "meaning": "тетрадь",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "ручка",
+      "syllables": [
+        "руч",
+        "ка"
+      ],
+      "meaning": "ручка",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "карандаш",
+      "syllables": [
+        "ка",
+        "ран",
+        "даш"
+      ],
+      "meaning": "карандаш",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "линейка",
+      "syllables": [
+        "ли",
+        "ней",
+        "ка"
+      ],
+      "meaning": "линейка",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "портфель",
+      "syllables": [
+        "порт",
+        "фель"
+      ],
+      "meaning": "портфель",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "парта",
+      "syllables": [
+        "пар",
+        "та"
+      ],
+      "meaning": "парта",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "урок",
+      "syllables": [
+        "у",
+        "рок"
+      ],
+      "meaning": "урок",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "звонок",
+      "syllables": [
+        "зво",
+        "нок"
+      ],
+      "meaning": "звонок",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "учитель",
+      "syllables": [
+        "у",
+        "чи",
+        "тель"
+      ],
+      "meaning": "учитель",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "ученики",
+      "syllables": [
+        "у",
+        "че",
+        "ни",
+        "ки"
+      ],
+      "meaning": "ученики",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "класс",
+      "syllables": [
+        "класс"
+      ],
+      "meaning": "класс",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "доска",
+      "syllables": [
+        "до",
+        "ска"
+      ],
+      "meaning": "доска",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "мел",
+      "syllables": [
+        "мел"
+      ],
+      "meaning": "мел",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "карта",
+      "syllables": [
+        "кар",
+        "та"
+      ],
+      "meaning": "карта",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "глобус",
+      "syllables": [
+        "гло",
+        "бус"
+      ],
+      "meaning": "глобус",
+      "theme": "учёба",
+      "level": 1
+    },
+    {
+      "word": "мир",
+      "syllables": [
+        "мир"
+      ],
+      "meaning": "мир",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "страна",
+      "syllables": [
+        "стра",
+        "на"
+      ],
+      "meaning": "страна",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "город",
+      "syllables": [
+        "го",
+        "род"
+      ],
+      "meaning": "город",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "улица",
+      "syllables": [
+        "у",
+        "ли",
+        "ца"
+      ],
+      "meaning": "улица",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "парк",
+      "syllables": [
+        "парк"
+      ],
+      "meaning": "парк",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "объём",
+      "syllables": [
+        "об",
+        "ъём"
+      ],
+      "meaning": "объём",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "площадь",
+      "syllables": [
+        "пло",
+        "щадь"
+      ],
+      "meaning": "площадь",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "дорога",
+      "syllables": [
+        "до",
+        "ро",
+        "га"
+      ],
+      "meaning": "дорога",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "мост",
+      "syllables": [
+        "мост"
+      ],
+      "meaning": "мост",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "тропинка",
+      "syllables": [
+        "тро",
+        "пин",
+        "ка"
+      ],
+      "meaning": "тропинка",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "лес",
+      "syllables": [
+        "лес"
+      ],
+      "meaning": "лес",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "шапка",
+      "syllables": [
+        "шап",
+        "ка"
+      ],
+      "meaning": "шапка",
+      "theme": "одежда",
+      "level": 1
+    },
+    {
+      "word": "поле",
+      "syllables": [
+        "по",
+        "ле"
+      ],
+      "meaning": "поле",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "этаж",
+      "syllables": [
+        "э",
+        "таж"
+      ],
+      "meaning": "этаж",
+      "theme": "жильё",
+      "level": 1
+    },
+    {
+      "word": "гора",
+      "syllables": [
+        "го",
+        "ра"
+      ],
+      "meaning": "гора",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "озеро",
+      "syllables": [
+        "о",
+        "зе",
+        "ро"
+      ],
+      "meaning": "озеро",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "река",
+      "syllables": [
+        "ре",
+        "ка"
+      ],
+      "meaning": "река",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "море",
+      "syllables": [
+        "мо",
+        "ре"
+      ],
+      "meaning": "море",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "берег",
+      "syllables": [
+        "бе",
+        "рег"
+      ],
+      "meaning": "берег",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "хлеб",
+      "syllables": [
+        "хлеб"
+      ],
+      "meaning": "хлеб",
+      "theme": "еда",
+      "level": 1
+    },
+    {
+      "word": "песок",
+      "syllables": [
+        "пе",
+        "сок"
+      ],
+      "meaning": "песок",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "волна",
+      "syllables": [
+        "во",
+        "лна"
+      ],
+      "meaning": "волна",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "ветер",
+      "syllables": [
+        "ве",
+        "тер"
+      ],
+      "meaning": "ветер",
+      "theme": "природа",
+      "level": 1
+    },
+    {
+      "word": "снег",
+      "syllables": [
+        "снег"
+      ],
+      "meaning": "снег",
+      "theme": "погода",
+      "level": 1
+    },
+    {
+      "word": "дождь",
+      "syllables": [
+        "дождь"
+      ],
+      "meaning": "дождь",
+      "theme": "погода",
+      "level": 1
+    },
+    {
+      "word": "туман",
+      "syllables": [
+        "ту",
+        "ман"
+      ],
+      "meaning": "туман",
+      "theme": "погода",
+      "level": 1
+    },
+    {
+      "word": "чай",
+      "syllables": [
+        "чай"
+      ],
+      "meaning": "чай",
+      "theme": "еда",
+      "level": 1
+    },
+    {
+      "word": "облако",
+      "syllables": [
+        "о",
+        "бла",
+        "ко"
+      ],
+      "meaning": "облако",
+      "theme": "погода",
+      "level": 1
+    },
+    {
+      "word": "небо",
+      "syllables": [
+        "не",
+        "бо"
+      ],
+      "meaning": "небо",
+      "theme": "погода",
+      "level": 1
+    },
+    {
+      "word": "радуга",
+      "syllables": [
+        "ра",
+        "ду",
+        "га"
+      ],
+      "meaning": "радуга",
+      "theme": "погода",
+      "level": 1
+    },
+    {
+      "word": "звезда",
+      "syllables": [
+        "зве",
+        "зда"
+      ],
+      "meaning": "звезда",
+      "theme": "космос",
+      "level": 1
+    },
+    {
+      "word": "солнце",
+      "syllables": [
+        "солн",
+        "це"
+      ],
+      "meaning": "солнце",
+      "theme": "космос",
+      "level": 1
+    },
+    {
+      "word": "луна",
+      "syllables": [
+        "лу",
+        "на"
+      ],
+      "meaning": "луна",
+      "theme": "космос",
+      "level": 1
+    },
+    {
+      "word": "планета",
+      "syllables": [
+        "пла",
+        "не",
+        "та"
+      ],
+      "meaning": "планета",
+      "theme": "космос",
+      "level": 1
+    },
+    {
+      "word": "космос",
+      "syllables": [
+        "ко",
+        "смос"
+      ],
+      "meaning": "космос",
+      "theme": "космос",
+      "level": 1
+    },
+    {
+      "word": "ракета",
+      "syllables": [
+        "ра",
+        "ке",
+        "та"
+      ],
+      "meaning": "ракета",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "самолёт",
+      "syllables": [
+        "са",
+        "мо",
+        "лёт"
+      ],
+      "meaning": "самолёт",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "поезд",
+      "syllables": [
+        "по",
+        "езд"
+      ],
+      "meaning": "поезд",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "вагон",
+      "syllables": [
+        "ва",
+        "гон"
+      ],
+      "meaning": "вагон",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "машина",
+      "syllables": [
+        "ма",
+        "ши",
+        "на"
+      ],
+      "meaning": "машина",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "автобус",
+      "syllables": [
+        "ав",
+        "то",
+        "бус"
+      ],
+      "meaning": "автобус",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "велосипед",
+      "syllables": [
+        "ве",
+        "ло",
+        "си",
+        "пед"
+      ],
+      "meaning": "велосипед",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "колесо",
+      "syllables": [
+        "ко",
+        "ле",
+        "со"
+      ],
+      "meaning": "колесо",
+      "theme": "техника",
+      "level": 1
+    },
+    {
+      "word": "пешеход",
+      "syllables": [
+        "пе",
+        "ше",
+        "ход"
+      ],
+      "meaning": "пешеход",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "светофор",
+      "syllables": [
+        "све",
+        "то",
+        "фор"
+      ],
+      "meaning": "светофор",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "тротуар",
+      "syllables": [
+        "тро",
+        "ту",
+        "ар"
+      ],
+      "meaning": "тротуар",
+      "theme": "город",
+      "level": 1
+    },
+    {
+      "word": "зебра",
+      "syllables": [
+        "зе",
+        "бра"
+      ],
+      "meaning": "зебра",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "лев",
+      "syllables": [
+        "лев"
+      ],
+      "meaning": "лев",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "тигр",
+      "syllables": [
+        "тигр"
+      ],
+      "meaning": "тигр",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "слон",
+      "syllables": [
+        "слон"
+      ],
+      "meaning": "слон",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "жираф",
+      "syllables": [
+        "жи",
+        "раф"
+      ],
+      "meaning": "жираф",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "обезьяна",
+      "syllables": [
+        "о",
+        "бе",
+        "зья",
+        "на"
+      ],
+      "meaning": "обезьяна",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "волк",
+      "syllables": [
+        "волк"
+      ],
+      "meaning": "волк",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "лиса",
+      "syllables": [
+        "ли",
+        "са"
+      ],
+      "meaning": "лиса",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "медведь",
+      "syllables": [
+        "мед",
+        "ведь"
+      ],
+      "meaning": "медведь",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "ёжик",
+      "syllables": [
+        "ёж",
+        "ик"
+      ],
+      "meaning": "ёжик",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "заяц",
+      "syllables": [
+        "за",
+        "яц"
+      ],
+      "meaning": "заяц",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "рыба",
+      "syllables": [
+        "ры",
+        "ба"
+      ],
+      "meaning": "рыба",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "утка",
+      "syllables": [
+        "ут",
+        "ка"
+      ],
+      "meaning": "утка",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "гусь",
+      "syllables": [
+        "гусь"
+      ],
+      "meaning": "гусь",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "курица",
+      "syllables": [
+        "ку",
+        "ри",
+        "ца"
+      ],
+      "meaning": "курица",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "индюк",
+      "syllables": [
+        "ин",
+        "дюк"
+      ],
+      "meaning": "индюк",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "щенок",
+      "syllables": [
+        "ще",
+        "нок"
+      ],
+      "meaning": "щенок",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "котёнок",
+      "syllables": [
+        "ко",
+        "тё",
+        "нок"
+      ],
+      "meaning": "котёнок",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "собака",
+      "syllables": [
+        "со",
+        "ба",
+        "ка"
+      ],
+      "meaning": "собака",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "кошка",
+      "syllables": [
+        "кош",
+        "ка"
+      ],
+      "meaning": "кошка",
+      "theme": "животные",
+      "level": 1
+    },
+    {
+      "word": "соль",
+      "syllables": [
+        "соль"
+      ],
+      "meaning": "соль",
+      "theme": "еда",
+      "level": 1
+    }
+  ]
+}

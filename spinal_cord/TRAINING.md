@@ -7,6 +7,11 @@ summary: |-
   Добавлен раздел про TrainingOrchestrator: анти-айдл автозапуск, гейты и
   переменные окружения.
 -->
+<!-- neira:meta
+id: NEI-20280401-120010-russian-curriculum-doc
+intent: docs
+summary: Описан учебный курс по русскому алфавиту и способ его загрузки.
+-->
 
 <!-- neira:meta
 id: NEI-20260413-training-rename
@@ -33,6 +38,9 @@ summary: |-
 - Оркестратор: `spinal_cord/src/training/orchestrator.rs`
 - Пример сценария: `examples/training_script.yaml`
 - История и отчёты: `CONTEXT_DIR` (по умолчанию `context/`), файлы в `context/training/`
+- Учебные данные по русской грамоте: `spinal_cord/static/training/russian_literacy.json`
+- Загрузчик курса: `spinal_cord/src/training/curriculum.rs`
+- Метод загрузки в память: `SynapseHub::train_russian_literacy`
 
 ## Формат сценария (YAML)
 
@@ -100,6 +108,29 @@ summary: |-
 - Учитывает состояние простоя (`TRAINING_AUTORUN_MIN_IDLE_STATE`), кулдаун (`TRAINING_AUTORUN_INTERVAL_MINUTES`) и лимит ошибок (`TRAINING_AUTORUN_MAX_FAILURES`).
 - Метрики: `auto_tasks_*{task="training.orchestrator"}`, `training_*{mode="auto"}`.
 - Статус и очередь видны в `/api/neira/introspection/status` → `anti_idle.microtasks`.
+
+## Учебный курс «Русская грамота»
+
+- **Назначение**: даёт Нейре базовый набор букв, слогов и 100 простых слов
+  для начального словаря.
+- **Файл**: `spinal_cord/static/training/russian_literacy.json` — описание алфавита,
+  слогов и словарного запаса в формате JSON.
+- **Валидация**: при загрузке проверяется уникальность букв, наличие всех слогов в словах
+  и ограничение словаря (≤ 100 слов).
+- **Загрузка**:
+  ```rust
+  use backend::synapse_hub::SynapseHub;
+
+  // hub: Arc<SynapseHub>
+  let result = hub.train_russian_literacy(None)?;
+  ```
+  Путь можно переопределить через `train_russian_literacy(Some(path))`.
+- **Сохранение**: курс сохраняется в `MemoryCell` как `ParsedInput::Json`,
+  поэтому доступен анализатору и клеткам памяти без дополнительных преобразований.
+- **События**: после загрузки публикуется событие `training.curriculum.loaded`
+  с количеством букв, слогов и слов. Его можно отследить через EventBus или
+  `logs/events.ndjson`.
+- **Проверка**: для автоматического теста см. `spinal_cord/tests/training_curriculum_test.rs`.
 
 ## Лучшие практики
 
