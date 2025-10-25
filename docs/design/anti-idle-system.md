@@ -5,6 +5,14 @@ summary: |
   Добавлен первичный neira:meta блок (без изменения содержания документа).
 -->
 
+<!-- neira:meta
+id: NEI-20270318-120010-anti-idle-microtasks-doc
+intent: docs
+summary: |-
+  Задокументирован AntiIdleMicrotaskService и связка с TrainingOrchestrator:
+  очередь задач, метрики, снимки и гейты включения.
+-->
+
 # Anti‑Idle System (Система активного времени)
 
 Цель — продуктивно использовать время простоя для саморазвития и (позже) монетизации при строгой безопасности и контроле.
@@ -17,6 +25,7 @@ summary: |
 - ReflectionCell: внутренний «дневник размышлений», вопросы к владельцу, инсайты и сомнения.
 - IncomeGenerationCell (позже): безопасные оффлайн‑задачи с оценкой ценности — ЛОКИРОВАНО на старте.
 - ActivityReportCell: краткий отчёт «что сделано в простое» при возвращении пользователя.
+- AntiIdleMicrotaskService: общая очередь микрозадач, кулдауны, запуск TrainingOrchestrator и снимки состояния.
 
 ## 2) Конфигурация и данные
 - Конфиг `config/idle_system.toml`:
@@ -72,6 +81,7 @@ summary: |
 ## 9) Этапы
 - Stage 0: документация + конфиги + гейты; метрики idle_state и счётчики; dry‑run без автозадач.
 - Stage 1: learning_microtasks + reflection_journal (experimental); без сети.
+- Stage 1 реализован: TrainingOrchestrator регистрируется в микрозадачах, счётчики `auto_tasks_*` и `training_*{mode="auto"}` обновляются автоматически.
 - Stage 2+: income_generation (ограниченные оффлайн‑задачи), далее — по согласованию.
 
 

@@ -1,4 +1,11 @@
 /* neira:meta
+id: NEI-20270318-120100-policy-training
+intent: feature
+summary: |
+  PolicyEngine научился проверять флаги learning_microtasks и training_* для
+  автоматического обучения и микрозадач.
+*/
+/* neira:meta
 id: NEI-20250923-policy-engine-core
 intent: code
 summary: Каркас Policy Engine: проверка capability/ролей и унифицированные отказы.
@@ -10,6 +17,9 @@ use serde::Serialize;
 pub enum Capability {
     FactoryAdapter,
     OrgansBuilder,
+    LearningMicrotasks,
+    TrainingPipeline,
+    TrainingAutorun,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +63,39 @@ impl PolicyEngine {
                         code: "capability_disabled",
                         reason: "organs_builder is disabled".into(),
                         capability: Some("organs_builder"),
+                    })
+                }
+            }
+            Capability::LearningMicrotasks => {
+                if hub.learning_microtasks_enabled() {
+                    Ok(())
+                } else {
+                    Err(PolicyError {
+                        code: "capability_disabled",
+                        reason: "learning_microtasks is disabled".into(),
+                        capability: Some("learning_microtasks"),
+                    })
+                }
+            }
+            Capability::TrainingPipeline => {
+                if hub.training_pipeline_enabled() {
+                    Ok(())
+                } else {
+                    Err(PolicyError {
+                        code: "capability_disabled",
+                        reason: "training_pipeline is disabled".into(),
+                        capability: Some("training_pipeline"),
+                    })
+                }
+            }
+            Capability::TrainingAutorun => {
+                if hub.training_autorun_enabled() {
+                    Ok(())
+                } else {
+                    Err(PolicyError {
+                        code: "capability_disabled",
+                        reason: "training_autorun is disabled".into(),
+                        capability: Some("training_autorun"),
                     })
                 }
             }

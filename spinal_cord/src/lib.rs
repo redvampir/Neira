@@ -1,4 +1,9 @@
 /* neira:meta
+id: NEI-20270318-120120-training-export
+intent: feature
+summary: Экспортирован модуль training для автоматизированного обучения.
+*/
+/* neira:meta
 id: NEI-20250215-immune-export
 intent: code
 summary: Экспортирован модуль immune_system.
@@ -45,6 +50,7 @@ intent: code
 summary: Экспортирован модуль time_metrics.
 */
 pub mod nervous_system;
+pub mod training;
 pub mod time_metrics;
 /* neira:meta
 id: NEI-20250226-circulatory-export

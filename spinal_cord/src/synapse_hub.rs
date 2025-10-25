@@ -31,6 +31,13 @@ intent: refactor
 summary: Добавлен импорт immune_system.
 */
 /* neira:meta
+id: NEI-20270318-120110-training-caps
+intent: feature
+summary: |
+  SynapseHub хранит флаги learning_microtasks/training_pipeline/training_autorun
+  и предоставляет геттеры для анти-айдла и оркестратора.
+*/
+/* neira:meta
 id: NEI-20250902-host-metrics-factory
 intent: refactor
 summary: HostMetrics теперь принимает фабрику для учёта новых клеток.
@@ -153,6 +160,9 @@ pub struct SynapseHub {
     event_bus: Arc<EventBus>,
     flow: Arc<DataFlowController>,
     brain: Arc<Brain>,
+    learning_microtasks_enabled: bool,
+    training_pipeline_enabled: bool,
+    training_autorun_enabled: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -241,6 +251,10 @@ impl SynapseHub {
             .unwrap()
             .set_flow_controller(data_flow.clone());
 
+        let learning_microtasks_enabled = env_flag("LEARNING_MICROTASKS_ENABLED", false);
+        let training_pipeline_enabled = env_flag("TRAINING_PIPELINE_ENABLED", false);
+        let training_autorun_enabled = env_flag("TRAINING_AUTORUN_ENABLED", false);
+
         /* neira:meta
         id: NEI-20240821-brain-metrics-call
         intent: refactor
@@ -285,6 +299,9 @@ impl SynapseHub {
             event_bus: event_bus.clone(),
             flow: data_flow.clone(),
             brain: brain.clone(),
+            learning_microtasks_enabled,
+            training_pipeline_enabled,
+            training_autorun_enabled,
         };
 
         brain.clone().spawn();
@@ -428,6 +445,15 @@ impl SynapseHub {
     // Organ builder accessors
     pub fn organ_builder_enabled(&self) -> bool {
         self.organ_builder.is_enabled()
+    }
+    pub fn learning_microtasks_enabled(&self) -> bool {
+        self.learning_microtasks_enabled
+    }
+    pub fn training_pipeline_enabled(&self) -> bool {
+        self.training_pipeline_enabled
+    }
+    pub fn training_autorun_enabled(&self) -> bool {
+        self.training_autorun_enabled
     }
     /* neira:meta
     id: NEI-20251010-organ-builder-update
