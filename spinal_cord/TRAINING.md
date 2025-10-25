@@ -1,9 +1,24 @@
 # Документация по обучению (русский)
 
 <!-- neira:meta
+id: NEI-20270318-120050-training-orchestrator-doc
+intent: docs
+summary: |-
+  Добавлен раздел про TrainingOrchestrator: анти-айдл автозапуск, гейты и
+  переменные окружения.
+-->
+
+<!-- neira:meta
 id: NEI-20260413-training-rename
 intent: docs
 summary: Обновлены пути на spinal_cord/.
+-->
+<!-- neira:meta
+id: NEI-20270318-120050-training-orchestrator-doc
+intent: docs
+summary: |-
+  Добавлен раздел про TrainingOrchestrator: анти-айдл автозапуск, гейты и
+  переменные окружения.
 -->
 
 ## Назначение
@@ -15,6 +30,7 @@ summary: Обновлены пути на spinal_cord/.
 - Клетка: `spinal_cord/src/action/scripted_training_cell.rs`
 - Роуты API/стрима: `spinal_cord/src/http/training_routes.rs`
 - Инициализация: `spinal_cord/src/main.rs`
+- Оркестратор: `spinal_cord/src/training/orchestrator.rs`
 - Пример сценария: `examples/training_script.yaml`
 - История и отчёты: `CONTEXT_DIR` (по умолчанию `context/`), файлы в `context/training/`
 
@@ -70,7 +86,20 @@ summary: Обновлены пути на spinal_cord/.
 - `TRAINING_DRY_RUN`: `true|false` — «сухой» прогон, без внешних вызовов и шелл‑хуков
 - `TRAINING_ALLOW_SHELL`: `true|false` — разрешить shell‑хуки
 - `TRAINING_INTERVAL_MS`: периодический автозапуск (мс)
+- `LEARNING_MICROTASKS_ENABLED`: включить очередь учебных микрозадач (Anti-Idle)
+- `TRAINING_PIPELINE_ENABLED`: разрешить scripted training (ручной + авто)
+- `TRAINING_AUTORUN_ENABLED`: активировать TrainingOrchestrator
+- `TRAINING_AUTORUN_INTERVAL_MINUTES`: минимум минут между автозапусками
+- `TRAINING_AUTORUN_MIN_IDLE_STATE`: минимальное состояние простоя (1=short,2=long,3=deep)
+- `TRAINING_AUTORUN_MAX_FAILURES`: остановить автозапуск после N ошибок подряд
 - `CONTEXT_DIR`: директория хранения истории/отчётов
+
+## Оркестратор обучения
+
+- TrainingOrchestrator регистрируется в AntiIdleMicrotaskService и стартует при `LEARNING_MICROTASKS_ENABLED && TRAINING_PIPELINE_ENABLED && TRAINING_AUTORUN_ENABLED`.
+- Учитывает состояние простоя (`TRAINING_AUTORUN_MIN_IDLE_STATE`), кулдаун (`TRAINING_AUTORUN_INTERVAL_MINUTES`) и лимит ошибок (`TRAINING_AUTORUN_MAX_FAILURES`).
+- Метрики: `auto_tasks_*{task="training.orchestrator"}`, `training_*{mode="auto"}`.
+- Статус и очередь видны в `/api/neira/introspection/status` → `anti_idle.microtasks`.
 
 ## Лучшие практики
 

@@ -82,6 +82,7 @@ use backend::hearing;
 #[allow(unused_imports)]
 use backend::immune_system;
 use backend::nervous_system::anti_idle;
+use backend::training::orchestrator::TrainingOrchestrator;
 use backend::nervous_system::backpressure_probe::BackpressureProbe;
 use backend::nervous_system::heartbeat;
 use backend::nervous_system::loop_detector;
@@ -1927,6 +1928,13 @@ async fn main() {
     };
 
     anti_idle::init();
+    let orchestrator = TrainingOrchestrator::new(hub.clone());
+    if let Err(err) = orchestrator.register() {
+        hearing::warn(&format!(
+            "не удалось зарегистрировать оркестратор обучения: {}",
+            err
+        ));
+    }
 
     // Register auth tokens from environment for development/admin access
     if let Ok(admin) = std::env::var("NEIRA_ADMIN_TOKEN") {
@@ -1955,8 +1963,6 @@ async fn main() {
             let _long_secs = t.long_secs;
             let _deep_secs = t.deep_secs;
             let alpha = anti_idle::ema_alpha();
-            let dry_depth_env = anti_idle::dryrun_queue_depth();
-            let dryrun_enabled = config::env_flag("LEARNING_MICROTASKS_DRYRUN", false);
             let mut accum_idle_secs: u64 = 0;
             let mut idle_ema: f64 = 0.0;
             loop {
@@ -1969,13 +1975,9 @@ async fn main() {
                     continue;
                 }
                 let (state_idx, since) = anti_idle::idle_state(hub_for_idle.active_streams());
+                let queue_depth = anti_idle::drive_microtasks(state_idx).await;
                 metrics::gauge!("idle_state").set(state_idx as f64);
-                let dry_depth = if dryrun_enabled && state_idx > 0 {
-                    dry_depth_env
-                } else {
-                    0
-                };
-                metrics::gauge!("microtask_queue_depth").set(dry_depth as f64);
+                metrics::gauge!("microtask_queue_depth").set(queue_depth as f64);
                 metrics::gauge!("time_since_activity_seconds").set(since as f64);
                 metrics::counter!("autonomous_time_spent_seconds").increment(0);
                 idle_ema = if idle_ema == 0.0 {
@@ -2823,9 +2825,28 @@ async fn main() {
             "control_kill_switch": config::env_flag("CONTROL_ALLOW_KILL", true),
             "dev_routes": config::env_flag("DEV_ROUTES_ENABLED", false),
             "factory_adapter": state.hub.factory_is_adapter_enabled(),
-            "organs_builder": state.hub.organ_builder_enabled()
+            "organs_builder": state.hub.organ_builder_enabled(),
+            "learning_microtasks": state.hub.learning_microtasks_enabled(),
+            "training_pipeline": state.hub.training_pipeline_enabled(),
+            "training_autorun": state.hub.training_autorun_enabled()
         });
         let (factory_total, factory_active) = state.hub.factory_counts();
+        let microtask_depth = anti_idle::dryrun_queue_depth();
+        let microtasks = anti_idle::microtasks_snapshot().await;
+        let microtask_list: Vec<serde_json::Value> = microtasks
+            .into_iter()
+            .map(|m| {
+                serde_json::json!({
+                    "id": m.id,
+                    "name": m.display_name,
+                    "enabled": m.enabled,
+                    "running": m.running,
+                    "min_idle_state": m.min_idle_state,
+                    "cooldown_seconds": m.cooldown_seconds,
+                    "cooldown_remaining_seconds": m.cooldown_remaining_seconds,
+                })
+            })
+            .collect();
         Ok(Json(serde_json::json!({
             "version": env!("CARGO_PKG_VERSION"),
             "paused": state.paused.load(std::sync::atomic::Ordering::Relaxed),
@@ -2835,7 +2856,7 @@ async fn main() {
             "queues": {"fast": qf, "standard": qs, "long": ql},
             "backpressure": bp,
             "watchdogs": {"soft_ms": soft_ms, "hard_ms": hard_ms},
-            "anti_idle": {"enabled": anti_idle_enabled, "idle_state": idle_state, "idle_label": match idle_state {0=>"active",1=>"short",2=>"long",_=>"deep"}, "since_seconds": since, "thresholds": {"idle": t.idle_secs, "long": t.long_secs, "deep": t.deep_secs}, "microtasks": {"dryrun_depth": anti_idle::dryrun_queue_depth() }}
+            "anti_idle": {"enabled": anti_idle_enabled, "idle_state": idle_state, "idle_label": match idle_state {0=>"active",1=>"short",2=>"long",_=>"deep"}, "since_seconds": since, "thresholds": {"idle": t.idle_secs, "long": t.long_secs, "deep": t.deep_secs}, "microtasks": {"depth": microtask_depth, "dryrun_depth": microtask_depth, "tasks": microtask_list }}
             ,"factory": {"records_total": factory_total, "active": factory_active}
         })))
     }

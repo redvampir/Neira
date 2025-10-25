@@ -67,6 +67,13 @@ id: NEI-20260301-idle-env-docs
 intent: docs
 summary: Описаны IDLE_EMA_ALPHA и IDLE_DRYRUN_QUEUE_DEPTH.
 -->
+<!-- neira:meta
+id: NEI-20270318-120020-training-env-docs
+intent: docs
+summary: |-
+  Добавлены переменные LEARNING_MICROTASKS_ENABLED и TRAINING_AUTORUN_* для
+  автоматизированного обучения и микрозадач анти-айдла.
+-->
 
 <!-- neira:meta
 id: NEI-20250310-cell-templates-recursive-docs
@@ -145,6 +152,17 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 | IDLE_REQUIRE_APPROVAL_FOR_NEW_DOMAINS | bool   | true           | safety           | Одобрение новых доменов задач |
 | IDLE_REPORT_FREQUENCY                 | enum   | on_user_return | reporting        | Частота отчётов               |
 | IDLE_DETAILED_LOGS                    | bool   | true           | reporting        | Детальные логи                |
+
+### Training Orchestrator
+
+| Переменная                        | Тип  | Дефолт | Раздел             | Описание                                               |
+| --------------------------------- | ---- | ------ | ----------------- | ------------------------------------------------------ |
+| LEARNING_MICROTASKS_ENABLED       | bool | false  | anti-idle gating  | Разрешить очередь учебных микрозадач                   |
+| TRAINING_PIPELINE_ENABLED         | bool | false  | training pipeline | Включить scripted training (ручной и автоматический)   |
+| TRAINING_AUTORUN_ENABLED          | bool | false  | training pipeline | Разрешить автоматический запуск при простое            |
+| TRAINING_AUTORUN_INTERVAL_MINUTES | int  | 120    | training pipeline | Минимальный интервал между автозапусками (минуты)      |
+| TRAINING_AUTORUN_MIN_IDLE_STATE   | int  | 2      | training pipeline | Минимальное состояние простоя (1=short, 2=long, 3=deep) |
+| TRAINING_AUTORUN_MAX_FAILURES     | int  | 3      | training pipeline | Сколько ошибок подряд допускается до паузы             |
 
 ### Backpressure Auto Backoff
 
