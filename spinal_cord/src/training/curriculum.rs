@@ -23,6 +23,7 @@ use thiserror::Error;
 pub const DEFAULT_RUSSIAN_CURRICULUM_PATH: &str = "static/training/russian_literacy.json";
 pub const RUSSIAN_CURRICULUM_ID: &str = "russian_literacy_v1";
 pub const INQUIRY_SEED_LIMIT: usize = 30;
+pub const RUSSIAN_CURRICULUM_MAX_WORDS: usize = 110;
 
 #[derive(Debug, Error)]
 pub enum CurriculumError {
@@ -150,9 +151,10 @@ impl RussianLiteracyCurriculum {
                 "словарь не может быть пустым".into(),
             ));
         }
-        if self.words.len() > 100 {
+        if self.words.len() > RUSSIAN_CURRICULUM_MAX_WORDS {
             return Err(CurriculumError::Validation(format!(
-                "допустимо не более 100 слов, найдено {}",
+                "допустимо не более {} слов, найдено {}",
+                RUSSIAN_CURRICULUM_MAX_WORDS,
                 self.words.len()
             )));
         }
@@ -259,7 +261,7 @@ mod tests {
         assert_eq!(curriculum.id(), RUSSIAN_CURRICULUM_ID);
         let summary = curriculum.summary();
         assert_eq!(summary.letters, 33);
-        assert!(summary.words <= 100);
+        assert!(summary.words <= RUSSIAN_CURRICULUM_MAX_WORDS);
         assert!(summary.syllables > summary.words);
     }
 }

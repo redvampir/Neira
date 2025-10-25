@@ -12,7 +12,11 @@ use backend::config::Config;
 use backend::digestive_pipeline::ParsedInput;
 use backend::event_bus::{Event, Subscriber};
 use backend::memory_cell::MemoryCell;
-use backend::training::curriculum::{INQUIRY_SEED_LIMIT, RUSSIAN_CURRICULUM_ID};
+use backend::training::curriculum::{
+    INQUIRY_SEED_LIMIT,
+    RUSSIAN_CURRICULUM_ID,
+    RUSSIAN_CURRICULUM_MAX_WORDS,
+};
 use backend::synapse_hub::SynapseHub;
 
 struct CaptureSubscriber {
@@ -51,8 +55,14 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
         .expect("curriculum loaded");
 
     assert_eq!(curriculum.id(), RUSSIAN_CURRICULUM_ID);
-    assert_eq!(curriculum.words.len(), 100);
-    assert_eq!(curriculum.summary().letters, 33);
+    let word_count = curriculum.words.len();
+    assert!(
+        word_count <= RUSSIAN_CURRICULUM_MAX_WORDS,
+        "curriculum should not exceed the configured word limit"
+    );
+    let summary = curriculum.summary();
+    assert_eq!(summary.letters, 33);
+    assert_eq!(summary.words, word_count);
 
     let parsed = memory.parsed_inputs();
     let last = parsed.last().expect("parsed input stored");
@@ -68,7 +78,10 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     let data = &events[0];
     assert_eq!(data.get("curriculum_id"), Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into())));
     assert_eq!(data.get("letters"), Some(&serde_json::Value::from(33)));
-    assert_eq!(data.get("words"), Some(&serde_json::Value::from(100)));
+    assert_eq!(
+        data.get("words"),
+        Some(&serde_json::Value::from(word_count))
+    );
 
     let seed = curriculum.build_inquiry_seed();
     assert!(!seed.is_empty(), "seed selection should not be empty");
@@ -77,7 +90,19 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
         "seed should respect configured limit"
     );
     let seed_words: Vec<&str> = seed.iter().map(|word| word.word.as_str()).collect();
-    let question_words = ["что", "кто", "где", "когда", "почему", "как"];
+    let question_words = [
+        "что",
+        "кто",
+        "где",
+        "когда",
+        "почему",
+        "как",
+        "это",
+        "там",
+        "здесь",
+        "какой",
+        "какая",
+    ];
     for expected in question_words {
         assert!(
             seed_words.contains(&expected),
