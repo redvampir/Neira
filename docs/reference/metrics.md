@@ -51,6 +51,10 @@ summary: |-
 | backpressure | gauge | count | BackpressureProbe | Суммарная длина очередей |
 | throttle_events_total | counter | events | BackpressureProbe | События троттлинга при backpressure |
 | safe_mode | gauge | 0/1 | Hub | Статус безопасного режима |
+| persona_tone_intensity | gauge | 0..1 | Tone Controller | Текущая интенсивность выбранного эмоционального тона |
+| persona_tone_confidence | gauge | 0..1 | Tone Controller | Уверенность в текущем тоне (сглаженная обратная связь) |
+| persona_tone_transitions_total{from,to,reason} | counter | transitions | Tone Controller/EventBus | Переходы тона между состояниями |
+| persona_tone_feedback_total{reason} | counter | count | Tone Controller | Обратные связи (observation/direct/reset/decay) |
 | idle_state | gauge | 0..3 | Anti-Idle | Текущее состояние простоя |
 | idle_minutes_today | counter | min | Anti-Idle | Минуты простоя за день |
 | auto_tasks_started | counter | tasks | Anti-Idle | Запуск микрозадач (лейбл `task`, вкл. TrainingOrchestrator) |

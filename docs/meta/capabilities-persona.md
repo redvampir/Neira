@@ -7,6 +7,10 @@ summary: |
 
 # Persona Capabilities (дополнение)
 
+## Содержание
+- [Сводка флагов](#persona-capabilities-дополнение)
+- [Связанные документы](#см-также)
+
 ```yaml
 capabilities:
   persona_kernel:
@@ -41,11 +45,17 @@ capabilities:
     signals: [reflection_journal_entries, proposals_accepted_total, proposals_reverted_total]
 
   tone_state:
-    state: experimental
-    notes: эфемерный тон/настроение; не трогает ценности
+    state: stable
+    notes: эфемерный тон/настроение; авто-декей, события и метрики обратной связи
     safeguards: bounded scope & time; cap latency impact
     rollback: reset tone; disable flag
-    signals: [style_adherence]
+    signals:
+      [
+        persona_tone_intensity,
+        persona_tone_confidence,
+        persona_tone_transitions_total,
+        persona_tone_feedback_total,
+      ]
 
   studio_artflow:
     state: locked

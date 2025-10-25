@@ -94,6 +94,7 @@ use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_cell::IntegrityCheckerCell;
 use crate::security::quarantine_cell::QuarantineCell;
 use crate::security::safe_mode_controller::SafeModeController;
+use crate::persona::tone_state::{ToneFeedback, ToneSnapshot, ToneStateController};
 use jsonschema_valid::ValidationError;
 use lru::LruCache;
 use std::num::NonZeroUsize;
@@ -163,6 +164,8 @@ pub struct SynapseHub {
     learning_microtasks_enabled: bool,
     training_pipeline_enabled: bool,
     training_autorun_enabled: bool,
+    tone_state_enabled: bool,
+    tone_state: Option<Arc<ToneStateController>>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -231,6 +234,24 @@ impl SynapseHub {
         let (data_flow, df_rx) = DataFlowController::new();
         let event_bus = EventBus::new();
         event_bus.attach_flow_controller(data_flow.clone());
+        let tone_state_enabled = env_flag("TONE_STATE_ENABLED", true);
+        let tone_decay_secs = std::env::var("TONE_STATE_DECAY_SECS")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .unwrap_or(600);
+        let tone_observation_threshold = std::env::var("TONE_STATE_OBSERVATION_THRESHOLD")
+            .ok()
+            .and_then(|v| v.parse::<f32>().ok())
+            .unwrap_or(0.2);
+        let tone_state = if tone_state_enabled {
+            Some(ToneStateController::new(
+                event_bus.clone(),
+                Duration::from_secs(tone_decay_secs.max(1)),
+                tone_observation_threshold,
+            ))
+        } else {
+            None
+        };
         /* neira:meta
         id: NEI-20240930-brain-subscriber-hook
         intent: feat
@@ -302,9 +323,15 @@ impl SynapseHub {
             learning_microtasks_enabled,
             training_pipeline_enabled,
             training_autorun_enabled,
+            tone_state_enabled,
+            tone_state: tone_state.clone(),
         };
 
         brain.clone().spawn();
+
+        if let Some(state) = &tone_state {
+            state.spawn_decay_loop();
+        }
 
         let flow_metrics = hub.flow.clone();
         let metrics_cell = hub.metrics.clone();
@@ -454,6 +481,17 @@ impl SynapseHub {
     }
     pub fn training_autorun_enabled(&self) -> bool {
         self.training_autorun_enabled
+    }
+    pub fn tone_state_enabled(&self) -> bool {
+        self.tone_state_enabled
+    }
+    pub fn tone_state_snapshot(&self) -> Option<ToneSnapshot> {
+        self.tone_state.as_ref().map(|ctrl| ctrl.snapshot())
+    }
+    pub fn tone_state_feedback(&self, feedback: ToneFeedback) -> Option<ToneSnapshot> {
+        self.tone_state
+            .as_ref()
+            .map(|ctrl| ctrl.apply_feedback(feedback))
     }
     /* neira:meta
     id: NEI-20251010-organ-builder-update
@@ -836,6 +874,8 @@ impl SynapseHub {
             ));
         }
 
+        self.observe_tone(message);
+
         let t0 = Instant::now();
 
         let response = cell
@@ -873,6 +913,13 @@ impl SynapseHub {
             session_id: sid_effective,
             idempotent: false,
         })
+    }
+
+    fn observe_tone(&self, message: &str) {
+        if let Some(controller) = &self.tone_state {
+            let score = tone_sentiment_score(message);
+            controller.apply_feedback(ToneFeedback::Observation { score });
+        }
     }
 
     pub async fn analyze(
@@ -1158,6 +1205,65 @@ impl SynapseHub {
         }
         false
     }
+}
+
+const POSITIVE_WORDS: &[&str] = &[
+    "спасибо",
+    "благодарю",
+    "отлично",
+    "замечательно",
+    "супер",
+    "классно",
+    "приятно",
+    "рад",
+    "рада",
+    "рады",
+    "потрясающе",
+    "вдохновляюще",
+    "люблю",
+];
+
+const NEGATIVE_WORDS: &[&str] = &[
+    "плохо",
+    "ужасно",
+    "расстроен",
+    "расстроена",
+    "разочарован",
+    "разочарована",
+    "недоволен",
+    "недовольна",
+    "злюсь",
+    "грустно",
+    "тревожно",
+    "больно",
+];
+
+fn tone_sentiment_score(text: &str) -> f32 {
+    let mut positive = 0_u32;
+    let mut negative = 0_u32;
+    for token in text
+        .split(|c: char| !c.is_alphabetic() && c != 'ё' && c != 'Ё')
+        .filter(|token| !token.is_empty())
+    {
+        let lowered = token.to_lowercase();
+        if POSITIVE_WORDS.contains(&lowered.as_str()) {
+            positive += 1;
+        }
+        if NEGATIVE_WORDS.contains(&lowered.as_str()) {
+            negative += 1;
+        }
+    }
+    if positive == 0 && negative == 0 {
+        return 0.0;
+    }
+    let mut score = (positive as f32 - negative as f32) / (positive + negative) as f32;
+    let emphasis = (text.matches('!').count() as f32 * 0.05).min(0.2);
+    if positive > negative {
+        score = (score + emphasis).clamp(-1.0, 1.0);
+    } else if negative > positive {
+        score = (score - emphasis).clamp(-1.0, 1.0);
+    }
+    score
 }
 
 /* neira:meta
