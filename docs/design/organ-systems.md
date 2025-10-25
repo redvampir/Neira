@@ -45,7 +45,9 @@ summary: |
   - Метрики: hearing_minutes_captured, stt_latency_ms, stt_tokens
 
 - Voice System (речь)
-  - Клетки: TTS
+  - Клетки: text_normalize → text_to_phonemes → speak_adapter (analysis) + speak_adapter (action)
+  - Встроенный кодек WAV и опциональные внешние команды TTS/STT через окружение
+  - API: POST /voice/speak, POST /voice/transcribe; результаты кешируются в VoiceOrgan
   - Гейт: organ_voice (experimental)
   - Safe‑mode: чтение допустимо
 

@@ -63,6 +63,11 @@ Steps (PowerShell)
 - Убедитесь, что в каталоге `templates/` появились файлы `analysis.*.json`.
 - Перезапустите spinal_cord — CellRegistry загрузит шаблоны из каталога (есть файловый watcher).
 - Проверьте `/cells/:id` (или Admin UI) и `logs/factory_audit.ndjson`.
+
+HTTP API голосового органа
+- `POST /voice/speak` — вход: `{ "text": "Привет" }` или `{ "normalized": "привет" }`. Ответ содержит `request_id`, путь к WAV и base64 аудио.
+- `POST /voice/transcribe` — вход: `{ "audio_base64": "..." }` или `{ "file_path": "voice_output/voice-1.wav" }`. Ответ: `request_id`, текст.
+- Переменные окружения: `VOICE_BACKEND`, `VOICE_TTS_CMD`, `VOICE_STT_CMD`, `VOICE_PLAY_CMD`, `VOICE_OUTPUT_DIR`.
   Notes
 - Organ Builder (маршруты `/organs/*`) пока не реализован — работаем на уровне клеток.
 - Политики/гейты: ошибки приходят JSON `{ code, reason, capability }`; включение адаптера — `FACTORY_ADAPTER_ENABLED=1`.
