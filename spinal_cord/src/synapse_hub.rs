@@ -72,6 +72,7 @@ id: NEI-20250224-blocking-analyze
 intent: fix
 summary: Анализ выполняется в отдельном блокирующем пуле tokio::task.
 */
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -81,7 +82,10 @@ use crate::analysis_cell::QualityMetrics;
 use crate::circulatory_system::DataFlowController;
 use crate::config::{env_flag, Config};
 use crate::context::context_storage::{ChatMessage, ContextStorage, Role};
-use crate::event_bus::{CellCreated, EventBus, OrganBuilt};
+use crate::digestive_pipeline::ParsedInput;
+use crate::event_bus::{
+    CellCreated, CurriculumLoaded, CurriculumVocabularySeeded, EventBus, OrganBuilt, Subscriber,
+};
 use crate::factory::{FabricatorCell, SelectorCell, StemCellFactory};
 use crate::hearing;
 use crate::idempotent_store::IdempotentStore;
@@ -109,6 +113,9 @@ use crate::brain::{Brain, BrainSubscriber};
 use crate::cell_registry::CellRegistry;
 use crate::memory_cell::MemoryCell;
 use crate::queue_config::QueueConfig;
+use crate::training::curriculum::{
+    default_curriculum_path, CurriculumError, RussianLiteracyCurriculum,
+};
 use crate::task_scheduler::TaskScheduler;
 use crate::trigger_detector::TriggerDetector;
 use serde_json::json;
@@ -481,6 +488,61 @@ impl SynapseHub {
     }
     pub fn training_autorun_enabled(&self) -> bool {
         self.training_autorun_enabled
+    }
+
+    /* neira:meta
+    id: NEI-20280401-120030-russian-curriculum-hub
+    intent: feature
+    summary: SynapseHub умеет загружать курс русской грамоты и публикует событие о прогрессе обучения.
+    */
+    pub fn subscribe_event(&self, subscriber: Arc<dyn Subscriber>) {
+        self.event_bus.subscribe(subscriber);
+    }
+
+    pub fn train_russian_literacy(
+        &self,
+        dataset_path: Option<PathBuf>,
+    ) -> Result<RussianLiteracyCurriculum, CurriculumError> {
+        let path = dataset_path.unwrap_or_else(default_curriculum_path);
+        let curriculum = RussianLiteracyCurriculum::load_from_path(&path)?;
+        let summary = curriculum.summary();
+        let payload = curriculum.to_json_value()?;
+        let seed = curriculum.build_inquiry_seed()?;
+        let seed_payload = seed.to_json_value()?;
+        let seed_purpose = seed.purpose.clone();
+        let seed_word_count = seed.word_count();
+        self.memory
+            .store_parsed_input(ParsedInput::Json(payload));
+        self.memory
+            .store_parsed_input(ParsedInput::Json(seed_payload));
+        hearing::info(&format!(
+            "учебный курс загружен: id={} letters={} syllables={} words={} source={}",
+            curriculum.id(),
+            summary.letters,
+            summary.syllables,
+            summary.words,
+            path.display()
+        ));
+        hearing::info(&format!(
+            "базовый словарь вопросов активирован: curriculum_id={} purpose={} words={}",
+            curriculum.id(),
+            seed_purpose.as_str(),
+            seed_word_count
+        ));
+        self.event_bus.publish(&CurriculumLoaded {
+            curriculum_id: curriculum.id().to_string(),
+            letters: summary.letters,
+            syllables: summary.syllables,
+            words: summary.words,
+            source_path: Some(path),
+        });
+        self.event_bus.publish(&CurriculumVocabularySeeded {
+            curriculum_id: curriculum.id().to_string(),
+            purpose: seed_purpose.clone(),
+            word_count: seed_word_count,
+            words: seed.word_list(),
+        });
+        Ok(curriculum)
     }
     pub fn tone_state_enabled(&self) -> bool {
         self.tone_state_enabled
