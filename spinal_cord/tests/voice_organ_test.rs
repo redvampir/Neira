@@ -82,16 +82,17 @@ async fn voice_bootstrap_registers_cells_and_factory_records() {
     assert!(registry.get(SPEAK_ADAPTER_ID).is_some());
     assert!(registry.get_analysis_cell(TEXT_NORMALIZE_ID).is_some());
     assert!(registry.get_analysis_cell(SPEAK_ADAPTER_ID).is_some());
-    assert!(
-        registry
-            .action_cells()
-            .iter()
-            .any(|cell| cell.id() == SPEAK_ACTION_ID)
-    );
+    assert!(registry
+        .action_cells()
+        .iter()
+        .any(|cell| cell.id() == SPEAK_ACTION_ID));
 
     let (total, active) = hub.factory_counts();
     assert_eq!(total, 3, "фабрика должна создать три записи шаблонов");
-    assert_eq!(active, 3, "все шаблоны должны быть активны после регистрации");
+    assert_eq!(
+        active, 3,
+        "все шаблоны должны быть активны после регистрации"
+    );
 }
 
 #[test]
