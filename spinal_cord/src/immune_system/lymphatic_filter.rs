@@ -32,8 +32,14 @@ struct FunctionFingerprint {
     file: PathBuf,
     signature: String,
     behavior: String,
-    semantic: String,
+    semantic: SemanticFingerprint,
     structure: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SemanticFingerprint {
+    text: String,
+    tokens: Vec<String>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -157,7 +163,11 @@ pub fn scan_workspace() -> Vec<DuplicationReport> {
                 matched.push("behavior");
                 score += 1.0;
             }
-            let semantic_score = strsim::jaro_winkler(&a.semantic, &b.semantic);
+            let semantic_score = semantic_similarity(&a.semantic, &b.semantic);
+            let has_rich_semantics = a.semantic.tokens.len() > 1 || b.semantic.tokens.len() > 1;
+            if has_rich_semantics && semantic_score < 0.7 {
+                continue;
+            }
             if semantic_score >= 0.8 {
                 matched.push("semantic");
             }
@@ -200,8 +210,9 @@ fn fingerprint(func: &ItemFn, file: PathBuf) -> FunctionFingerprint {
     }
 }
 
-fn collect_semantic(func: &ItemFn) -> String {
-    let mut text = func.sig.ident.to_string();
+fn collect_semantic(func: &ItemFn) -> SemanticFingerprint {
+    let mut parts = Vec::new();
+    parts.push(func.sig.ident.to_string());
     for attr in &func.attrs {
         if attr.path().is_ident("doc") {
             if let syn::Meta::NameValue(meta) = &attr.meta {
@@ -210,27 +221,60 @@ fn collect_semantic(func: &ItemFn) -> String {
                     ..
                 }) = &meta.value
                 {
-                    text.push_str(&lit.value());
+                    parts.push(lit.value());
                 }
             }
         }
     }
-    normalize_semantic(&text)
+    let normalized_tokens = normalize_semantic_tokens(&parts.join(" "));
+    let text = normalized_tokens.join(" ");
+    SemanticFingerprint {
+        text,
+        tokens: normalized_tokens,
+    }
 }
 
-fn normalize_semantic(text: &str) -> String {
+fn normalize_semantic_tokens(text: &str) -> Vec<String> {
     text.split(|c: char| !c.is_alphanumeric())
-        .filter(|s| !s.is_empty())
-        .map(|w| {
-            let lw = w.to_lowercase();
-            SYNONYMS
-                .get(lw.as_str())
+        .filter_map(|segment| {
+            if segment.is_empty() {
+                return None;
+            }
+            let lower = segment.to_lowercase();
+            let normalized = SYNONYMS
+                .get(lower.as_str())
                 .cloned()
-                .unwrap_or(&lw)
-                .to_string()
+                .unwrap_or(&lower)
+                .to_string();
+            Some(normalized)
         })
-        .collect::<Vec<_>>()
-        .join(" ")
+        .collect()
+}
+
+fn semantic_similarity(a: &SemanticFingerprint, b: &SemanticFingerprint) -> f64 {
+    let jw = strsim::jaro_winkler(&a.text, &b.text);
+    let token_score = jaccard_similarity(&a.tokens, &b.tokens);
+    if a.tokens.is_empty() && b.tokens.is_empty() {
+        jw
+    } else {
+        (jw + token_score) / 2.0
+    }
+}
+
+fn jaccard_similarity(a: &[String], b: &[String]) -> f64 {
+    if a.is_empty() && b.is_empty() {
+        return 1.0;
+    }
+    use std::collections::HashSet;
+    let set_a: HashSet<&str> = a.iter().map(String::as_str).collect();
+    let set_b: HashSet<&str> = b.iter().map(String::as_str).collect();
+    let intersection = set_a.intersection(&set_b).count() as f64;
+    let union = set_a.union(&set_b).count() as f64;
+    if union == 0.0 {
+        1.0
+    } else {
+        intersection / union
+    }
 }
 
 fn simplify_behavior(func: &ItemFn) -> String {
