@@ -26,7 +26,6 @@ use backend::training::curriculum::{
     default_curriculum_path,
     INQUIRY_SEED_LIMIT,
     RUSSIAN_CURRICULUM_ID,
-    CurriculumError,
     RussianLiteracyCurriculum,
 };
 use backend::synapse_hub::SynapseHub;
@@ -143,120 +142,6 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     assert!(
         seed.iter().all(|entry| entry.level <= 1),
         "seed words should remain in the basic difficulty range"
-    );
-}
-
-#[test]
-fn training_config_limit_has_priority_over_env() {
-    let temp_config = NamedTempFile::new().expect("temp config");
-    std::fs::write(
-        &temp_config,
-        "[training]\nmax_words = 10\n",
-    )
-    .expect("write config");
-    std::env::set_var("TRAINING_CONFIG_PATH", temp_config.path());
-    std::env::set_var("RUSSIAN_CURRICULUM_MAX_WORDS", "200");
-
-    let result = RussianLiteracyCurriculum::load_default();
-    std::env::remove_var("TRAINING_CONFIG_PATH");
-    std::env::remove_var("RUSSIAN_CURRICULUM_MAX_WORDS");
-
-    match result {
-        Err(CurriculumError::Validation(message)) => {
-            assert!(
-                message.contains("не более"),
-                "ожидаем сообщение об ограничении слов, получили: {message}"
-            );
-        }
-        other => panic!("ожидалась ошибка из-за конфигурации, получено {other:?}"),
-    }
-}
-
-#[test]
-fn curriculum_editor_reports_stats() {
-    let binary = env!("CARGO_BIN_EXE_curriculum_editor");
-    let output = Command::new(binary)
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .arg("--stats")
-        .output()
-        .expect("запуск curriculum_editor --stats");
-    assert!(output.status.success(), "утилита завершилась с ошибкой");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("Темы словаря"),
-        "ожидаем увидеть статистику тем, получили: {stdout}"
-    );
-}
-
-#[test]
-fn curriculum_editor_adds_word_non_interactively() {
-    let default_path = default_curriculum_path();
-    let dataset = fs::read_to_string(&default_path).expect("read dataset");
-    let temp_dataset = NamedTempFile::new().expect("temp dataset");
-    fs::write(temp_dataset.path(), dataset).expect("write dataset copy");
-
-    let curriculum = RussianLiteracyCurriculum::load_from_path(temp_dataset.path())
-        .expect("load temp dataset");
-    let existing: HashSet<String> =
-        curriculum.words.iter().map(|entry| entry.word.clone()).collect();
-    let mut candidate: Option<(String, Vec<String>)> = None;
-    for first in &curriculum.syllables {
-        let syll_a = first.syllable.trim();
-        if syll_a.is_empty() || syll_a.contains(' ') {
-            continue;
-        }
-        for second in &curriculum.syllables {
-            let syll_b = second.syllable.trim();
-            if syll_b.is_empty() || syll_b.contains(' ') {
-                continue;
-            }
-            let word = format!("{}{}", syll_a, syll_b);
-            if !existing.contains(&word) {
-                candidate = Some((
-                    word,
-                    vec![syll_a.to_string(), syll_b.to_string()],
-                ));
-                break;
-            }
-        }
-        if candidate.is_some() {
-            break;
-        }
-    }
-    let (new_word, syllables) = candidate.expect("failed to generate unique word");
-    let syllables_arg = syllables.join(",");
-
-    let binary = env!("CARGO_BIN_EXE_curriculum_editor");
-    let output = Command::new(binary)
-        .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .args([
-            "--path",
-            temp_dataset.path().to_str().expect("dataset path"),
-            "--add-word",
-            "--word",
-            &new_word,
-            "--syllables",
-            &syllables_arg,
-            "--meaning",
-            "тестовое слово",
-            "--theme",
-            "тесты",
-            "--level",
-            "1",
-        ])
-        .output()
-        .expect("run curriculum_editor add word");
-    assert!(
-        output.status.success(),
-        "curriculum_editor завершилась с ошибкой: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    let updated = RussianLiteracyCurriculum::load_from_path(temp_dataset.path())
-        .expect("load updated dataset");
-    assert!(
-        updated.words.iter().any(|entry| entry.word == new_word),
-        "слово должно быть добавлено"
     );
 }
 

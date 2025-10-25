@@ -12,14 +12,7 @@ summary: |
   Реализована build_inquiry_seed и приоритизация темы «вопросы» в учебном
   курсе, чтобы ограниченная выборка включала ключевые вопросительные слова.
 */
-/* neira:meta
-id: NEI-20280425-120220-curriculum-config-stats
-intent: feature
-summary: |
-  Лимит слов загружается из config/training.toml с резервом на окружение,
-  а событие загрузки обогащено статистикой по темам словаря.
-*/
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -170,7 +163,7 @@ impl RussianLiteracyCurriculum {
                 "словарь не может быть пустым".into(),
             ));
         }
-        if let Some(limit) = resolve_words_limit()? {
+        if let Some(limit) = words_limit_from_env()? {
             if self.words.len() > limit {
                 return Err(CurriculumError::Validation(format!(
                     "в словаре допускается не более {limit} слов, найдено {}",
@@ -262,35 +255,6 @@ impl RussianLiteracyCurriculum {
     }
 }
 
-fn resolve_words_limit() -> Result<Option<usize>, CurriculumError> {
-    if let Some(limit) = words_limit_from_config()? {
-        return Ok(Some(limit));
-    }
-    words_limit_from_env()
-}
-
-fn words_limit_from_config() -> Result<Option<usize>, CurriculumError> {
-    let path = training_config_path();
-    if !path.exists() {
-        return Ok(None);
-    }
-    let raw = fs::read_to_string(&path)?;
-    let parsed: TrainingConfigFile = toml::from_str(&raw).map_err(|err| {
-        CurriculumError::Validation(format!(
-            "не удалось разобрать конфигурацию обучения {}: {err}",
-            path.display()
-        ))
-    })?;
-    if let Some(settings) = parsed.training {
-        if let Some(limit) = settings.max_words {
-            let source = format!("конфигурация {}", path.display());
-            let limit = normalize_limit(limit, &source)?;
-            return Ok(Some(limit));
-        }
-    }
-    Ok(None)
-}
-
 fn words_limit_from_env() -> Result<Option<usize>, CurriculumError> {
     match env::var("RUSSIAN_CURRICULUM_MAX_WORDS") {
         Ok(raw) => {
@@ -303,37 +267,12 @@ fn words_limit_from_env() -> Result<Option<usize>, CurriculumError> {
                     "не удалось прочитать значение RUSSIAN_CURRICULUM_MAX_WORDS: {err}"
                 ))
             })?;
-            let limit = normalize_limit(limit, "переменная окружения RUSSIAN_CURRICULUM_MAX_WORDS")?;
             Ok(Some(limit))
         }
         Err(env::VarError::NotPresent) => Ok(None),
         Err(err) => Err(CurriculumError::Validation(format!(
             "ошибка чтения RUSSIAN_CURRICULUM_MAX_WORDS: {err}"
         ))),
-    }
-}
-
-fn normalize_limit(limit: usize, source: &str) -> Result<usize, CurriculumError> {
-    if limit == 0 {
-        return Err(CurriculumError::Validation(format!(
-            "некорректное ограничение слов (0) из {source}"
-        )));
-    }
-    Ok(limit)
-}
-
-fn training_config_path() -> PathBuf {
-    if let Ok(custom) = env::var("TRAINING_CONFIG_PATH") {
-        let trimmed = custom.trim();
-        if !trimmed.is_empty() {
-            return PathBuf::from(trimmed);
-        }
-    }
-    let relative = PathBuf::from("config/training.toml");
-    if relative.exists() {
-        relative
-    } else {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("config/training.toml")
     }
 }
 
