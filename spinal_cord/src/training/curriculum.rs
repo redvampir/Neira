@@ -12,7 +12,15 @@ summary: |
   Реализована build_inquiry_seed и приоритизация темы «вопросы» в учебном
   курсе, чтобы ограниченная выборка включала ключевые вопросительные слова.
 */
-use std::collections::{HashMap, HashSet};
+/* neira:meta
+id: NEI-20280425-120220-curriculum-config-stats
+intent: feature
+summary: |
+  Лимит слов загружается из config/training.toml с резервом на окружение,
+  а событие загрузки обогащено статистикой по темам словаря.
+*/
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -23,7 +31,6 @@ use thiserror::Error;
 pub const DEFAULT_RUSSIAN_CURRICULUM_PATH: &str = "static/training/russian_literacy.json";
 pub const RUSSIAN_CURRICULUM_ID: &str = "russian_literacy_v1";
 pub const INQUIRY_SEED_LIMIT: usize = 30;
-pub const RUSSIAN_CURRICULUM_MAX_WORDS: usize = 120;
 
 #[derive(Debug, Error)]
 pub enum CurriculumError {
@@ -77,6 +84,18 @@ pub struct CurriculumSummary {
     pub letters: usize,
     pub syllables: usize,
     pub words: usize,
+}
+
+#[derive(Debug, Deserialize)]
+struct TrainingConfigFile {
+    #[serde(default)]
+    training: Option<TrainingSettings>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct TrainingSettings {
+    #[serde(default)]
+    max_words: Option<usize>,
 }
 
 impl RussianLiteracyCurriculum {
@@ -151,12 +170,13 @@ impl RussianLiteracyCurriculum {
                 "словарь не может быть пустым".into(),
             ));
         }
-        if self.words.len() > RUSSIAN_CURRICULUM_MAX_WORDS {
-            return Err(CurriculumError::Validation(format!(
-                "допустимо не более {} слов, найдено {}",
-                RUSSIAN_CURRICULUM_MAX_WORDS,
-                self.words.len()
-            )));
+        if let Some(limit) = resolve_words_limit()? {
+            if self.words.len() > limit {
+                return Err(CurriculumError::Validation(format!(
+                    "в словаре допускается не более {limit} слов, найдено {}",
+                    self.words.len()
+                )));
+            }
         }
         for word in &self.words {
             if word.word.trim().is_empty() {
@@ -206,6 +226,14 @@ impl RussianLiteracyCurriculum {
         }
     }
 
+    pub fn theme_statistics(&self) -> BTreeMap<String, usize> {
+        let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+        for word in &self.words {
+            *counts.entry(word.theme.clone()).or_insert(0) += 1;
+        }
+        counts
+    }
+
     pub fn build_inquiry_seed(&self) -> Vec<WordEntry> {
         let mut sorted = self.words.clone();
         sorted.sort_by(|a, b| {
@@ -234,6 +262,81 @@ impl RussianLiteracyCurriculum {
     }
 }
 
+fn resolve_words_limit() -> Result<Option<usize>, CurriculumError> {
+    if let Some(limit) = words_limit_from_config()? {
+        return Ok(Some(limit));
+    }
+    words_limit_from_env()
+}
+
+fn words_limit_from_config() -> Result<Option<usize>, CurriculumError> {
+    let path = training_config_path();
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(&path)?;
+    let parsed: TrainingConfigFile = toml::from_str(&raw).map_err(|err| {
+        CurriculumError::Validation(format!(
+            "не удалось разобрать конфигурацию обучения {}: {err}",
+            path.display()
+        ))
+    })?;
+    if let Some(settings) = parsed.training {
+        if let Some(limit) = settings.max_words {
+            let source = format!("конфигурация {}", path.display());
+            let limit = normalize_limit(limit, &source)?;
+            return Ok(Some(limit));
+        }
+    }
+    Ok(None)
+}
+
+fn words_limit_from_env() -> Result<Option<usize>, CurriculumError> {
+    match env::var("RUSSIAN_CURRICULUM_MAX_WORDS") {
+        Ok(raw) => {
+            let trimmed = raw.trim();
+            if trimmed.is_empty() {
+                return Ok(None);
+            }
+            let limit = trimmed.parse::<usize>().map_err(|err| {
+                CurriculumError::Validation(format!(
+                    "не удалось прочитать значение RUSSIAN_CURRICULUM_MAX_WORDS: {err}"
+                ))
+            })?;
+            let limit = normalize_limit(limit, "переменная окружения RUSSIAN_CURRICULUM_MAX_WORDS")?;
+            Ok(Some(limit))
+        }
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(err) => Err(CurriculumError::Validation(format!(
+            "ошибка чтения RUSSIAN_CURRICULUM_MAX_WORDS: {err}"
+        ))),
+    }
+}
+
+fn normalize_limit(limit: usize, source: &str) -> Result<usize, CurriculumError> {
+    if limit == 0 {
+        return Err(CurriculumError::Validation(format!(
+            "некорректное ограничение слов (0) из {source}"
+        )));
+    }
+    Ok(limit)
+}
+
+fn training_config_path() -> PathBuf {
+    if let Ok(custom) = env::var("TRAINING_CONFIG_PATH") {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed);
+        }
+    }
+    let relative = PathBuf::from("config/training.toml");
+    if relative.exists() {
+        relative
+    } else {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("config/training.toml")
+    }
+}
+
 fn theme_priority(theme: &str) -> u8 {
     if theme == "вопросы" { 0 } else { 1 }
 }
@@ -250,10 +353,12 @@ pub fn default_curriculum_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use std::path::PathBuf;
 
     #[test]
     fn curriculum_loads_and_validates() {
+        env::remove_var("RUSSIAN_CURRICULUM_MAX_WORDS");
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("static/training/russian_literacy.json");
         let curriculum = RussianLiteracyCurriculum::load_from_path(&path)
@@ -261,7 +366,10 @@ mod tests {
         assert_eq!(curriculum.id(), RUSSIAN_CURRICULUM_ID);
         let summary = curriculum.summary();
         assert_eq!(summary.letters, 33);
-        assert!(summary.words <= RUSSIAN_CURRICULUM_MAX_WORDS);
+        assert!(
+            summary.words > 120,
+            "ожидается расширенный словарь более чем из 120 слов"
+        );
         assert!(summary.syllables > summary.words);
     }
 }

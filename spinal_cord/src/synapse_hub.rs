@@ -505,6 +505,13 @@ impl SynapseHub {
     intent: feature
     summary: SynapseHub умеет загружать курс русской грамоты и публикует событие о прогрессе обучения.
     */
+    /* neira:meta
+    id: NEI-20280425-120240-curriculum-theme-log
+    intent: feature
+    summary: |-
+      Публикация курса сопровождается срезом по темам и передаёт статистику
+      в событие training.curriculum.loaded для дальнейшей аналитики.
+    */
     pub fn subscribe_event(&self, subscriber: Arc<dyn Subscriber>) {
         self.event_bus.subscribe(subscriber);
     }
@@ -516,16 +523,27 @@ impl SynapseHub {
         let path = dataset_path.unwrap_or_else(default_curriculum_path);
         let curriculum = RussianLiteracyCurriculum::load_from_path(&path)?;
         let summary = curriculum.summary();
+        let themes = curriculum.theme_statistics();
+        let theme_overview = if themes.is_empty() {
+            String::from("нет тем")
+        } else {
+            themes
+                .iter()
+                .map(|(theme, count)| format!("{theme}:{count}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        };
         let payload = curriculum.to_json_value()?;
         self.memory
             .store_parsed_input(ParsedInput::Json(payload));
         hearing::info(&format!(
-            "учебный курс загружен: id={} letters={} syllables={} words={} source={}",
+            "учебный курс загружен: id={} letters={} syllables={} words={} source={} themes=[{}]",
             curriculum.id(),
             summary.letters,
             summary.syllables,
             summary.words,
-            path.display()
+            path.display(),
+            theme_overview
         ));
         self.event_bus.publish(&CurriculumLoaded {
             curriculum_id: curriculum.id().to_string(),
@@ -533,6 +551,7 @@ impl SynapseHub {
             syllables: summary.syllables,
             words: summary.words,
             source_path: Some(path),
+            themes: themes.clone(),
         });
         Ok(curriculum)
     }

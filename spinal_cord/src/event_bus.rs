@@ -43,6 +43,7 @@ summary: publish пишет событие в EventLog и учитывает м�
 */
 use crate::event_log;
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::any::Any;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
@@ -136,12 +137,20 @@ id: NEI-20280401-120020-curriculum-event
 intent: feature
 summary: Добавлено событие training.curriculum.loaded для фиксации загрузки учебного курса.
 */
+/* neira:meta
+id: NEI-20280425-120230-curriculum-theme-stats
+intent: feature
+summary: |-
+  В событие training.curriculum.loaded добавлены агрегаты по темам словаря,
+  чтобы подписчики видели баланс навыков сразу при загрузке.
+*/
 pub struct CurriculumLoaded {
     pub curriculum_id: String,
     pub letters: usize,
     pub syllables: usize,
     pub words: usize,
     pub source_path: Option<PathBuf>,
+    pub themes: BTreeMap<String, usize>,
 }
 
 impl Event for CurriculumLoaded {
@@ -163,6 +172,7 @@ impl Event for CurriculumLoaded {
                 .source_path
                 .as_ref()
                 .map(|p| p.to_string_lossy().to_string()),
+            "themes": self.themes,
         }))
     }
 }
