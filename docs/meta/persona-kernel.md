@@ -42,12 +42,14 @@ Capabilities (см. CAPABILITIES.md)
 - persona_style_neutral: stable
 - persona_style_teen: experimental (intensity 0–3)
 - persona_reflection: experimental
-- tone_state: experimental
+- tone_state: stable (метрики интенсивности/обратной связи)
 - studio_artflow, studio_soundweaver, studio_storycells: locked
 - roleplay_mode: locked (только явно, с дисклеймером)
 
 Метрики (см. docs/reference/metrics.md)
 - persona_drift_score (gauge 0..1), style_adherence (gauge 0..1)
+- persona_tone_intensity (gauge 0..1), persona_tone_confidence (gauge 0..1)
+- persona_tone_transitions_total, persona_tone_feedback_total
 - role_switches_total, reflection_journal_entries, proposals_accepted_total, proposals_reverted_total
 - safety_breaches_total, safety_mitigations_total
 

@@ -36,6 +36,7 @@ intent: code
 summary: Экспортирован модуль brain.
 */
 pub mod brain;
+pub mod persona;
 pub mod immune_system;
 pub mod memory_cell;
 /* neira:meta

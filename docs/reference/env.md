@@ -118,6 +118,9 @@ summary: Переименована NODE_TEMPLATES_DIR в CELL_TEMPLATES_DIR с 
 | IDEMPOTENT_STORE_DIR         | string          | context               | idem store              | Каталог файла кэша                                                                                      |
 | IDEMPOTENT_TTL_SECS          | int             | 86400                 | idem store              | TTL ответов                                                                                             |
 | PERSIST_REQUIRE_SESSION_ID   | bool            | false                 | hub policies            | Запрет persist без session_id                                                                           |
+| TONE_STATE_ENABLED           | bool            | true                  | hub tone controller     | Включает способность tone_state (эмоциональные состояния)                                               |
+| TONE_STATE_DECAY_SECS        | int             | 600                   | hub tone controller     | Интервал авто-декея тона (секунды)                                                                     |
+| TONE_STATE_OBSERVATION_THRESHOLD | float        | 0.2                   | hub tone controller     | Порог чувствительности обратной связи (|score|)                                                        |
 | INDEX_KW_TTL_DAYS            | int             | 90                    | index compaction        | TTL ключевых слов в index.json                                                                          |
 | INDEX_COMPACT_INTERVAL_MS    | int             | 300000                | compaction job          | Интервал фоновой чистки                                                                                 |
 | SSE_WARN_AFTER_MS            | int             | 60000                 | SSE                     | Варнинг при долгом стриме                                                                               |

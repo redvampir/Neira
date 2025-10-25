@@ -161,11 +161,11 @@ Stage 0 (Core Stable)
 - `persona_kernel` — инварианты ценностей (честность, уважение, безопасность, полезность, воспроизводимость, краткость).
 - `persona_roles_minimal` — роли coder/editor/architect.
 - `persona_style_neutral` — стиль по умолчанию (интенсивность «teen» = 0).
-- Метрики: `role_switches_total`, (по возможности) `style_adherence`.
+- `tone_state` — эфемерный тон/настроение с авто-декеем и обратной связью.
+- Метрики: `role_switches_total`, `style_adherence`, `persona_tone_intensity`, `persona_tone_confidence`, `persona_tone_transitions_total`, `persona_tone_feedback_total`.
 
 Stage 1 (Experimental Growth)
 - `persona_reflection` — предложения микрокоррекций (review→canary→stable).
-- `tone_state` — эфемерный тон/настроение (auto‑reset; не затрагивает ценности).
 - `persona_style_teen` — экспериментальная окраска (регулятор 0–3).
 - Творческие студии: `studio_artflow`, `studio_soundweaver`, `studio_storycells` — LOCKED→EXPERIMENTAL.
 - Метрики: `persona_drift_score`, `style_adherence`, `reflection_journal_entries`, `proposals_accepted_total`, `proposals_reverted_total`.

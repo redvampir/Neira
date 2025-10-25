@@ -162,10 +162,16 @@ capabilities:
     signals: [reflection_journal_entries, proposals_accepted_total, proposals_reverted_total]
 
   tone_state:
-    state: experimental
-    notes: эфемерное настроение/тон; не трогает ценности
+    state: stable
+    notes: эфемерное настроение/тон; авто-декей и метрики наблюдений
     safeguards: auto-reset; capped impact on latency
-    signals: [style_adherence]
+    signals:
+      [
+        persona_tone_intensity,
+        persona_tone_confidence,
+        persona_tone_transitions_total,
+        persona_tone_feedback_total,
+      ]
 
   studio_artflow:
     state: locked
