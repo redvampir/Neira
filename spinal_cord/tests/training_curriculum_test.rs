@@ -12,7 +12,7 @@ use backend::config::Config;
 use backend::digestive_pipeline::ParsedInput;
 use backend::event_bus::{Event, Subscriber};
 use backend::memory_cell::MemoryCell;
-use backend::training::curriculum::RUSSIAN_CURRICULUM_ID;
+use backend::training::curriculum::{INQUIRY_SEED_LIMIT, RUSSIAN_CURRICULUM_ID};
 use backend::synapse_hub::SynapseHub;
 
 struct CaptureSubscriber {
@@ -67,7 +67,34 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     assert_eq!(events.len(), 1);
     let data = &events[0];
     assert_eq!(data.get("curriculum_id"), Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into())));
-    assert_eq!(data.get("letters"), Some(&serde_json::Value::from(33)));  
+    assert_eq!(data.get("letters"), Some(&serde_json::Value::from(33)));
     assert_eq!(data.get("words"), Some(&serde_json::Value::from(100)));
+
+    let seed = curriculum.build_inquiry_seed();
+    assert!(!seed.is_empty(), "seed selection should not be empty");
+    assert!(
+        seed.len() <= INQUIRY_SEED_LIMIT,
+        "seed should respect configured limit"
+    );
+    let seed_words: Vec<&str> = seed.iter().map(|word| word.word.as_str()).collect();
+    let question_words = ["что", "кто", "где", "когда", "почему", "как"];
+    for expected in question_words {
+        assert!(
+            seed_words.contains(&expected),
+            "seed must contain question word {expected}"
+        );
+    }
+    let question_theme_count = seed
+        .iter()
+        .filter(|entry| entry.theme == "вопросы")
+        .count();
+    assert!(
+        question_theme_count >= question_words.len(),
+        "all question words should be marked with theme 'вопросы'"
+    );
+    assert!(
+        seed.iter().all(|entry| entry.level <= 1),
+        "seed words should remain in the basic difficulty range"
+    );
 }
 

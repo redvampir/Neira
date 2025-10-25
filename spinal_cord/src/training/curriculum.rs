@@ -5,6 +5,13 @@ summary: |
   Добавлен загрузчик учебного курса по русскому алфавиту: валидация
   алфавита, слогов и слов, конвертация в JSON и получение статистики.
 */
+/* neira:meta
+id: NEI-20280415-120500-inquiry-seed
+intent: feature
+summary: |
+  Реализована build_inquiry_seed и приоритизация темы «вопросы» в учебном
+  курсе, чтобы ограниченная выборка включала ключевые вопросительные слова.
+*/
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -15,6 +22,7 @@ use thiserror::Error;
 
 pub const DEFAULT_RUSSIAN_CURRICULUM_PATH: &str = "static/training/russian_literacy.json";
 pub const RUSSIAN_CURRICULUM_ID: &str = "russian_literacy_v1";
+pub const INQUIRY_SEED_LIMIT: usize = 30;
 
 #[derive(Debug, Error)]
 pub enum CurriculumError {
@@ -196,6 +204,21 @@ impl RussianLiteracyCurriculum {
         }
     }
 
+    pub fn build_inquiry_seed(&self) -> Vec<WordEntry> {
+        let mut sorted = self.words.clone();
+        sorted.sort_by(|a, b| {
+            a.level
+                .cmp(&b.level)
+                .then_with(|| theme_priority(&a.theme).cmp(&theme_priority(&b.theme)))
+                .then_with(|| a.theme.cmp(&b.theme))
+                .then_with(|| a.word.cmp(&b.word))
+        });
+        sorted
+            .into_iter()
+            .take(INQUIRY_SEED_LIMIT)
+            .collect()
+    }
+
     pub fn id(&self) -> &str {
         &self.id
     }
@@ -207,6 +230,10 @@ impl RussianLiteracyCurriculum {
             ))
         })
     }
+}
+
+fn theme_priority(theme: &str) -> u8 {
+    if theme == "вопросы" { 0 } else { 1 }
 }
 
 pub fn default_curriculum_path() -> PathBuf {
