@@ -1,0 +1,140 @@
+name: Удаление старых веток
+
+# neira:meta
+# id: NEI-20290405-branch-prune-schedule
+# intent: ci
+# summary: Плановое удаление старых веток, сохраняющее последние десять актуальных.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prune:
+    name: Очистка устаревших веток
+    runs-on: ubuntu-latest
+    steps:
+      - name: Сбор и удаление лишних веток
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            async function fetchBranches() {
+              const perPage = 100;
+              const branches = [];
+              let page = 1;
+
+              while (true) {
+                const { data } = await github.rest.repos.listBranches({
+                  owner,
+                  repo,
+                  per_page: perPage,
+                  page,
+                });
+
+                if (!data.length) {
+                  break;
+                }
+
+                branches.push(...data);
+
+                if (data.length < perPage) {
+                  break;
+                }
+
+                page += 1;
+              }
+
+              return branches;
+            }
+
+            function parseCommitDate(commit) {
+              if (!commit) {
+                return new Date(0);
+              }
+
+              const authorDate = commit.author && commit.author.date ? commit.author.date : undefined;
+              const committerDate = commit.committer && commit.committer.date ? commit.committer.date : undefined;
+              const fallback = authorDate ?? committerDate;
+
+              if (!fallback) {
+                return new Date(0);
+              }
+
+              const parsed = new Date(fallback);
+              return Number.isNaN(parsed.getTime()) ? new Date(0) : parsed;
+            }
+
+            const defaultBranch = context.payload?.repository?.default_branch ?? 'main';
+            const branches = await fetchBranches();
+            const candidates = [];
+
+            for (const branch of branches) {
+              if (branch.protected || branch.name === defaultBranch) {
+                core.info(`Пропуск защищённой или основной ветки: ${branch.name}`);
+                continue;
+              }
+
+              try {
+                const commit = await github.rest.repos.getCommit({
+                  owner,
+                  repo,
+                  ref: branch.commit.sha,
+                });
+
+                const updatedAt = parseCommitDate(commit.data.commit);
+                candidates.push({
+                  name: branch.name,
+                  updatedAt,
+                  sha: branch.commit.sha,
+                });
+              } catch (error) {
+                core.warning(`Не удалось получить информацию о коммите для ветки ${branch.name}: ${error.message}`);
+              }
+            }
+
+            if (!candidates.length) {
+              core.info('Подходящих веток для очистки не найдено.');
+              return;
+            }
+
+            candidates.sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime());
+
+            const limit = 10;
+            const branchesToDelete = candidates.slice(limit);
+            const keptBranches = candidates.slice(0, limit).map((item) => item.name);
+
+            if (!branchesToDelete.length) {
+              core.info(`Всего ${candidates.length} веток. Удаление не требуется.`);
+              core.info(`Сохранены ветки: ${keptBranches.join(', ')}`);
+              return;
+            }
+
+            core.info(`Сохранены последние ${limit} веток: ${keptBranches.join(', ')}`);
+
+            for (const branch of branchesToDelete) {
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${branch.name}`,
+                });
+                core.info(`Удалена ветка ${branch.name} (SHA ${branch.sha}).`);
+              } catch (error) {
+                if (error.status === 422) {
+                  core.warning(`Не удалось удалить ветку ${branch.name}: ${error.message}`);
+                  continue;
+                }
+
+                throw error;
+              }
+            }
+
+            core.info(`Удалено веток: ${branchesToDelete.map((branch) => branch.name).join(', ')}`);
