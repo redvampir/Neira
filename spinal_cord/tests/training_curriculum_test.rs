@@ -3,6 +3,16 @@ id: NEI-20280401-120040-curriculum-test
 intent: feature
 summary: Проверяет загрузку курса русской грамоты: память, событие и данные.
 */
+/* neira:meta
+id: NEI-20280425-120250-curriculum-cli-tests
+intent: test
+summary: |-
+  Добавлены проверки конфигурации лимитов и сценарии CLI-инструмента
+  curriculum_editor для гарантии совместимости со статистикой тем.
+*/
+use std::collections::HashSet;
+use std::fs;
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 
 use backend::action::diagnostics_cell::DiagnosticsCell;
@@ -13,11 +23,13 @@ use backend::digestive_pipeline::ParsedInput;
 use backend::event_bus::{Event, Subscriber};
 use backend::memory_cell::MemoryCell;
 use backend::training::curriculum::{
+    default_curriculum_path,
     INQUIRY_SEED_LIMIT,
     RUSSIAN_CURRICULUM_ID,
     RussianLiteracyCurriculum,
 };
 use backend::synapse_hub::SynapseHub;
+use tempfile::NamedTempFile;
 
 struct CaptureSubscriber {
     events: Arc<Mutex<Vec<serde_json::Value>>>,
@@ -81,6 +93,16 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     assert_eq!(
         data.get("words"),
         Some(&serde_json::Value::from(word_count))
+    );
+    let themes = data
+        .get("themes")
+        .and_then(|value| value.as_object())
+        .expect("themes map should be published");
+    let total_in_themes: usize = themes.values().map(|value| value.as_u64().unwrap_or_default() as usize).sum();
+    assert_eq!(
+        total_in_themes,
+        word_count,
+        "сумма слов по темам должна совпадать с общим числом слов"
     );
 
     let seed = curriculum.build_inquiry_seed();
