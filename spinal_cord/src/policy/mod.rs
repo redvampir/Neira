@@ -20,6 +20,7 @@ pub enum Capability {
     LearningMicrotasks,
     TrainingPipeline,
     TrainingAutorun,
+    ToneState,
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +97,17 @@ impl PolicyEngine {
                         code: "capability_disabled",
                         reason: "training_autorun is disabled".into(),
                         capability: Some("training_autorun"),
+                    })
+                }
+            }
+            Capability::ToneState => {
+                if hub.tone_state_enabled() {
+                    Ok(())
+                } else {
+                    Err(PolicyError {
+                        code: "capability_disabled",
+                        reason: "tone_state is disabled".into(),
+                        capability: Some("tone_state"),
                     })
                 }
             }
