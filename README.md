@@ -63,6 +63,7 @@ summary: Добавлена ссылка на систему фабрикато�
 - [Загрузка обучающих данных](docs/guides/training.md)
 - [CI/CD и деплой](docs/legacy/deployment.md)
 - [Веб-интерфейс обучения](docs/guides/web-interface.md)
+- [Улучшение интерфейсов обучения](docs/design/training-interface-improvements.md)
 - [Тестирование Neira](docs/guides/testing.md)
 - [Дорожная карта Neira](docs/roadmap.md)
 - [Структура управления Нейры](docs/system/governance-structure.md)
