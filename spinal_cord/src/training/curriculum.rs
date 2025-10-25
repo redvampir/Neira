@@ -79,6 +79,18 @@ pub struct CurriculumSummary {
     pub words: usize,
 }
 
+#[derive(Debug, Deserialize)]
+struct TrainingConfigFile {
+    #[serde(default)]
+    training: Option<TrainingSettings>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct TrainingSettings {
+    #[serde(default)]
+    max_words: Option<usize>,
+}
+
 impl RussianLiteracyCurriculum {
     pub fn load_from_path<P: AsRef<Path>>(path: P) -> Result<Self, CurriculumError> {
         let data = fs::read_to_string(path)?;
@@ -205,6 +217,14 @@ impl RussianLiteracyCurriculum {
             syllables: self.syllables.len(),
             words: self.words.len(),
         }
+    }
+
+    pub fn theme_statistics(&self) -> BTreeMap<String, usize> {
+        let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+        for word in &self.words {
+            *counts.entry(word.theme.clone()).or_insert(0) += 1;
+        }
+        counts
     }
 
     pub fn build_inquiry_seed(&self) -> Vec<WordEntry> {

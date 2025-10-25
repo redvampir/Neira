@@ -1,0 +1,7 @@
+# neira:meta
+# id: NEI-20280425-120210-training-config
+# intent: config
+# summary: Указано ограничение слов учебного курса по умолчанию.
+
+[training]
+max_words = 256
