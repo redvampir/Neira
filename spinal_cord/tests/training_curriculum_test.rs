@@ -15,7 +15,7 @@ use backend::memory_cell::MemoryCell;
 use backend::training::curriculum::{
     INQUIRY_SEED_LIMIT,
     RUSSIAN_CURRICULUM_ID,
-    RUSSIAN_CURRICULUM_MAX_WORDS,
+    RussianLiteracyCurriculum,
 };
 use backend::synapse_hub::SynapseHub;
 
@@ -57,8 +57,8 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     assert_eq!(curriculum.id(), RUSSIAN_CURRICULUM_ID);
     let word_count = curriculum.words.len();
     assert!(
-        word_count <= RUSSIAN_CURRICULUM_MAX_WORDS,
-        "curriculum should not exceed the configured word limit"
+        word_count > 120,
+        "curriculum should load expanded vocabulary beyond 120 words"
     );
     let summary = curriculum.summary();
     assert_eq!(summary.letters, 33);
@@ -121,5 +121,19 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
         seed.iter().all(|entry| entry.level <= 1),
         "seed words should remain in the basic difficulty range"
     );
+}
+
+#[test]
+fn russian_curriculum_handles_extended_wordset() {
+    std::env::remove_var("RUSSIAN_CURRICULUM_MAX_WORDS");
+    let curriculum = RussianLiteracyCurriculum::load_default()
+        .expect("curriculum should load without word limit");
+    assert!(
+        curriculum.words.len() > 120,
+        "expanded word list must exceed previous 120-word cap"
+    );
+    let summary = curriculum.summary();
+    assert_eq!(summary.words, curriculum.words.len());
+    assert!(summary.syllables >= summary.words);
 }
 
