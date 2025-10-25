@@ -18,6 +18,11 @@ id: NEI-20240909-120100-lymphatic-link
 intent: docs
 summary: Добавлена ссылка на фильтр лимфатической системы.
 -->
+<!-- neira:meta
+id: NEI-20270228-120500-readme-dev-orchestrator
+intent: docs
+summary: Добавлены инструкции по dev-оркестратору и переменным окружения.
+-->
 # Нейра — саморазвивающийся ИИ‑модуль
 
 
@@ -558,6 +563,32 @@ cargo run -p backend --bin organ_builder -- cancel organ-1
 ## Development
 
 - [Интеграция IDE](docs/guides/ide-integration.md)
+
+### Скрипты разработки
+
+| Команда | Назначение |
+| --- | --- |
+| `npm run dev` | Поднимает `spinal_cord`, `sensory_organs` и выполняет автоматический health-check API. |
+| `npm run dev:healthcheck` | Одноразовая проверка доступности API; полезно при ручном запуске сервисов. |
+| `npm run spinal_cord:dev` | Запускает только backend через `scripts/spinal_cord-dev.mjs` с учётом `NEIRA_BIND_ADDR`. |
+| `npm run sensory_organs:dev` | Стартует фронтенд в каталоге `sensory_organs`. |
+| `npm run spinal_cord:test` | Прогоняет Rust-тесты для `spinal_cord`. |
+| `npm run sensory_organs:test` | Прогоняет фронтенд-тесты. |
+| `npm test` | Запускает Jest-тесты monorepo. |
+| `cargo test` | Глобальные Rust-тесты (включая вспомогательные крейты). |
+
+Dev-оркестратор принимает те же переменные окружения, что и `spinal_cord:dev`, поэтому можно сразу настраивать адрес и мониторинг.
+
+### Ключевые переменные окружения
+
+| Переменная | Значение по умолчанию | Назначение |
+| --- | --- | --- |
+| `NEIRA_BIND_ADDR` | `0.0.0.0:3000` | Адрес и порт `spinal_cord`. Используется скриптом `scripts/spinal_cord-dev.mjs` и dev-оркестратором. |
+| `DIGESTIVE_CONFIG` | `spinal_cord/config/digestive.toml` | Путь к конфигурации `DigestivePipeline`. Подробнее см. раздел [DigestivePipeline — нормализация входа](#digestivepipeline--нормализация-входа). |
+| `NERVOUS_SYSTEM_ENABLED` | `true` | Управляет фоновыми мониторингами нервной системы. Вместе с `PROBES_HOST_METRICS_ENABLED` и `PROBES_IO_WATCHER_ENABLED` позволяет быстро отключить метрики. См. [Как отключить или ограничить мониторинг](docs/metrics_cells.md#как-отключить-или-ограничить-мониторинг). |
+| `NEIRA_HEALTHCHECK_URL` / `NEIRA_HEALTHCHECK_PATH` | `http://127.0.0.1:3000/` | Переопределяют целевой endpoint для автоматического health-check после запуска `npm run dev`. |
+
+Дополнительно доступны `NEIRA_HEALTHCHECK_RETRIES`, `NEIRA_HEALTHCHECK_INTERVAL_MS` и `NEIRA_HEALTHCHECK_TIMEOUT_MS` для тонкой настройки ожидания ответа.
 
 <!-- neira:meta
 id: NEI-20250214-120100-pre-commit-doc
