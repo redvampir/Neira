@@ -23,7 +23,7 @@ use thiserror::Error;
 pub const DEFAULT_RUSSIAN_CURRICULUM_PATH: &str = "static/training/russian_literacy.json";
 pub const RUSSIAN_CURRICULUM_ID: &str = "russian_literacy_v1";
 pub const INQUIRY_SEED_LIMIT: usize = 30;
-pub const RUSSIAN_CURRICULUM_MAX_WORDS: usize = 110;
+pub const RUSSIAN_CURRICULUM_MAX_WORDS: usize = 120;
 
 #[derive(Debug, Error)]
 pub enum CurriculumError {
