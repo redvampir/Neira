@@ -86,6 +86,19 @@ impl TrainingOrchestrator {
         if !self.hub.training_autorun_enabled() {
             return MicrotaskResult::skipped(Some("автозапуск отключён".into()));
         }
+        let failures = self.failures.load(Ordering::Relaxed);
+        if failures >= self.max_failures {
+            let message = format!(
+                "превышен лимит ошибок ({}), требуется вмешательство",
+                self.max_failures
+            );
+            warn!(
+                failures = failures,
+                max_failures = self.max_failures,
+                "автозапуск приостановлен из-за превышения лимита ошибок"
+            );
+            return MicrotaskResult::failed(Some(message));
+        }
         if self
             .running
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -110,14 +123,16 @@ impl TrainingOrchestrator {
                 let current = self.failures.fetch_add(1, Ordering::Relaxed) + 1;
                 error!("ошибка обучающего цикла: {}", err);
                 if current >= self.max_failures {
-                    warn!(
-                        failures = current,
-                        "превышен лимит ошибок, автозапуск приостановлен"
-                    );
-                    return MicrotaskResult::failed(Some(format!(
+                    let message = format!(
                         "превышен лимит ошибок ({}), требуется вмешательство",
                         self.max_failures
-                    )));
+                    );
+                    warn!(
+                        failures = current,
+                        max_failures = self.max_failures,
+                        "превышен лимит ошибок, автозапуск приостановлен"
+                    );
+                    return MicrotaskResult::failed(Some(message));
                 }
                 MicrotaskResult::failed(Some(err))
             }
@@ -218,6 +233,7 @@ mod tests {
         let hub = build_hub(dir.path());
         let orchestrator = TrainingOrchestrator::new(hub);
         let result = orchestrator.clone().run_cycle().await;
+        let second_result = orchestrator.clone().run_cycle().await;
         cleanup_env(&[
             "LEARNING_MICROTASKS_ENABLED",
             "TRAINING_PIPELINE_ENABLED",
@@ -230,6 +246,17 @@ mod tests {
         ]);
         assert_eq!(result.status, MicrotaskStatus::Failed);
         let msg = result.message.unwrap_or_default();
-        assert!(msg.contains("превышен лимит ошибок"), "ожидали приостановку, получили: {}", msg);
+        assert!(
+            msg.contains("превышен лимит ошибок"),
+            "ожидали приостановку, получили: {}",
+            msg
+        );
+        assert_eq!(second_result.status, MicrotaskStatus::Failed);
+        let second_msg = second_result.message.unwrap_or_default();
+        assert!(
+            second_msg.contains("превышен лимит ошибок"),
+            "ожидали, что повторный запуск будет заблокирован, получили: {}",
+            second_msg
+        );
     }
 }
