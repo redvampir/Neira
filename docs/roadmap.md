@@ -224,3 +224,4 @@ Consistency & Taxonomy
 5) Voice v1 pipeline
 - Клетки: `analysis.text_normalize.v1`, `analysis.text_to_phonemes.v1`, `analysis.speak_adapter.v1`.
 - Орган: `organ.voice.v1` (normalize→phonemes→speak_adapter); dry‑run→canary; метрики organ_build_* и factory_*.
+- Реализация: VoiceOrgan регистрирует клетки, TTS/STT доступны через `/voice/speak` и `/voice/transcribe`.
