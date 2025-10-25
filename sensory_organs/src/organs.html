@@ -1,8 +1,9 @@
 <!-- neira:meta
-id: NEI-20250219-organs-page
+id: NEI-20250301-121000-organs-page-update
 intent: docs
 summary: |
-  Страница просмотра органов с диаграммой метрик.
+  Страница органов обновлена для импорта TypeScript-версии диаграммы и явной
+  передачи базового URL API.
 -->
 <!DOCTYPE html>
 <html lang="ru">
@@ -13,9 +14,11 @@ summary: |
   <body>
     <canvas id="chart" width="400" height="200"></canvas>
     <script type="module">
-      import { renderMetrics } from './diagram.js';
+      import { renderMetrics } from './diagram';
       const canvas = document.getElementById('chart');
-      renderMetrics(canvas);
+      if (canvas instanceof HTMLCanvasElement) {
+        renderMetrics(canvas, { apiBase: import.meta.env.VITE_API_URL ?? '', pollMs: 6000, limit: 6 });
+      }
     </script>
   </body>
 </html>
