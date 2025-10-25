@@ -13,6 +13,7 @@ summary: |
   курсе, чтобы ограниченная выборка включала ключевые вопросительные слова.
 */
 use std::collections::{HashMap, HashSet};
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -23,7 +24,6 @@ use thiserror::Error;
 pub const DEFAULT_RUSSIAN_CURRICULUM_PATH: &str = "static/training/russian_literacy.json";
 pub const RUSSIAN_CURRICULUM_ID: &str = "russian_literacy_v1";
 pub const INQUIRY_SEED_LIMIT: usize = 30;
-pub const RUSSIAN_CURRICULUM_MAX_WORDS: usize = 120;
 
 #[derive(Debug, Error)]
 pub enum CurriculumError {
@@ -151,12 +151,13 @@ impl RussianLiteracyCurriculum {
                 "словарь не может быть пустым".into(),
             ));
         }
-        if self.words.len() > RUSSIAN_CURRICULUM_MAX_WORDS {
-            return Err(CurriculumError::Validation(format!(
-                "допустимо не более {} слов, найдено {}",
-                RUSSIAN_CURRICULUM_MAX_WORDS,
-                self.words.len()
-            )));
+        if let Some(limit) = words_limit_from_env()? {
+            if self.words.len() > limit {
+                return Err(CurriculumError::Validation(format!(
+                    "в словаре допускается не более {limit} слов, найдено {}",
+                    self.words.len()
+                )));
+            }
         }
         for word in &self.words {
             if word.word.trim().is_empty() {
@@ -234,6 +235,27 @@ impl RussianLiteracyCurriculum {
     }
 }
 
+fn words_limit_from_env() -> Result<Option<usize>, CurriculumError> {
+    match env::var("RUSSIAN_CURRICULUM_MAX_WORDS") {
+        Ok(raw) => {
+            let trimmed = raw.trim();
+            if trimmed.is_empty() {
+                return Ok(None);
+            }
+            let limit = trimmed.parse::<usize>().map_err(|err| {
+                CurriculumError::Validation(format!(
+                    "не удалось прочитать значение RUSSIAN_CURRICULUM_MAX_WORDS: {err}"
+                ))
+            })?;
+            Ok(Some(limit))
+        }
+        Err(env::VarError::NotPresent) => Ok(None),
+        Err(err) => Err(CurriculumError::Validation(format!(
+            "ошибка чтения RUSSIAN_CURRICULUM_MAX_WORDS: {err}"
+        ))),
+    }
+}
+
 fn theme_priority(theme: &str) -> u8 {
     if theme == "вопросы" { 0 } else { 1 }
 }
@@ -250,10 +272,12 @@ pub fn default_curriculum_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
     use std::path::PathBuf;
 
     #[test]
     fn curriculum_loads_and_validates() {
+        env::remove_var("RUSSIAN_CURRICULUM_MAX_WORDS");
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("static/training/russian_literacy.json");
         let curriculum = RussianLiteracyCurriculum::load_from_path(&path)
@@ -261,7 +285,10 @@ mod tests {
         assert_eq!(curriculum.id(), RUSSIAN_CURRICULUM_ID);
         let summary = curriculum.summary();
         assert_eq!(summary.letters, 33);
-        assert!(summary.words <= RUSSIAN_CURRICULUM_MAX_WORDS);
+        assert!(
+            summary.words > 120,
+            "ожидается расширенный словарь более чем из 120 слов"
+        );
         assert!(summary.syllables > summary.words);
     }
 }
