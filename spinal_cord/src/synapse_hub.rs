@@ -72,6 +72,13 @@ id: NEI-20250224-blocking-analyze
 intent: fix
 summary: Анализ выполняется в отдельном блокирующем пуле tokio::task.
 */
+/* neira:meta
+id: NEI-20280502-120500-interaction-verbs
+intent: feature
+summary: |-
+  SynapseHub определяет глаголы взаимодействия в сообщениях чата,
+  добавляет триггеры, метрики и публикует события persona.interaction_verb.observed.
+*/
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
@@ -96,6 +103,9 @@ use crate::organ_builder::{OrganBuilder, OrganState};
 use crate::security::integrity_checker_cell::IntegrityCheckerCell;
 use crate::security::quarantine_cell::QuarantineCell;
 use crate::security::safe_mode_controller::SafeModeController;
+use crate::persona::interaction_verbs::{
+    InteractionVerbActor, InteractionVerbDetector, InteractionVerbObserved,
+};
 use crate::persona::tone_state::{ToneFeedback, ToneSnapshot, ToneStateController};
 use jsonschema_valid::ValidationError;
 use lru::LruCache;
@@ -140,6 +150,7 @@ pub struct SynapseHub {
     pub memory: Arc<MemoryCell>,
     metrics: Arc<MetricsCollectorCell>,
     trigger_detector: Arc<TriggerDetector>,
+    interaction_verbs: InteractionVerbDetector,
     pub(crate) scheduler: Arc<RwLock<TaskScheduler>>,
     queue_cfg: RwLock<QueueConfig>,
     allowed_tokens: RwLock<std::collections::HashMap<String, TokenInfo>>,
@@ -300,6 +311,7 @@ impl SynapseHub {
             memory,
             metrics: metrics.clone(),
             trigger_detector: Arc::new(TriggerDetector::default()),
+            interaction_verbs: InteractionVerbDetector::default(),
             scheduler: scheduler.clone(),
             queue_cfg: RwLock::new(queue_cfg),
             allowed_tokens: RwLock::new(std::collections::HashMap::new()),
@@ -749,6 +761,10 @@ impl SynapseHub {
 
         // Parse training command like: "train script=... dry_run=true"
         let mut triggers = self.trigger_detector.detect(message);
+        let interaction_verbs = self.interaction_verbs.detect(message);
+        for verb in &interaction_verbs {
+            triggers.push(format!("interaction:{}", verb.as_str()));
+        }
         if message.to_lowercase().starts_with("train") {
             triggers.push("train".into());
             // parse key=value with quotes
@@ -917,6 +933,34 @@ impl SynapseHub {
         }
 
         self.observe_tone(message);
+
+        if !interaction_verbs.is_empty() {
+            let sid_for_events = sid_effective.clone();
+            for verb in &interaction_verbs {
+                metrics::counter!(
+                    "interaction_verbs_detected_total",
+                    "verb" => verb.as_str(),
+                    "actor" => InteractionVerbActor::User.as_str()
+                )
+                .increment(1);
+                hearing::info(&format!(
+                    "interaction verb detected; chat_id={} session_id={} verb={}",
+                    chat_id,
+                    sid_for_events
+                        .as_deref()
+                        .unwrap_or("<none>"),
+                    verb.as_str()
+                ));
+                let event = InteractionVerbObserved::new(
+                    InteractionVerbActor::User,
+                    *verb,
+                    chat_id,
+                    sid_for_events.clone(),
+                    message,
+                );
+                self.event_bus.publish(&event);
+            }
+        }
 
         let t0 = Instant::now();
 
