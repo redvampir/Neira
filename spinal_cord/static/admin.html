@@ -1,3 +1,8 @@
+<!-- neira:meta
+id: NEI-20270318-120140-admin-microtasks
+intent: docs
+summary: Обновлён бриф Anti-Idle: вывод глубины и числа активных микрозадач.
+-->
 <!doctype html>
 <html lang="ru">
 <head>
@@ -104,8 +109,9 @@
         const map = ['active','short','long','deep'];
         const label = map[ai.idle_state|0] || String(ai.idle_state||'n/a');
         const lbl = ai.idle_label || label;
-        const dry = (ai.microtasks && ai.microtasks.dryrun_depth) || 0;
-        qs('idleBrief').textContent = `Anti-Idle: ${ai.enabled? 'ON':'OFF'}, state=${lbl}, since=${ai.since_seconds||0}s, q(dry)=${dry}`;
+        const depth = (ai.microtasks && (ai.microtasks.depth ?? ai.microtasks.dryrun_depth)) || 0;
+        const running = ((ai.microtasks && ai.microtasks.tasks) || []).filter(t => t.running).length;
+        qs('idleBrief').textContent = `Anti-Idle: ${ai.enabled? 'ON':'OFF'}, state=${lbl}, since=${ai.since_seconds||0}s, очередь=${depth}, активные=${running}`;
       } catch {}
       // badges
       qs('pausedBadge').className = 'badge ' + (s.paused ? 'warn':'ok');

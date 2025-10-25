@@ -13,6 +13,13 @@ id: NEI-20261005-digestive-metrics-doc
 intent: docs
 summary: Документированы метрики digestive_parse_duration_ms и digestive_validation_duration_ms.
 -->
+<!-- neira:meta
+id: NEI-20270318-120030-training-metrics-docs
+intent: docs
+summary: |-
+  Уточнены auto_tasks_* и training_* метрики: фиксируются TrainingOrchestrator с
+  лейблом mode="auto" и перечнем микрозадач.
+-->
 # Реестр Метрик (Истина)
 
 | Имя | Тип | Единицы | Где инкрементируется | Назначение |
@@ -46,9 +53,9 @@ summary: Документированы метрики digestive_parse_duration_
 | safe_mode | gauge | 0/1 | Hub | Статус безопасного режима |
 | idle_state | gauge | 0..3 | Anti-Idle | Текущее состояние простоя |
 | idle_minutes_today | counter | min | Anti-Idle | Минуты простоя за день |
-| auto_tasks_started | counter | tasks | Anti-Idle | Запущено авто‑задач |
-| auto_tasks_completed | counter | tasks | Anti-Idle | Завершено авто‑задач |
-| auto_tasks_blocked | counter | tasks | Anti-Idle | Заблокировано SafetyController |
+| auto_tasks_started | counter | tasks | Anti-Idle | Запуск микрозадач (лейбл `task`, вкл. TrainingOrchestrator) |
+| auto_tasks_completed | counter | tasks | Anti-Idle | Успешные микрозадачи (лейбл `task`) |
+| auto_tasks_blocked | counter | tasks | Anti-Idle | Ошибки/блокировки микрозадач (лейбл `task`) |
 | approvals_pending | gauge | count | Anti-Idle | Запросы на одобрение в очереди |
 | autonomous_time_spent_seconds | counter | s | Anti-Idle | Секунды автономной работы |
 | microtask_queue_depth | gauge | count | Anti-Idle | Глубина очереди микрозадач |
@@ -171,5 +178,5 @@ summary: document organ_build_status_errors_total metric.
 | organ_build_duration_ms | histogram | ms | OrganBuilder | Время от Draft до Stable |
 | organ_status_not_found_total | counter | ops | OrganBuilder | Запросы статуса к несуществующим органам |
 | organ_build_restored_total | counter | ops | OrganBuilder | Восстановленные органы при запуске |
-| training_iterations_total | counter | iters | Training | Итерации обучения новых клеток |
-| training_converged_total | counter | iters | Training | Конвергировали до стабильности |
+| training_iterations_total | counter | iters | Training | Итерации обучения (лейбл `mode`, auto=оркестратор) |
+| training_converged_total | counter | iters | Training | Успешные циклы обучения (лейбл `mode`) |

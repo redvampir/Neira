@@ -2,6 +2,13 @@
 id: NEI-20250904-120501-roadmap-cleanup
 intent: docs
 summary: Чистовая дорожная карта Stage 0 → Stage 1: цели, DoD, интерфейсы, homeostasis/control, persona. Актуализированы ссылки и гейты. -->
+<!-- neira:meta
+id: NEI-20270318-120040-roadmap-training
+intent: docs
+summary: |-
+  Обновлена дорожная карта: Anti‑Idle микрозадачи и Training Orchestrator
+  переведены в выполненные пункты Stage 1.
+-->
 
 # Дорожная карта (Stage 0 → Stage 1)
 
@@ -172,11 +179,11 @@ Stage 1 (Experimental Growth)
 - [x] Trace requests — трасса по `request_id` (experimental).
 - [x] Introspection status (HTTP) — базовая самодиагностика.
 - [x] Runtime Extensibility — read‑only листинги плагинов/инструментов (exec = LOCKED).
-- [ ] Anti‑Idle микрозадачи — `learning_microtasks` и `reflection_journal` (каркас готов, запуска нет).
+- [x] Anti‑Idle микрозадачи — `learning_microtasks` и `reflection_journal` (очередь + автообучение активны).
 - [ ] Homeostasis budgets — обратные давления/паузы/лимиты в обработке запросов (experimental).
 - [ ] Factory (Adapter) — FabricatorCell + SelectorCell, только dry‑run/HITL (experimental).
 - [ ] OrganTemplate/OrganBuilder — сборка органов (dry‑run → canary) с интеграцией NS/IS (experimental).
-- [ ] Training Orchestrator (HITL) — мини‑циклы стабилизации клеток до Experimental/Stable.
+- [x] Training Orchestrator (HITL) — циклы Scripted Training в простое с кулдаунами и метриками.
 
 ---
 
