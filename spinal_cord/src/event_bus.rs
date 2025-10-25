@@ -131,6 +131,42 @@ impl Event for OrganBuilt {
     }
 }
 
+/* neira:meta
+id: NEI-20280401-120020-curriculum-event
+intent: feature
+summary: Добавлено событие training.curriculum.loaded для фиксации загрузки учебного курса.
+*/
+pub struct CurriculumLoaded {
+    pub curriculum_id: String,
+    pub letters: usize,
+    pub syllables: usize,
+    pub words: usize,
+    pub source_path: Option<PathBuf>,
+}
+
+impl Event for CurriculumLoaded {
+    fn name(&self) -> &str {
+        "training.curriculum.loaded"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn data(&self) -> Option<Value> {
+        Some(json!({
+            "curriculum_id": self.curriculum_id,
+            "letters": self.letters,
+            "syllables": self.syllables,
+            "words": self.words,
+            "source": self
+                .source_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string()),
+        }))
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LymphaticDecision {
     Keep,
