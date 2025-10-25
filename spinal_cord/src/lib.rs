@@ -74,6 +74,7 @@ intent: code
 summary: Экспортирован модуль event_log.
 */
 pub mod event_log;
+pub mod voice;
 
 /* neira:meta
 id: NEI-20240513-lib-test-allow

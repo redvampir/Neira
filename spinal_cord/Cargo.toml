@@ -20,6 +20,7 @@ axum = { git = "https://github.com/tokio-rs/axum", rev = "ee1519c82f60fc3a14890d
 tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "sync", "io-util", "net", "time", "fs", "signal", "process"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+base64 = "0.22"
 dotenvy = "0.15"
 jsonschema-valid = "0.5.2"
 once_cell = "1"

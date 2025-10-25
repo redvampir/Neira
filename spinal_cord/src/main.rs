@@ -11,6 +11,10 @@ summary: Булевы переменные в main читаются через c
 use backend::config;
 use backend::context::context_dir;
 use backend::digestive_pipeline::{DigestivePipeline, ParsedInput};
+use backend::voice::{
+    VoiceBackendMode, VoiceConfig, VoiceError, VoiceOrgan, VoiceSynthesis, VoiceTranscription,
+};
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 /* neira:meta
@@ -124,11 +128,18 @@ pub struct AppState {
     paused: Arc<AtomicBool>,
     pause_info: Arc<Mutex<Option<(std::time::Instant, String)>>>,
     shutdown: tokio_util::sync::CancellationToken,
+    voice: Arc<VoiceOrgan>,
 }
 
 impl axum::extract::FromRef<AppState> for Arc<SynapseHub> {
     fn from_ref(state: &AppState) -> Arc<SynapseHub> {
         state.hub.clone()
+    }
+}
+
+impl axum::extract::FromRef<AppState> for Arc<VoiceOrgan> {
+    fn from_ref(state: &AppState) -> Arc<VoiceOrgan> {
+        state.voice.clone()
     }
 }
 
@@ -190,6 +201,142 @@ struct FactoryBody {
     backend: Option<String>,
     #[serde(flatten)]
     tpl: CellTemplate,
+}
+
+/* neira:meta
+id: NEI-20280105-voice-api-main
+intent: feature
+summary: Добавлены обработчики /voice/speak и /voice/transcribe, инициализация VoiceOrgan.
+*/
+#[derive(Deserialize)]
+struct VoiceSpeakRequest {
+    #[serde(default)]
+    text: Option<String>,
+    #[serde(default)]
+    normalized: Option<String>,
+    #[serde(default)]
+    phonemes: Option<String>,
+    #[serde(default)]
+    request_id: Option<String>,
+}
+
+#[derive(Serialize)]
+struct VoiceSpeakResponse {
+    request_id: String,
+    file: String,
+    audio_base64: String,
+    text: String,
+    phonemes: String,
+}
+
+impl From<VoiceSynthesis> for VoiceSpeakResponse {
+    fn from(value: VoiceSynthesis) -> Self {
+        Self {
+            request_id: value.request_id,
+            file: value.file_path.to_string_lossy().to_string(),
+            audio_base64: value.audio_base64,
+            text: value.text,
+            phonemes: value.phonemes,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct VoiceTranscribeRequest {
+    #[serde(default)]
+    audio_base64: Option<String>,
+    #[serde(default)]
+    file_path: Option<String>,
+}
+
+#[derive(Serialize)]
+struct VoiceTranscribeResponse {
+    request_id: String,
+    text: String,
+}
+
+fn voice_error_to_status(err: VoiceError) -> (axum::http::StatusCode, String) {
+    use axum::http::StatusCode;
+    let status = match err {
+        VoiceError::InvalidInput(_) | VoiceError::Validation(_) | VoiceError::Base64(_) => {
+            StatusCode::BAD_REQUEST
+        }
+        VoiceError::HubUnavailable => StatusCode::SERVICE_UNAVAILABLE,
+        VoiceError::Io(_) | VoiceError::Command(_) | VoiceError::Utf8(_) => {
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+        VoiceError::Json(_) => StatusCode::BAD_REQUEST,
+    };
+    (status, err.to_string())
+}
+
+async fn voice_speak(
+    State(state): State<AppState>,
+    Json(payload): Json<VoiceSpeakRequest>,
+) -> Result<Json<VoiceSpeakResponse>, (axum::http::StatusCode, String)> {
+    let text = payload
+        .normalized
+        .clone()
+        .or(payload.text.clone())
+        .ok_or_else(|| {
+            (
+                axum::http::StatusCode::BAD_REQUEST,
+                "нужно поле text или normalized".to_string(),
+            )
+        })?;
+    let request_id = payload.request_id.clone();
+    let phonemes = payload.phonemes.clone();
+    let voice = state.voice.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        voice.synthesize(request_id.as_deref(), &text, phonemes.as_deref())
+    })
+    .await
+    .map_err(|err| {
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("voice task join error: {err}"),
+        )
+    })?
+    .map_err(voice_error_to_status)?;
+    hearing::info(&format!("voice speak завершён; id={}", result.request_id));
+    Ok(Json(VoiceSpeakResponse::from(result)))
+}
+
+async fn voice_transcribe(
+    State(state): State<AppState>,
+    Json(payload): Json<VoiceTranscribeRequest>,
+) -> Result<Json<VoiceTranscribeResponse>, (axum::http::StatusCode, String)> {
+    let voice = state.voice.clone();
+    let base64 = payload.audio_base64.clone();
+    let file_path = payload.file_path.clone();
+    let transcription =
+        tokio::task::spawn_blocking(move || -> Result<VoiceTranscription, VoiceError> {
+            if let Some(data) = base64 {
+                voice.transcribe_base64(&data)
+            } else if let Some(path) = file_path {
+                voice.transcribe_file(std::path::Path::new(&path))
+            } else {
+                Err(VoiceError::with_context(
+                    "нужно указать audio_base64 или file_path",
+                ))
+            }
+        })
+        .await
+        .map_err(|err| {
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("voice task join error: {err}"),
+            )
+        })?
+        .map_err(voice_error_to_status)?;
+    hearing::info(&format!(
+        "voice transcribe завершён; id={}",
+        transcription.request_id
+    ));
+    Ok(Json(VoiceTranscribeResponse {
+        request_id: transcription.request_id,
+        text: transcription.text,
+    }))
 }
 
 async fn factory_dryrun(
@@ -1664,6 +1811,32 @@ async fn main() {
     // Register a default chat cell
     registry.register_chat_cell(Arc::new(EchoChatCell::default()));
 
+    let voice_config = VoiceConfig::from_env();
+    let voice = match VoiceOrgan::new(Some(hub.clone()), registry.clone(), voice_config.clone()) {
+        Ok(org) => org,
+        Err(err) => {
+            hearing::warn(&format!(
+                "voice organ init failed ({err}); переключаемся на codec",
+            ));
+            let mut fallback = voice_config.clone();
+            fallback.backend_mode = VoiceBackendMode::Codec;
+            fallback.tts_command = None;
+            fallback.stt_command = None;
+            match VoiceOrgan::new(Some(hub.clone()), registry.clone(), fallback) {
+                Ok(org) => org,
+                Err(second) => {
+                    hearing::warn(&format!(
+                        "voice organ fallback init failed ({second}); завершаем",
+                    ));
+                    return;
+                }
+            }
+        }
+    };
+    if let Err(err) = voice.bootstrap() {
+        hearing::warn(&format!("voice organ bootstrap предупреждение: {err}"));
+    }
+
     // Context storage
     let storage = Arc::new(FileContextStorage::new("context"));
     // Initialize sessions_active gauge by reading index.json files
@@ -1750,6 +1923,7 @@ async fn main() {
         paused: Arc::new(AtomicBool::new(false)),
         pause_info: Arc::new(Mutex::new(None)),
         shutdown: shutdown_token.clone(),
+        voice: voice.clone(),
     };
 
     anti_idle::init();
@@ -1870,6 +2044,8 @@ async fn main() {
         .route("/factory/cells/{fid}/approve", post(factory_approve))
         .route("/factory/cells/{fid}/disable", post(factory_disable))
         .route("/factory/cells/{fid}/rollback", post(factory_rollback))
+        .route("/voice/speak", post(voice_speak))
+        .route("/voice/transcribe", post(voice_transcribe))
         // Organ builder
         .route("/organs", get(organs_list))
         .route("/organs/build", post(organ_build))
