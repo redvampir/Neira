@@ -201,10 +201,12 @@ impl LearningMetrics {
         update: TrainingConfigUpdate,
     ) -> Result<TrainingConfig, TrainingConfigError> {
         let mut guard = self.config.write().await;
-        guard.apply_update(update);
-        guard.validate()?;
-        guard.save_to_path(&self.config_path)?;
-        Ok(guard.clone())
+        let mut candidate = guard.clone();
+        candidate.apply_update(update);
+        candidate.validate()?;
+        candidate.save_to_path(&self.config_path)?;
+        *guard = candidate.clone();
+        Ok(candidate)
     }
 }
 
@@ -371,6 +373,29 @@ mod tests {
 
         let persisted = TrainingConfig::load_or_default(&config_path).unwrap();
         assert_eq!(persisted.success_threshold, 0.9);
+    }
+
+    #[tokio::test]
+    async fn test_update_training_config_rolls_back_on_error() {
+        let (_temp_dir, config_path, metrics) = metrics_with_temp_config();
+
+        let original = metrics.get_training_config().await;
+        let result = metrics
+            .update_training_config(TrainingConfigUpdate {
+                success_threshold: Some(0.5),
+                failure_threshold: Some(0.6),
+                ..TrainingConfigUpdate::default()
+            })
+            .await;
+
+        assert!(matches!(result, Err(TrainingConfigError::Validation(_))));
+
+        let current = metrics.get_training_config().await;
+        assert_eq!(current.success_threshold, original.success_threshold);
+        assert_eq!(current.failure_threshold, original.failure_threshold);
+        assert_eq!(current.min_attempts, original.min_attempts);
+        assert_eq!(current.data_dir, original.data_dir);
+        assert!(!config_path.exists());
     }
 
     fn metrics_with_temp_config() -> (TempDir, PathBuf, LearningMetrics) {
