@@ -1,17 +1,23 @@
+/* neira:meta
+id: NEI-20250211-163700-training-metrics-settings
+intent: feature
+summary: |
+  Подключил метрики обучения к файлу конфигурации и добавил обновление параметров.
+*/
 use crate::autopilot::AutoPilot;
+use crate::training::config::{
+    config_path_to_string, TrainingConfig, TrainingConfigError, TrainingConfigUpdate,
+};
 use chrono::{DateTime, Utc};
 use prometheus::{Gauge, IntCounter, Registry};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::env;
 use std::error::Error as StdError;
+use std::path::PathBuf;
 use std::sync::Arc;
-use std::{env, path::PathBuf};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
-
-const DEFAULT_SUCCESS_THRESHOLD: f64 = 0.8;
-const DEFAULT_FAILURE_THRESHOLD: f64 = 0.6;
-const DEFAULT_MIN_ATTEMPTS: u64 = 5;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct LearningStats {
@@ -28,6 +34,8 @@ pub struct LearningMetrics {
     attempts: IntCounter,
     difficulty_level: Gauge,
     pub stats: Arc<RwLock<LearningStats>>,
+    config: Arc<RwLock<TrainingConfig>>,
+    config_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -55,6 +63,11 @@ impl Pipeline for PipelineResult {
 
 impl LearningMetrics {
     pub fn new() -> Self {
+        let config_path = TrainingConfig::resolve_path();
+        Self::with_config_path(config_path)
+    }
+
+    pub fn with_config_path(config_path: PathBuf) -> Self {
         let registry = Registry::new();
         let success_rate = Gauge::new("learning_success_rate", "Процент успешных ответов").unwrap();
         let attempts = IntCounter::new("learning_attempts", "Количество попыток").unwrap();
@@ -66,6 +79,17 @@ impl LearningMetrics {
         registry
             .register(Box::new(difficulty_level.clone()))
             .unwrap();
+        let config = match TrainingConfig::load_or_default(&config_path) {
+            Ok(cfg) => cfg,
+            Err(error) => {
+                warn!(
+                    path = config_path_to_string(&config_path),
+                    error = %error,
+                    "Не удалось загрузить конфигурацию обучения, используем значения по умолчанию"
+                );
+                TrainingConfig::default()
+            }
+        };
 
         Self {
             registry,
@@ -73,6 +97,8 @@ impl LearningMetrics {
             attempts,
             difficulty_level,
             stats: Arc::new(RwLock::new(LearningStats::default())),
+            config: Arc::new(RwLock::new(config)),
+            config_path,
         }
     }
 
@@ -129,12 +155,13 @@ impl LearningMetrics {
 
     pub async fn adjust_difficulty(&self) -> f64 {
         let stats = self.stats.read().await;
+        let config = self.config.read().await.clone();
         let current = stats.current_level;
-        let new_level = if stats.should_increase_difficulty() {
+        let new_level = if stats.should_increase_difficulty(&config) {
             let level = (current + 0.1).min(1.0);
             info!(from = current, to = level, "Increasing difficulty");
             level
-        } else if stats.should_decrease_difficulty() {
+        } else if stats.should_decrease_difficulty(&config) {
             let level = (current - 0.1).max(0.1);
             warn!(from = current, to = level, "Decreasing difficulty");
             level
@@ -161,27 +188,23 @@ impl LearningMetrics {
         Arc::new(pilot)
     }
 
-    fn get_thresholds() -> (f64, f64, u64) {
-        let success = env::var("NEIRA_SUCCESS_THRESHOLD")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(DEFAULT_SUCCESS_THRESHOLD);
-
-        let failure = env::var("NEIRA_FAILURE_THRESHOLD")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(DEFAULT_FAILURE_THRESHOLD);
-
-        let attempts = env::var("NEIRA_MIN_ATTEMPTS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(DEFAULT_MIN_ATTEMPTS);
-
-        (success, failure, attempts)
-    }
-
     pub async fn get_current_level(&self) -> f64 {
         self.stats.read().await.current_level
+    }
+
+    pub async fn get_training_config(&self) -> TrainingConfig {
+        self.config.read().await.clone()
+    }
+
+    pub async fn update_training_config(
+        &self,
+        update: TrainingConfigUpdate,
+    ) -> Result<TrainingConfig, TrainingConfigError> {
+        let mut guard = self.config.write().await;
+        guard.apply_update(update);
+        guard.validate()?;
+        guard.save_to_path(&self.config_path)?;
+        Ok(guard.clone())
     }
 }
 
@@ -202,14 +225,12 @@ impl LearningStats {
         self.success_count as f64 / self.total_attempts as f64
     }
 
-    pub fn should_increase_difficulty(&self) -> bool {
-        let (success_threshold, _, min_attempts) = LearningMetrics::get_thresholds();
-        self.get_success_rate() > success_threshold && self.total_attempts >= min_attempts
+    pub fn should_increase_difficulty(&self, config: &TrainingConfig) -> bool {
+        self.get_success_rate() > config.success_threshold && self.total_attempts >= config.min_attempts
     }
 
-    pub fn should_decrease_difficulty(&self) -> bool {
-        let (_, failure_threshold, min_attempts) = LearningMetrics::get_thresholds();
-        self.get_success_rate() < failure_threshold && self.total_attempts >= min_attempts
+    pub fn should_decrease_difficulty(&self, config: &TrainingConfig) -> bool {
+        self.get_success_rate() < config.failure_threshold && self.total_attempts >= config.min_attempts
     }
 }
 
@@ -217,11 +238,12 @@ impl LearningStats {
 mod tests {
     use super::*;
     use std::env;
+    use std::path::PathBuf;
     use tempfile::TempDir;
 
     #[tokio::test]
     async fn test_record_attempt() {
-        let metrics = LearningMetrics::new();
+        let (_dir, _path, metrics) = metrics_with_temp_config();
 
         // Проверяем успешную попытку
         metrics.record_attempt(true, 0.5).await;
@@ -243,12 +265,12 @@ mod tests {
         let temp_dir = TempDir::new()?;
         env::set_var("NEIRA_DATA_DIR", temp_dir.path());
 
-        let metrics = LearningMetrics::new();
+        let (_config_guard, _path, metrics) = metrics_with_temp_config();
         metrics.record_attempt(true, 0.5).await;
         metrics.save_progress().await?;
 
         // Создаем новый экземпляр и проверяем загрузку
-        let new_metrics = LearningMetrics::new();
+        let (_config_guard2, _path, new_metrics) = metrics_with_temp_config();
         new_metrics.load_progress().await?;
 
         let stats = new_metrics.stats.read().await;
@@ -261,26 +283,27 @@ mod tests {
     #[test]
     fn test_difficulty_adjustment() {
         let mut stats = LearningStats::default();
+        let config = TrainingConfig::default();
 
         // Проверяем повышение сложности
         for _ in 0..5 {
             stats.update(true, 0.5);
         }
-        assert!(stats.should_increase_difficulty());
-        assert!(!stats.should_decrease_difficulty());
+        assert!(stats.should_increase_difficulty(&config));
+        assert!(!stats.should_decrease_difficulty(&config));
 
         // Проверяем понижение сложности
         let mut stats = LearningStats::default();
         for _ in 0..5 {
             stats.update(false, 0.5);
         }
-        assert!(!stats.should_increase_difficulty());
-        assert!(stats.should_decrease_difficulty());
+        assert!(!stats.should_increase_difficulty(&config));
+        assert!(stats.should_decrease_difficulty(&config));
     }
 
     #[test]
     fn test_metrics_export() {
-        let metrics = LearningMetrics::new();
+        let (_guard, _path, metrics) = metrics_with_temp_config();
 
         // Проверяем начальные значения
         assert_eq!(metrics.get_success_rate_metric(), 0.0);
@@ -293,7 +316,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_adaptive_difficulty() {
-        let metrics = LearningMetrics::new();
+        let (_guard, _path, metrics) = metrics_with_temp_config();
 
         // Проверяем повышение сложности после успешных попыток
         for _ in 0..5 {
@@ -302,7 +325,7 @@ mod tests {
         assert!(metrics.adjust_difficulty().await > 0.5);
 
         // Проверяем понижение сложности после неудач
-        let metrics = LearningMetrics::new();
+        let (_guard2, _path, metrics) = metrics_with_temp_config();
         for _ in 0..5 {
             metrics.record_attempt(false, 0.5).await;
         }
@@ -311,7 +334,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_process_pipeline_result() {
-        let metrics = LearningMetrics::new();
+        let (_guard, _path, metrics) = metrics_with_temp_config();
 
         let result = PipelineResult {
             value: serde_json::json!({
@@ -325,5 +348,35 @@ mod tests {
         let stats = metrics.stats.read().await;
         assert_eq!(stats.success_count, 1);
         assert_eq!(stats.current_level, 0.7);
+    }
+
+    #[tokio::test]
+    async fn test_update_training_config_persists_changes() {
+        let (temp_dir, config_path, metrics) = metrics_with_temp_config();
+
+        let updated = metrics
+            .update_training_config(TrainingConfigUpdate {
+                success_threshold: Some(0.9),
+                failure_threshold: Some(0.7),
+                min_attempts: Some(12),
+                data_dir: Some(temp_dir.path().join("custom")),
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(updated.success_threshold, 0.9);
+        assert_eq!(updated.failure_threshold, 0.7);
+        assert_eq!(updated.min_attempts, 12);
+        assert_eq!(updated.data_dir, temp_dir.path().join("custom"));
+
+        let persisted = TrainingConfig::load_or_default(&config_path).unwrap();
+        assert_eq!(persisted.success_threshold, 0.9);
+    }
+
+    fn metrics_with_temp_config() -> (TempDir, PathBuf, LearningMetrics) {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.toml");
+        let metrics = LearningMetrics::with_config_path(config_path.clone());
+        (temp_dir, config_path, metrics)
     }
 }

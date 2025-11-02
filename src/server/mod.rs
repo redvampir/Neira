@@ -41,7 +41,7 @@ impl MetricsServer {
 
         let app = Router::new()
             .nest("/metrics", metrics::router())
-            .route("/training/attempt", post(training::record_attempt))
+            .nest("/training", training::router())
             .route("/chat", post(chat::handle_message))
             .nest_service("/", ServeDir::new("static"))
             .with_state(self.metrics.clone())
