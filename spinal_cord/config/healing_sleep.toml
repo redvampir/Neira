@@ -1,0 +1,18 @@
+# neira:meta
+# id: NEI-20280430-120600-healing-config-doc
+# intent: config
+# summary: Настройки цикла «Исцеляющий сон»: включение, журналы и консультации.
+
+[healing_sleep]
+enabled = true
+allow_external_consultant = false
+preferred_consultant = "openai:gpt-4.1"
+max_incidents_per_cycle = 5
+journal_limit = 120
+reflection_window_minutes = 45
+min_severity = "medium"
+
+[healing_sleep.prompt]
+prompt_memory = 5
+max_training_samples = 16
+include_signals = true

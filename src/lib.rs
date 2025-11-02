@@ -1,9 +1,11 @@
-/* neira:meta
-id: NEI-20250829-180333-rs-greet
-intent: docs
-summary: |
-  Демонстрационная функция возвращает приветствие.
-*/
+pub mod autopilot;
+pub mod cell_template;
+pub mod server;
+pub mod training;
+
+pub use autopilot::AutoPilot;
+pub use server::MetricsServer;
+pub use training::metrics::LearningMetrics;
 
 pub fn greet() -> &'static str {
     "Hello, Neira!"

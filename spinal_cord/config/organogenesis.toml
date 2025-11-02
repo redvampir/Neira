@@ -1,0 +1,15 @@
+[growth]
+# Максимальное количество одновременно растущих органов
+max_concurrent_growth = 2
+
+# Приоритеты создания органов
+[priorities]
+memory = 3
+processing = 2
+analysis = 2
+input = 1
+
+# Ограничения
+[limits]
+max_complexity = 5
+min_approval_time = 30  # секунды на подтверждение пользователем

@@ -1,0 +1,36 @@
+[
+  {
+    "id": "sample_001",
+    "audio_path": "spinal_cord/training/fixtures/audio/sample_001.wav",
+    "transcription_phonetic": "p a t' e n'",
+    "meta": { "speaker": "test", "lang": "ru" }
+  },
+  {
+    "id": "sample_002",
+    "audio_path": "spinal_cord/training/fixtures/audio/sample_002.wav",
+    "transcription_phonetic": "s t r o j",
+    "meta": { "speaker": "test", "lang": "ru" }
+  },
+  {
+    "id": "sample_003",
+    "audio_path": "spinal_cord/training/fixtures/audio/sample_003.wav",
+    "transcription_phonetic": "p r' i v' e t",
+    "meta": {
+      "speaker": "test",
+      "lang": "ru",
+      "difficulty": "medium",
+      "phoneme_groups": ["palatalized", "stops", "fricatives"]
+    }
+  },
+  {
+    "id": "sample_004", 
+    "audio_path": "spinal_cord/training/fixtures/audio/sample_004.wav",
+    "transcription_phonetic": "ʐ ɨ z n'",
+    "meta": {
+      "speaker": "test",
+      "lang": "ru",
+      "difficulty": "hard",
+      "phoneme_groups": ["sibilants", "palatalized", "clusters"]
+    }
+  }
+]

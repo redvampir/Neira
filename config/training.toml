@@ -1,0 +1,5 @@
+# Конфигурация обучения
+success_threshold = 0.8
+failure_threshold = 0.6
+min_attempts = 5
+data_dir = "data"

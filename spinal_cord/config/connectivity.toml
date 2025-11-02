@@ -1,0 +1,23 @@
+[validation]
+# Разрешить автоматическое создание недостающих органов
+allow_auto_creation = true
+
+# Минимальное количество связей для работоспособности
+min_connections = 1
+
+# Время ожидания создания зависимостей (секунды)
+dependency_timeout = 300
+
+[requirements]
+# Базовые требования для типов органов
+[requirements.analyzer]
+required_organs = ["memory_cell", "data_processor"]
+min_connections = 2
+
+[requirements.processor]
+required_organs = ["memory_cell"]
+min_connections = 1
+
+[requirements.sensor]
+optional_organs = ["data_filter", "signal_processor"]
+min_connections = 1

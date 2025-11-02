@@ -8,7 +8,10 @@ use backend::factory::{StemCellRecord, StemCellState};
 use backend::immune_system::{lymphatic_filter, ImmuneSystemSubscriber};
 use chrono::Utc;
 use serial_test::serial;
-use std::{path::Path, sync::{Arc, Mutex}};
+use std::{
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 struct Capture {
     count: Mutex<usize>,

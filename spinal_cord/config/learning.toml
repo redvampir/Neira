@@ -1,0 +1,11 @@
+# Конфигурация самообучения
+[default]
+# Максимальное время на сессию обучения (сек)
+max_session_time = 300  # 5 минут
+
+# Минимальный порог уверенности (0-1)
+confidence_threshold = 0.75
+
+[safe_mode]
+max_session_time = 60   # 1 минута
+confidence_threshold = 0.9

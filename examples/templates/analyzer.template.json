@@ -1,0 +1,26 @@
+{
+    "template_id": "base_analyzer",
+    "base_type": "Analyzer",
+    "default_capabilities": [
+        "text_analysis",
+        "pattern_matching",
+        "error_detection"
+    ],
+    "validation_rules": [
+        {
+            "rule_type": "required_field",
+            "condition": "has_field('analysis_type')",
+            "error_message": "Отсутствует тип анализа"
+        },
+        {
+            "rule_type": "version_format",
+            "condition": "version_matches('^\\d+\\.\\d+\\.\\d+$')",
+            "error_message": "Неверный формат версии"
+        }
+    ],
+    "compatibility": {
+        "min_version": "0.1.0",
+        "required_organs": ["memory_cell"],
+        "optional_organs": ["data_transformer"]
+    }
+}

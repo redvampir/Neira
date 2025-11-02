@@ -5,6 +5,7 @@ summary: Проверяет ошибки DigestivePipeline при некорре
 */
 use backend::digestive_pipeline::{DigestivePipeline, PipelineError};
 use serial_test::serial;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tempfile::tempdir;
 
@@ -96,7 +97,7 @@ fn invalid_schema_error_logged() {
     let cfg_path = dir.path().join("digestive.toml");
     std::fs::write(
         &cfg_path,
-        format!("schema_path = \"{}\"", schema_path.display()),
+        format!("schema_path = \"{}\"", escape_path_for_toml(&schema_path)),
     )
     .expect("config file");
     std::env::set_var("DIGESTIVE_CONFIG", &cfg_path);
@@ -116,4 +117,8 @@ fn invalid_schema_error_logged() {
 
     std::env::remove_var("DIGESTIVE_CONFIG");
     DigestivePipeline::reset_cache();
+}
+
+fn escape_path_for_toml(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "\\\\")
 }

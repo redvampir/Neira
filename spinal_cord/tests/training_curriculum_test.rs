@@ -22,13 +22,10 @@ use backend::config::Config;
 use backend::digestive_pipeline::ParsedInput;
 use backend::event_bus::{Event, Subscriber};
 use backend::memory_cell::MemoryCell;
-use backend::training::curriculum::{
-    default_curriculum_path,
-    INQUIRY_SEED_LIMIT,
-    RUSSIAN_CURRICULUM_ID,
-    RussianLiteracyCurriculum,
-};
 use backend::synapse_hub::SynapseHub;
+use backend::training::curriculum::{
+    default_curriculum_path, RussianLiteracyCurriculum, INQUIRY_SEED_LIMIT, RUSSIAN_CURRICULUM_ID,
+};
 use tempfile::NamedTempFile;
 
 struct CaptureSubscriber {
@@ -62,9 +59,7 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
         events: captured.clone(),
     }));
 
-    let curriculum = hub
-        .train_russian_literacy(None)
-        .expect("curriculum loaded");
+    let curriculum = hub.train_russian_literacy(None).expect("curriculum loaded");
 
     assert_eq!(curriculum.id(), RUSSIAN_CURRICULUM_ID);
     let word_count = curriculum.words.len();
@@ -80,7 +75,10 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     let last = parsed.last().expect("parsed input stored");
     match last {
         ParsedInput::Json(value) => {
-            assert_eq!(value.get("id"), Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into())));
+            assert_eq!(
+                value.get("id"),
+                Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into()))
+            );
         }
         ParsedInput::Text(_) => panic!("expected json payload"),
     }
@@ -88,7 +86,10 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
     let events = captured.lock().expect("event lock");
     assert_eq!(events.len(), 1);
     let data = &events[0];
-    assert_eq!(data.get("curriculum_id"), Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into())));
+    assert_eq!(
+        data.get("curriculum_id"),
+        Some(&serde_json::Value::String(RUSSIAN_CURRICULUM_ID.into()))
+    );
     assert_eq!(data.get("letters"), Some(&serde_json::Value::from(33)));
     assert_eq!(
         data.get("words"),
@@ -98,10 +99,12 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
         .get("themes")
         .and_then(|value| value.as_object())
         .expect("themes map should be published");
-    let total_in_themes: usize = themes.values().map(|value| value.as_u64().unwrap_or_default() as usize).sum();
+    let total_in_themes: usize = themes
+        .values()
+        .map(|value| value.as_u64().unwrap_or_default() as usize)
+        .sum();
     assert_eq!(
-        total_in_themes,
-        word_count,
+        total_in_themes, word_count,
         "сумма слов по темам должна совпадать с общим числом слов"
     );
 
@@ -131,10 +134,7 @@ async fn literacy_curriculum_is_loaded_into_memory_and_event_bus() {
             "seed must contain question word {expected}"
         );
     }
-    let question_theme_count = seed
-        .iter()
-        .filter(|entry| entry.theme == "вопросы")
-        .count();
+    let question_theme_count = seed.iter().filter(|entry| entry.theme == "вопросы").count();
     assert!(
         question_theme_count >= question_words.len(),
         "all question words should be marked with theme 'вопросы'"
@@ -158,4 +158,3 @@ fn russian_curriculum_handles_extended_wordset() {
     assert_eq!(summary.words, curriculum.words.len());
     assert!(summary.syllables >= summary.words);
 }
-

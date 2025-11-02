@@ -76,9 +76,7 @@ async fn chat_positive_message_updates_tone_state() {
 
     assert_eq!(response.response, phrase);
 
-    let snapshot = hub
-        .tone_state_snapshot()
-        .expect("tone state enabled");
+    let snapshot = hub.tone_state_snapshot().expect("tone state enabled");
     assert_eq!(snapshot.mood, ToneMood::Supportive);
     assert!(snapshot.intensity > 0.0);
 }

@@ -22,6 +22,7 @@ pub mod cell_registry;
 pub mod cell_template;
 pub mod config;
 pub mod context;
+pub mod healing_sleep;
 pub mod hearing;
 pub mod idempotent_store;
 /* neira:meta
@@ -36,9 +37,9 @@ intent: code
 summary: Экспортирован модуль brain.
 */
 pub mod brain;
-pub mod persona;
 pub mod immune_system;
 pub mod memory_cell;
+pub mod persona;
 /* neira:meta
 id: NEI-20260530-digestive-export
 intent: code
@@ -51,8 +52,8 @@ intent: code
 summary: Экспортирован модуль time_metrics.
 */
 pub mod nervous_system;
-pub mod training;
 pub mod time_metrics;
+pub mod training;
 /* neira:meta
 id: NEI-20250226-circulatory-export
 intent: code
@@ -82,6 +83,11 @@ summary: Экспортирован модуль event_log.
 */
 pub mod event_log;
 pub mod voice;
+pub use healing_sleep::{
+    ConsultationPrompt, ConsultationRecord, HealingIncident, HealingOutcome, HealingSleep,
+    HealingSleepConfig, HealingSleepConfigError, IncidentScope, IncidentSeverity,
+    PromptTrainingConfig,
+};
 
 /* neira:meta
 id: NEI-20240513-lib-test-allow

@@ -1,0 +1,19 @@
+[neural_mesh]
+initial_nodes = 1000
+growth_rate = "adaptive"  # Автоматически определяется на основе метрик
+optimization_threshold = 0.85
+
+[metrics]
+collection_interval = "auto"  # Адаптируется к нагрузке
+prediction_window = "1h"
+anomaly_sensitivity = 0.75
+
+[training]
+batch_size = "auto"  # Подстраивается под доступную память
+learning_rate = "adaptive"
+distributed_nodes_max = 100
+
+[health]
+cpu_threshold = "dynamic"  # Определяется автоматически
+memory_threshold = "dynamic"
+io_threshold = "dynamic"

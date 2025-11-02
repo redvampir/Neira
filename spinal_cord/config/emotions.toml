@@ -1,0 +1,17 @@
+[balance]
+# Максимальный уровень негативных эмоций
+negative_threshold = 0.7
+
+# Время удержания негативной эмоции (секунды)
+negative_retention = 300
+
+# Коэффициенты трансформации
+[transformation]
+frustration_to_motivation = 0.8
+anger_to_energy = 0.6
+fear_to_caution = 0.5
+
+# Настройки защиты
+[protection]
+activation_threshold = 0.8
+cooldown_period = 600
