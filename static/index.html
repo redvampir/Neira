@@ -44,6 +44,32 @@ summary: |
         .button:hover {
             background: #106ebe;
         }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab-button {
+            background: #3a3a3a;
+            color: #ffffff;
+            border: 1px solid #4a4a4a;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .tab-button.active {
+            background: #0078d4;
+            border-color: #0078d4;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
         .metrics {
             font-family: monospace;
             background: #1e1e1e;
@@ -104,6 +130,45 @@ summary: |
             background: #3a3a3a;
             color: white;
         }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-field label {
+            font-size: 14px;
+            color: #c9c9c9;
+        }
+        .form-field input {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #4a4a4a;
+            background: #1e1e1e;
+            color: #ffffff;
+        }
+        .inline-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-left: 10px;
+        }
+        .inline-status.success {
+            background: rgba(16, 124, 16, 0.15);
+            color: #7ed957;
+        }
+        .inline-status.error {
+            background: rgba(216, 59, 1, 0.15);
+            color: #ff8a65;
+        }
         @media (max-width: 600px) {
             .button { width: 100%; margin: 5px 0; }
         }
@@ -116,25 +181,63 @@ summary: |
             <p>Этот пульт помогает следить за метриками обучения и вести диалог с Нейрой.</p>
         </div>
 
-        <div class="card">
-            <h2>Тренировочный контур</h2>
-            <button class="button" onclick="sendAttempt(true)">Засчитать успешную попытку</button>
-            <button class="button" onclick="sendAttempt(false)">Засчитать неудачную попытку</button>
-            <p>Текущий уровень сложности: <span id="difficulty">0.50</span></p>
+        <div class="tabs">
+            <button class="tab-button active" data-tab="overview">Обзор</button>
+            <button class="tab-button" data-tab="training">Обучение</button>
+            <button class="tab-button" data-tab="dialogue">Диалог</button>
         </div>
 
-        <div class="card">
-            <h2>Системные метрики</h2>
-            <pre class="metrics" id="metrics">Загружаем метрики...</pre>
+        <div id="tab-overview" class="tab-content active">
+            <div class="card">
+                <h2>Системные метрики</h2>
+                <pre class="metrics" id="metrics">Загружаем метрики...</pre>
+            </div>
         </div>
 
-        <div class="card">
-            <h2>Диалог с Нейрой</h2>
-            <div class="chat-container" id="chat">
-                <div class="messages" id="messages"></div>
-                <div class="input-container">
-                    <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
-                    <button class="button" onclick="sendMessage()">Отправить</button>
+        <div id="tab-training" class="tab-content">
+            <div class="card">
+                <h2>Тренировочный контур</h2>
+                <button class="button" onclick="sendAttempt(true)">Засчитать успешную попытку</button>
+                <button class="button" onclick="sendAttempt(false)">Засчитать неудачную попытку</button>
+                <p>Текущий уровень сложности: <span id="difficulty">0.50</span></p>
+            </div>
+            <div class="card">
+                <h2>Настройки обучения
+                    <span id="trainingConfigStatus" class="inline-status" style="display:none"></span>
+                </h2>
+                <form id="trainingConfigForm">
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label for="successThreshold">Порог успеха (0-1)</label>
+                            <input type="number" id="successThreshold" name="successThreshold" min="0" max="1" step="0.05" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="failureThreshold">Порог неудач (0-1)</label>
+                            <input type="number" id="failureThreshold" name="failureThreshold" min="0" max="1" step="0.05" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="minAttempts">Минимум попыток</label>
+                            <input type="number" id="minAttempts" name="minAttempts" min="1" step="1" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="dataDir">Каталог данных</label>
+                            <input type="text" id="dataDir" name="dataDir" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="button">Сохранить настройки</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="tab-dialogue" class="tab-content">
+            <div class="card">
+                <h2>Диалог с Нейрой</h2>
+                <div class="chat-container" id="chat">
+                    <div class="messages" id="messages"></div>
+                    <div class="input-container">
+                        <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
+                        <button class="button" onclick="sendMessage()">Отправить</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -142,6 +245,20 @@ summary: |
 
     <script>
         const API_URL = '';
+
+        const tabs = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+        });
+
+        function activateTab(tabId) {
+            tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === tabId));
+            tabContents.forEach((content) =>
+                content.classList.toggle('active', content.id === `tab-${tabId}`)
+            );
+        }
 
         async function updateMetrics() {
             try {
@@ -178,6 +295,75 @@ summary: |
             } catch (error) {
                 console.error('Ошибка при фиксации попытки:', error);
             }
+        }
+
+        async function loadTrainingConfig() {
+            try {
+                const response = await fetch(`${API_URL}/training/config`);
+                if (!response.ok) {
+                    throw new Error('Сервер вернул ошибку при загрузке настроек');
+                }
+                const config = await response.json();
+                document.getElementById('successThreshold').value = config.success_threshold.toFixed(2);
+                document.getElementById('failureThreshold').value = config.failure_threshold.toFixed(2);
+                document.getElementById('minAttempts').value = config.min_attempts;
+                document.getElementById('dataDir').value = config.data_dir;
+                hideTrainingConfigStatus();
+            } catch (error) {
+                showTrainingConfigStatus(`Не удалось загрузить настройки: ${error.message}`, false);
+            }
+        }
+
+        async function saveTrainingConfig(event) {
+            event.preventDefault();
+            const payload = {
+                success_threshold: Number(document.getElementById('successThreshold').value),
+                failure_threshold: Number(document.getElementById('failureThreshold').value),
+                min_attempts: Number(document.getElementById('minAttempts').value),
+                data_dir: document.getElementById('dataDir').value,
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/training/config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Не удалось сохранить настройки');
+                }
+
+                const config = await response.json();
+                document.getElementById('successThreshold').value = config.success_threshold.toFixed(2);
+                document.getElementById('failureThreshold').value = config.failure_threshold.toFixed(2);
+                document.getElementById('minAttempts').value = config.min_attempts;
+                document.getElementById('dataDir').value = config.data_dir;
+                showTrainingConfigStatus('Настройки сохранены', true);
+            } catch (error) {
+                showTrainingConfigStatus(error.message, false);
+            }
+        }
+
+        function showTrainingConfigStatus(message, success) {
+            const node = document.getElementById('trainingConfigStatus');
+            node.textContent = message;
+            node.classList.remove('success', 'error');
+            node.classList.add(success ? 'success' : 'error');
+            node.style.display = 'inline-flex';
+            if (success) {
+                setTimeout(() => {
+                    hideTrainingConfigStatus();
+                }, 4000);
+            }
+        }
+
+        function hideTrainingConfigStatus() {
+            const node = document.getElementById('trainingConfigStatus');
+            node.textContent = '';
+            node.classList.remove('success', 'error');
+            node.style.display = 'none';
         }
 
         function appendMessage(content, cssClass) {
@@ -229,8 +415,13 @@ summary: |
             }
         });
 
+        document
+            .getElementById('trainingConfigForm')
+            .addEventListener('submit', saveTrainingConfig);
+
         updateMetrics();
         setInterval(updateMetrics, 5000);
+        loadTrainingConfig();
     </script>
 </body>
 </html>
