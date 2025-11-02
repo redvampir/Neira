@@ -34,17 +34,30 @@
 
 [package]
 name = "neira"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-backend = { path = "spinal_cord" }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-jsonschema-valid = "0.5.2"
-once_cell = "1"
-serde_yaml = "0.9"
-quick-xml = { version = "0.31", features = ["serialize"] }
+tokio = { version = "1.0", features = ["full"] }
+axum = "0.6"
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.4", features = ["full"] }
+eframe = { version = "0.22.0", default-features = false, features = ["default_fonts", "glow", "persistence"] }
+sysinfo = "0.29.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tracing-appender = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+prometheus = "0.13"
+chrono = { version = "0.4", features = ["serde"] }
+winapi = { version = "0.3.9", features = ["winuser", "processthreadsapi", "winbase", "errhandlingapi", "handleapi"] }
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+once_cell = "1.19"
+
+[build-dependencies]
+winres = "0.1"
 
 [dev-dependencies]
 tempfile = "3"
@@ -54,6 +67,8 @@ metrics-exporter-prometheus = { version = "0.17", default-features = false }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3.19", default-features = false, features = ["env-filter", "json", "fmt", "std"] }
 serial_test = "3"
+backend = { path = "spinal_cord" }
+serde_yaml = "0.9"
 
 [package.metadata]
 rustflags = ["-Dwarnings"]

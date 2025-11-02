@@ -4,6 +4,7 @@ intent: test
 summary: Проверяет, что DigestivePipeline использует путь схемы из конфигурации.
 */
 use backend::digestive_pipeline::{DigestivePipeline, PipelineError};
+use std::path::Path;
 use tempfile::tempdir;
 
 #[test]
@@ -17,7 +18,7 @@ fn validates_with_overridden_schema() {
     let schema_path = dir.path().join("schema.json");
     std::fs::write(&schema_path, schema).expect("write schema");
 
-    let cfg_content = format!("schema_path = \"{}\"", schema_path.display());
+    let cfg_content = format!("schema_path = \"{}\"", escape_path_for_toml(&schema_path));
     let cfg_path = dir.path().join("digestive.toml");
     std::fs::write(&cfg_path, cfg_content).expect("write config");
     std::env::set_var("DIGESTIVE_CONFIG", &cfg_path);
@@ -26,4 +27,8 @@ fn validates_with_overridden_schema() {
     let raw = "{\"id\":1}";
     let err = DigestivePipeline::ingest(raw).expect_err("should fail");
     assert!(matches!(err, PipelineError::Validation(_)));
+}
+
+fn escape_path_for_toml(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "\\\\")
 }

@@ -1,0 +1,90 @@
+{
+  "neira:meta": {
+    "id": "NEI-20251101-russian-curriculum",
+    "intent": "training",
+    "summary": "Поэтапная учебная программа для обучения Нейры русскому языку (фонетика → словарь → грамматика → диалог)."
+  },
+  "id": "training.russian.v1",
+  "version": "0.1.0",
+  "description": "Ступенчатая программа обучения русскому языку с контролем фичей и метрик.",
+  "stages": [
+    {
+      "name": "phonetics",
+      "objective": "обучить распознаванию и генерации русских звуков/фонем",
+      "inputs": ["audio_samples_ru", "transcriptions_phonetic"],
+      "outputs": ["phoneme_model_v1"],
+      "metrics": ["phoneme_error_rate", "signal_to_noise"],
+      "store_parsed_input": true,
+      "feature_gates": ["phoneme_training"]
+    },
+    {
+      "name": "phoneme_mapping",
+      "objective": "карта фонем → буквы, согласование с text_to_phonemes",
+      "inputs": ["phoneme_model_v1", "text_corpus_phonetic"],
+      "outputs": ["grapheme_phoneme_map"],
+      "metrics": ["mapping_accuracy"],
+      "feature_gates": ["mapping_training"]
+    },
+    {
+      "name": "core_vocabulary",
+      "objective": "обучить 1000 наиболее частых слов и их форм",
+      "inputs": ["text_corpus_freq", "annotated_morphology"],
+      "outputs": ["vocab_model_1k"],
+      "metrics": ["lemma_accuracy", "oov_rate"],
+      "feature_gates": ["vocab_training"]
+    },
+    {
+      "name": "morphology",
+      "objective": "обучить морфологической разметке и генерации форм (склонения, спряжения)",
+      "inputs": ["vocab_model_1k", "morph_corpus"],
+      "outputs": ["morph_model_v1"],
+      "metrics": ["morph_accuracy"],
+      "feature_gates": ["morph_training"]
+    },
+    {
+      "name": "syntax",
+      "objective": "обучить базовому синтаксису и простым конструкциям предложений",
+      "inputs": ["morph_model_v1", "syntax_corpus"],
+      "outputs": ["syntax_model_v1"],
+      "metrics": ["parse_accuracy", "dependency_f1"],
+      "feature_gates": ["syntax_training"]
+    },
+    {
+      "name": "dialogue",
+      "objective": "обучить простым диалоговым стратегиям и поддержанию контекста",
+      "inputs": ["syntax_model_v1", "dialog_corpus_ru"],
+      "outputs": ["dialogue_agent_v1"],
+      "metrics": ["turn_success_rate", "context_retention"],
+      "feature_gates": ["dialogue_training"]
+    },
+    {
+      "name": "evaluation",
+      "objective": "комплексная валидация навыков: автоматические тесты и human-in-the-loop",
+      "inputs": ["dialogue_agent_v1", "eval_suite_ru"],
+      "outputs": ["evaluation_report"],
+      "metrics": ["overall_score", "regression_alerts"],
+      "escalation": {
+        "on_schema_change": "request_confirmation",
+        "on_data_migration": "request_confirmation",
+        "on_metric_regression": "safe_mode_lock"
+      }
+    }
+  ],
+  "feature_gates": {
+    "phoneme_training": "locked",
+    "mapping_training": "locked",
+    "vocab_training": "locked",
+    "morph_training": "locked",
+    "syntax_training": "locked",
+    "dialogue_training": "locked"
+  },
+  "owner_activation_phrases": {
+    "unlock": "Разблокируй {capability}",
+    "lock": "Выключи {capability}",
+    "status": "Покажи статус способностей"
+  },
+  "notes": {
+    "storage": "После успешного парсинга вход сохраняется в MemoryCell через store_parsed_input.",
+    "sizing_guideline": "Этапы минимальны и обратимы. Для расширения добавить новый stage и neira:meta."
+  }
+}

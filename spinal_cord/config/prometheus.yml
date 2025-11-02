@@ -1,0 +1,9 @@
+scrape_configs:
+  - job_name: 'neira_learning'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    evaluation_interval: 15s
+    honor_labels: true
+    scheme: 'http'

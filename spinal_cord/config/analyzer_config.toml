@@ -1,0 +1,24 @@
+[model]
+architecture = "transformer"
+hidden_size = 768
+num_layers = 12
+attention_heads = 12
+
+[training]
+batch_size = "auto"  # Адаптируется к GPU памяти
+learning_rate = "adaptive"
+warmup_steps = 1000
+
+[decoding]
+beam_width = "dynamic"  # Адаптируется к сложности входа
+length_penalty = 0.6
+
+[metrics]
+accuracy_threshold = 0.95
+collect_interval = "auto"
+export_prometheus = true
+
+[distributed]
+enable = true
+world_size = "auto"  # Подстраивается под доступные узлы
+sync_interval = "1s"

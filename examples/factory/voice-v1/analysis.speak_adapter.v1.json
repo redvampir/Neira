@@ -5,6 +5,14 @@
   "links": [
     "analysis.text_to_phonemes.v1"
   ],
-  "metadata": { "schema": "v1" }
+  "metadata": { 
+    "schema": "v1",
+    "hibernation": {
+      "allowed": true,
+      "priority": 1,
+      "state_save_path": "state/speak_adapter/",
+      "min_idle_time": 180
+    }
+  }
 }
 

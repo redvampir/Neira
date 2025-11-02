@@ -117,6 +117,10 @@ capabilities:
     state: stable
     notes: аварийная остановка с grace-периодом (admin)
     signals: [kill_switch_total]
+  healing_sleep:
+    state: experimental
+    notes: «Исцеляющий сон» — журнал инцидентов и консультации с доверенными нейросетями
+    signals: [healing_sleep_incidents_total, healing_sleep_consultations_total]
 
   inspect_snapshot:
     state: stable

@@ -1,0 +1,20 @@
+{
+  "neira:meta": {
+    "id": "NEI-20251102-unlock-phonetics",
+    "intent": "activation_request",
+    "summary": "Запрос на разблокировку этапа phonetics в training.russian.v1"
+  },
+  "request_id": "unlock_phonetics_20251102",
+  "target_feature_gate": "phoneme_training",
+  "current_state": "locked",
+  "requested_state": "experimental",
+  "reason": "Провести пробный запуск этапа phonetics для обучения начальной модели фонем и сбора метрик.",
+  "risk": "низкий — чтение тренировочных данных и запись метрик; записи защищены политиками safe-mode при регрессах.",
+  "owner_activation_phrase": "Разблокируй phoneme_training",
+  "verify_steps": [
+    "Добавить аудио-файлы в spinal_cord/training/fixtures/audio/",
+    "Запустить DigestivePipeline с манифестом phonetics_samples.json",
+    "Проверить появление метрики phoneme_error_rate и запись store_parsed_input в MemoryCell"
+  ],
+  "escalation": "request_confirmation"
+}

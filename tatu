@@ -1,0 +1,6 @@
+  chore/ci-required-gateway   [m adf327664 [[34morigin/chore/ci-required-gateway[m: behind 28] docs(guides): add Git & GitHub guide
+  ci/auto-fixers              [m 8d66c8504 [[34morigin/ci/auto-fixers[m] chore(ci): resolve renovate.json in favor of branch
+  ci/fix-github-script-context[m 42308aeef [[34morigin/ci/fix-github-script-context[m] ci: fix github-script context usage; guard eventName
+  ci/fixer-noconflict         [m 9420aaf76 [[34morigin/ci/fixer-noconflict[m] ci(conflicts): don't fail when merge has no changes
+  ci/github-script-guard      [m a69358fe8 [[34morigin/ci/github-script-guard[m] ci: resolve merge (keep CI change; take main for spinal_cord)
+* [32mmain                        [m ba4ded0e7 [[34morigin/main[m] feat(training): add curriculum config and editor (#429)

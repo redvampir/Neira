@@ -5,7 +5,7 @@ summary: Проверяет, что DigestivePipeline читает JSON Schema �
 */
 use backend::digestive_pipeline::DigestivePipeline;
 use serial_test::serial;
-use std::fs;
+use std::{fs, path::Path};
 use tempfile::tempdir;
 
 #[test]
@@ -20,7 +20,7 @@ fn caches_schema_after_first_read() {
     let cfg_path = dir.path().join("digestive.toml");
     fs::write(
         &cfg_path,
-        format!("schema_path = \"{}\"", schema_path.display()),
+        format!("schema_path = \"{}\"", escape_path_for_toml(&schema_path)),
     )
     .unwrap();
 
@@ -33,4 +33,8 @@ fn caches_schema_after_first_read() {
 
     std::env::remove_var("DIGESTIVE_CONFIG");
     DigestivePipeline::reset_cache();
+}
+
+fn escape_path_for_toml(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "\\\\")
 }
