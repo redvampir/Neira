@@ -8,11 +8,15 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
-    http::{header::CONTENT_TYPE, HeaderValue, Method},
+    http::{header::CONTENT_TYPE, Method},
     routing::post,
-    Router, Server,
+    Router,
 };
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tokio::net::TcpListener;
+use tower_http::{
+    cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer},
+    services::ServeDir,
+};
 use tracing::info;
 
 use crate::training::metrics::LearningMetrics;
@@ -35,9 +39,9 @@ impl MetricsServer {
 
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
         let cors = CorsLayer::new()
-            .allow_origin("*".parse::<HeaderValue>().unwrap())
-            .allow_methods([Method::GET, Method::POST])
-            .allow_headers([CONTENT_TYPE]);
+            .allow_origin(AllowOrigin::any())
+            .allow_methods(AllowMethods::list([Method::GET, Method::POST]))
+            .allow_headers(AllowHeaders::list([CONTENT_TYPE]));
 
         let app = Router::new()
             .nest("/metrics", metrics::router())
@@ -47,11 +51,12 @@ impl MetricsServer {
             .with_state(self.metrics.clone())
             .layer(cors);
 
-        info!("Сервер метрик стартует по адресу {}", self.addr);
+        let listener = TcpListener::bind(self.addr).await?;
+        let bound_addr = listener.local_addr()?;
 
-        Server::bind(&self.addr)
-            .serve(app.into_make_service())
-            .await?;
+        info!("Сервер метрик стартует по адресу {}", bound_addr);
+
+        axum::serve(listener, app).await?;
         Ok(())
     }
 }
