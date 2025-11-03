@@ -11,29 +11,10 @@ wildcards = "warn"
 deny = []
 allow = []
 
-# Разрешаем множественные версии для семейств Windows/WASI
-# (транзитивные и пока неизбежные разночтения в экосистеме)
+# Разрешаем дубль для пакетов с несовместимыми major-ветками
 skip = [
-    { name = "wasi" },
-    { name = "windows" },
-    { name = "windows-sys" },
-    { name = "windows-core" },
-    { name = "windows-targets" },
-    # Архитектурно-специфичные пакеты windows_*
-    { name = "windows_aarch64_gnullvm" },
-    { name = "windows_aarch64_msvc" },
-    { name = "windows_i686_gnu" },
-    { name = "windows_i686_gnullvm" },
-    { name = "windows_i686_msvc" },
-    { name = "windows_x86_64_gnu" },
-    { name = "windows_x86_64_gnullvm" },
-    { name = "windows_x86_64_msvc" },
-]
-
-# Игнорируем дубликаты во всём поддереве Windows-пакетов
-skip-tree = [
-    { name = "windows" },
-    { name = "windows-sys" },
-    { name = "windows-targets" },
+    { name = "getrandom" },
+    { name = "hashbrown" },
+    { name = "toml" },
 ]
 
