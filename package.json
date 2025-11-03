@@ -27,6 +27,7 @@
         "meta:id": "node scripts/gen-neira-id.mjs"
     },
     "devDependencies": {
+        "@eslint/js": "^9.39.0",
         "@types/jest": "^29.5.11",
         "@types/node": "^20.17.12",
         "@typescript-eslint/eslint-plugin": "^8.41.0",
