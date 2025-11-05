@@ -61,6 +61,12 @@ impl Pipeline for PipelineResult {
     }
 }
 
+impl Default for LearningMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LearningMetrics {
     pub fn new() -> Self {
         let config_path = TrainingConfig::resolve_path();
