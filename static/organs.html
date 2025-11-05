@@ -1,0 +1,572 @@
+<!-- neira:meta
+id: NEI-20251104-organs-ui
+intent: feature
+summary: Создан интерфейс управления органами Нейры с возможностью сборки и мониторинга.
+-->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нейра — Органы</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .controls {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background: #106ebe;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.danger {
+            background: #d83b01;
+        }
+        
+        button.danger:hover {
+            background: #a52a00;
+        }
+        
+        button.success {
+            background: #107c10;
+        }
+        
+        button.success:hover {
+            background: #0d6b0d;
+        }
+        
+        .organs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .organ-card {
+            background: #2d2d2d;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .organ-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            border-color: #667eea;
+        }
+        
+        .organ-card h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: #667eea;
+        }
+        
+        .organ-info {
+            margin-bottom: 15px;
+        }
+        
+        .organ-info label {
+            display: block;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .organ-info span {
+            font-size: 15px;
+            color: #fff;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        
+        .status-badge.active {
+            background: rgba(16, 124, 16, 0.2);
+            color: #7ed957;
+        }
+        
+        .status-badge.building {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .status-badge.error {
+            background: rgba(216, 59, 1, 0.2);
+            color: #ff8a65;
+        }
+        
+        .status-badge.inactive {
+            background: rgba(153, 153, 153, 0.2);
+            color: #999;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .organ-card .button-group {
+            margin-bottom: 0;
+            margin-top: 15px;
+        }
+        
+        .organ-card button {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+        
+        .build-form {
+            background: #2d2d2d;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .build-form h2 {
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #c9c9c9;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #4a4a4a;
+            background: #1e1e1e;
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .logs {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .logs h2 {
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .logs pre {
+            background: #0d0d0d;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            max-height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #7ed957;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .organs-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 Органы Нейры</h1>
+            <p>Управление сенсорными и исполнительными компонентами системы</p>
+        </header>
+
+        <div class="controls">
+            <h2 style="margin-bottom: 15px;">Управление</h2>
+            <div class="button-group">
+                <button onclick="refreshOrgans()">
+                    🔄 Обновить список
+                </button>
+                <button onclick="toggleBuildForm()" class="success">
+                    ➕ Собрать новый орган
+                </button>
+                <button onclick="refreshLogs()">
+                    📋 Обновить логи
+                </button>
+            </div>
+        </div>
+
+        <div id="buildForm" class="build-form" style="display: none;">
+            <h2>Сборка нового органа</h2>
+            <div class="form-group">
+                <label for="organId">ID органа</label>
+                <input type="text" id="organId" placeholder="например: vision_analyzer_v2">
+            </div>
+            <div class="form-group">
+                <label for="organType">Тип</label>
+                <input type="text" id="organType" placeholder="sensory / executive / hybrid">
+            </div>
+            <div class="form-group">
+                <label for="organConfig">Конфигурация (JSON)</label>
+                <textarea id="organConfig" placeholder='{"param1": "value1", "param2": 123}'></textarea>
+            </div>
+            <div class="button-group">
+                <button onclick="buildOrgan()" class="success">
+                    🔨 Начать сборку
+                </button>
+                <button onclick="toggleBuildForm()">
+                    Отмена
+                </button>
+            </div>
+        </div>
+
+        <div id="organsContainer">
+            <div class="empty-state">
+                <h3>Загрузка органов...</h3>
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <div class="logs">
+            <h2>Логи сборки</h2>
+            <pre id="buildLogs">Ожидание событий...</pre>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '';
+        let eventSource = null;
+
+        async function refreshOrgans() {
+            try {
+                const response = await fetch(`${API_URL}/api/neira/organs`);
+                if (!response.ok) throw new Error('Ошибка загрузки органов');
+                
+                const organs = await response.json();
+                renderOrgans(organs);
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('organsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <h3>Ошибка загрузки</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderOrgans(organs) {
+            const container = document.getElementById('organsContainer');
+            
+            if (!organs || organs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Органов пока нет</h3>
+                        <p>Создайте первый орган используя форму выше</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'organs-grid';
+
+            organs.forEach(organ => {
+                const card = document.createElement('div');
+                card.className = 'organ-card';
+                
+                const statusClass = organ.status === 'active' ? 'active' :
+                                   organ.status === 'building' ? 'building' :
+                                   organ.status === 'error' ? 'error' : 'inactive';
+
+                card.innerHTML = `
+                    <h3>${organ.id || organ.name || 'Неизвестный орган'}</h3>
+                    <div class="organ-info">
+                        <label>Статус</label>
+                        <span class="status-badge ${statusClass}">${organ.status || 'unknown'}</span>
+                    </div>
+                    <div class="organ-info">
+                        <label>Тип</label>
+                        <span>${organ.type || 'не указан'}</span>
+                    </div>
+                    <div class="organ-info">
+                        <label>Версия</label>
+                        <span>${organ.version || 'n/a'}</span>
+                    </div>
+                    ${organ.last_activity ? `
+                        <div class="organ-info">
+                            <label>Последняя активность</label>
+                            <span>${new Date(organ.last_activity).toLocaleString('ru')}</span>
+                        </div>
+                    ` : ''}
+                    <div class="button-group">
+                        <button onclick="rebuildOrgan('${organ.id}')" class="success">
+                            🔄 Пересобрать
+                        </button>
+                        <button onclick="cancelBuild('${organ.id}')" class="danger">
+                            ❌ Отменить
+                        </button>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(grid);
+        }
+
+        function toggleBuildForm() {
+            const form = document.getElementById('buildForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function buildOrgan() {
+            const id = document.getElementById('organId').value.trim();
+            const type = document.getElementById('organType').value.trim();
+            const configText = document.getElementById('organConfig').value.trim();
+
+            if (!id) {
+                alert('Укажите ID органа');
+                return;
+            }
+
+            let config = {};
+            if (configText) {
+                try {
+                    config = JSON.parse(configText);
+                } catch (e) {
+                    alert('Неверный формат JSON в конфигурации');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/neira/organs/build`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, type, config })
+                });
+
+                if (!response.ok) throw new Error('Ошибка запуска сборки');
+
+                const result = await response.json();
+                alert(`Сборка запущена: ${JSON.stringify(result)}`);
+                
+                toggleBuildForm();
+                document.getElementById('organId').value = '';
+                document.getElementById('organType').value = '';
+                document.getElementById('organConfig').value = '';
+                
+                refreshOrgans();
+            } catch (error) {
+                alert(`Ошибка: ${error.message}`);
+            }
+        }
+
+        async function rebuildOrgan(id) {
+            if (!confirm(`Пересобрать орган ${id}?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/api/neira/organs/${encodeURIComponent(id)}/rebuild`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) throw new Error('Ошибка пересборки');
+
+                const result = await response.json();
+                alert(`Пересборка запущена: ${JSON.stringify(result)}`);
+                refreshOrgans();
+            } catch (error) {
+                alert(`Ошибка: ${error.message}`);
+            }
+        }
+
+        async function cancelBuild(id) {
+            if (!confirm(`Отменить сборку ${id}?`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/api/neira/organs/${encodeURIComponent(id)}/build`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Ошибка отмены');
+
+                const result = await response.json();
+                alert(`Сборка отменена: ${JSON.stringify(result)}`);
+                refreshOrgans();
+            } catch (error) {
+                alert(`Ошибка: ${error.message}`);
+            }
+        }
+
+        function refreshLogs() {
+            // Реконнект к SSE стриму
+            if (eventSource) {
+                eventSource.close();
+            }
+            startLogStream();
+        }
+
+        function startLogStream() {
+            const logsEl = document.getElementById('buildLogs');
+            
+            try {
+                eventSource = new EventSource(`${API_URL}/api/neira/organs/stream`);
+                
+                eventSource.onmessage = (event) => {
+                    const timestamp = new Date().toLocaleTimeString('ru');
+                    logsEl.textContent += `[${timestamp}] ${event.data}\n`;
+                    logsEl.scrollTop = logsEl.scrollHeight;
+                };
+
+                eventSource.onerror = (error) => {
+                    console.error('SSE error:', error);
+                    logsEl.textContent += `[ОШИБКА] Потеряно соединение со стримом\n`;
+                };
+            } catch (error) {
+                logsEl.textContent += `[ОШИБКА] Не удалось подключиться к стриму: ${error.message}\n`;
+            }
+        }
+
+        // Инициализация при загрузке
+        window.addEventListener('load', () => {
+            refreshOrgans();
+            startLogStream();
+        });
+
+        // Очистка при выгрузке
+        window.addEventListener('beforeunload', () => {
+            if (eventSource) {
+                eventSource.close();
+            }
+        });
+    </script>
+</body>
+</html>
