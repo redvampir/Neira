@@ -1,0 +1,162 @@
+/* Neira Consciousness Dashboard - Additional Styles */
+
+/* Language switcher buttons */
+.lang-btn {
+    color: #9ca3af;
+    transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+    color: #fff;
+    background: #4b5563;
+}
+
+.lang-btn.active {
+    color: #fff;
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    font-weight: bold;
+}
+
+/* Pulse animation for system status */
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Loading spinner */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-spinner {
+    border: 3px solid #374151;
+    border-top-color: #8b5cf6;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Gradient text effect */
+.gradient-text {
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Card hover effects */
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1f2937;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 250px !important;
+    }
+}
+
+/* Navigation Bar Styles */
+nav[role="navigation"] {
+    backdrop-filter: blur(10px);
+    background: rgba(31, 41, 55, 0.95);
+}
+
+.nav-link {
+    color: #d1d5db;
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+}
+
+.nav-link:hover {
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.nav-link.active {
+    color: #ffffff;
+    background: rgba(139, 92, 246, 0.3);
+    border-bottom: 2px solid #8b5cf6;
+}
+
+.nav-link svg {
+    transition: transform 0.2s ease;
+}
+
+.nav-link:hover svg {
+    transform: scale(1.1);
+}
+
+/* Navigation responsive */
+@media (max-width: 640px) {
+    nav[role="navigation"] ul {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+    
+    .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    .nav-link svg {
+        width: 0.875rem;
+        height: 0.875rem;
+        margin-right: 0.25rem;
+    }
+}

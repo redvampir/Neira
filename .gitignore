@@ -1,26 +1,50 @@
-# neira:meta
-# id: NEI-20260716-unignore-gitmodules
-# intent: build
-# summary: Разрешён отслеживаемый файл .gitmodules.
+# NEI-20251105: Обновлён .gitignore для безопасной публикации на GitHub
 
-# neira:meta
-# id: NEI-20270330-ignore-sensory-node-modules
-# intent: build
-# summary: Игнорируется sensory_organs/node_modules.
+# Compiler sources (moved to separate repo)
+binutils-gdb/
+llvm-project/
+cargo/
+rust/
+nasm/
 
-# neira:meta
-# id: NEI-20270610-120500-logs-example
-# intent: docs
-# summary: Разрешён пример журнала logs/events.ndjson.
-
+# Dependencies
 node_modules/
 sensory_organs/node_modules/
 target/
+venv/
+*/venv/
+**/*venv/
+
+# Environment и секреты
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Логи
 logs/*
 !logs/.keep
 !logs/events.ndjson
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
 **/.git*
 !.gitmodules
 !/.github/
 !/.github/workflows/
 !/.github/workflows/**
+

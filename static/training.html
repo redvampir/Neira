@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Neira Training UI</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; }
+    #log { border: 1px solid #ccc; padding: 10px; height: 300px; overflow: auto; white-space: pre-wrap; background:#fafafa }
+    input[type=text] { width: 420px; }
+    button { margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Scripted Training</h1>
+  <div>
+    <label>Script: <input id="script" type="text" value="examples/training_script.yaml"/></label>
+    <label>Dry run: <input id="dry" type="checkbox"/></label>
+    <button id="run">Run</button>
+    <button id="report" onclick="openReport()">Open HTML Report</button>
+  </div>
+  <h3>Live Log</h3>
+  <div id="log"></div>
+  <script>
+    const log = document.getElementById('log');
+    function append(line){ log.textContent += line + "\n"; log.scrollTop = log.scrollHeight; }
+    function startStream(){
+      const es = new EventSource('/api/neira/training/stream');
+      es.onmessage = (e)=> append(e.data);
+      es.onerror = ()=> append('[stream error]');
+    }
+    async function run(){
+      const script = document.getElementById('script').value;
+      const dry = document.getElementById('dry').checked;
+      await fetch('/api/neira/training/run', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({script, dry_run: dry})});
+      append(`[run] script=${script} dry_run=${dry}`);
+    }
+    function openReport(){ window.open('/context/training/report.html', '_blank'); }
+    document.getElementById('run').onclick = run;
+    startStream();
+  </script>
+</body>
+</html>
+
