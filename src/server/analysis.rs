@@ -29,6 +29,12 @@ pub struct DialogueAnalysisCell {
     priority: HashMap<DialogueIntent, u8>,
 }
 
+impl Default for DialogueAnalysisCell {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DialogueAnalysisCell {
     pub fn new() -> Self {
         let lexicon = vec![
